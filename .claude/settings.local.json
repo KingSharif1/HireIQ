@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@14.2.35 . --typescript --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --no-turbopack)",
+      "Bash(npm init *)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(node -e \"const p = require\\('./node_modules/ai/package.json'\\); console.log\\(p.version\\)\")",
+      "Bash(node -e \"const ai = require\\('./node_modules/ai/dist/index.js'\\); console.log\\(Object.keys\\(ai\\).filter\\(k => k.toLowerCase\\(\\).includes\\('token'\\) || k.toLowerCase\\(\\).includes\\('stream'\\) || k.toLowerCase\\(\\).includes\\('completion'\\)\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(node -e \"const ai = require\\('./node_modules/ai/dist/index.js'\\); const gt = ai.generateText; const params = gt.toString\\(\\).slice\\(0,200\\); console.log\\(params\\);\")",
+      "Bash(node -e \"try { require\\('./node_modules/ai/react'\\); console.log\\('ok'\\) } catch\\(e\\) { console.log\\(e.message\\) }\")",
+      "Bash(node -e \"const ai = require\\('./node_modules/ai/dist/index.js'\\); console.log\\(Object.keys\\(ai\\).filter\\(k => k.startsWith\\('use'\\) || k.includes\\('hook'\\) || k.includes\\('Hook'\\)\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(node -e \"const p = require\\('./node_modules/ai/package.json'\\); console.log\\(JSON.stringify\\(Object.keys\\(p.exports || {}\\).slice\\(0,20\\), null, 2\\)\\)\")",
+      "Bash(node -e \"const p = require\\('./node_modules/@ai-sdk/react/package.json'\\); console.log\\(p.version\\); console.log\\(Object.keys\\(p.exports || {}\\).slice\\(0,10\\)\\)\")",
+      "Bash(npm run *)",
+      "Bash(.\\\\node_modules\\\\.bin\\\\next build *)",
+      "Bash(npx next *)",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/eslint/package.json'\\).version\\)\")"
+    ]
+  }
+}
