@@ -13,7 +13,8 @@ import { Zap, Globe } from 'lucide-react'
 
 export default function SignupPage() {
   const router = useRouter()
-  const [fullName, setFullName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -25,11 +26,17 @@ export default function SignupPage() {
     setLoading(true)
     setError(null)
 
+    if (!firstName.trim() || !lastName.trim()) {
+      setError('First and last name are required.')
+      setLoading(false)
+      return
+    }
+
     const supabase = createClient()
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: { data: { first_name: firstName.trim(), last_name: lastName.trim() } },
     })
 
     if (error) {
@@ -112,13 +119,22 @@ export default function SignupPage() {
             </div>
 
             <form onSubmit={handleSignup} className="space-y-3">
-              <Input
-                placeholder="Full name"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
-                disabled={loading}
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  placeholder="First name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+                <Input
+                  placeholder="Last name"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
               <Input
                 type="email"
                 placeholder="Email address"

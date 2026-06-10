@@ -3,13 +3,14 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { FileText, Briefcase, Sparkles, Home } from 'lucide-react'
+import { FileText, Briefcase, Sparkles, Home, UserCircle } from 'lucide-react'
 
 const NAV_ITEMS = [
   { href: '/dashboard', icon: Home, label: 'Home' },
   { href: '/dashboard/resume', icon: FileText, label: 'Resumes' },
   { href: '/dashboard/jobs', icon: Briefcase, label: 'Jobs' },
   { href: '/dashboard/tailor', icon: Sparkles, label: 'Tailor' },
+  { href: '/dashboard/profile', icon: UserCircle, label: 'Profile' },
 ]
 
 export function MobileNav() {

@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
 import { anthropic } from '@ai-sdk/anthropic'
 import { generateText } from 'ai'
 import { QUESTION_GENERATOR_PROMPT, extractJSON } from '@/lib/ai/prompts'
+import { aiErrorResponse } from '@/lib/ai/error-response'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import type { GapQuestion } from '@/types'
 
@@ -11,17 +11,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 30
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (cs) => cs.forEach(({ name, value, options }) => cookieStore.set(name, value, options)),
-      },
-    }
-  )
+  const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -60,8 +50,8 @@ export async function POST(request: Request) {
     })
     const parsed = JSON.parse(extractJSON(result.text))
     questions = parsed.questions || []
-  } catch {
-    return NextResponse.json({ error: 'Failed to generate questions' }, { status: 500 })
+  } catch (err) {
+    return aiErrorResponse(err, 'Failed to generate questions')
   }
 
   return NextResponse.json({ questions })

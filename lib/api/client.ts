@@ -1,0 +1,201 @@
+/**
+ * Frontend API client — all HTTP calls to /api/* go through here.
+ * Import these functions in components and hooks instead of calling fetch directly.
+ */
+import type {
+  ATSScore,
+  GapQuestion,
+  StructuredResume,
+  ResumeDiffChange,
+  JobExtractedData,
+} from '@/types'
+
+// ---------------------------------------------------------------------------
+// Shared error type
+// ---------------------------------------------------------------------------
+
+export class APIError extends Error {
+  constructor(public status: number, message: string) {
+    super(message)
+    this.name = 'APIError'
+  }
+}
+
+async function post<T>(path: string, body: Record<string, unknown>): Promise<T> {
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({ error: res.statusText }))
+    throw new APIError(res.status, data.error ?? 'Request failed')
+  }
+  return res.json()
+}
+
+// ---------------------------------------------------------------------------
+// Resume
+// ---------------------------------------------------------------------------
+
+export interface ParseResumeResult {
+  resumeId: string
+  structuredData: StructuredResume
+  atsFormatScore: number
+}
+
+export async function parseResume(file: File, title?: string): Promise<ParseResumeResult> {
+  const form = new FormData()
+  form.append('file', file)
+  if (title) form.append('title', title)
+
+  const res = await fetch('/api/resume/parse', { method: 'POST', body: form })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({ error: res.statusText }))
+    throw new APIError(res.status, data.error ?? 'Failed to parse resume')
+  }
+  return res.json()
+}
+
+// ---------------------------------------------------------------------------
+// Jobs
+// ---------------------------------------------------------------------------
+
+export interface AnalyzeJobResult {
+  jobId: string
+  extractedData: JobExtractedData
+}
+
+export async function analyzeJob(params: {
+  description: string
+  title?: string
+  company?: string
+  location?: string
+  applyUrl?: string
+  source?: string
+}): Promise<AnalyzeJobResult> {
+  return post('/api/jobs/analyze', params)
+}
+
+export interface FetchJobUrlResult {
+  title: string
+  company: string
+  description: string
+  location?: string
+  apply_url?: string
+  source: string
+}
+
+export async function fetchJobUrl(url: string): Promise<FetchJobUrlResult> {
+  return post('/api/jobs/fetch-url', { url })
+}
+
+// ---------------------------------------------------------------------------
+// Tailor flow
+// ---------------------------------------------------------------------------
+
+export interface ScoreResult {
+  score: ATSScore
+}
+
+export async function scoreResume(resumeId: string, jobId: string): Promise<ScoreResult> {
+  return post('/api/tailor/score', { resumeId, jobId })
+}
+
+export interface QuestionsResult {
+  questions: GapQuestion[]
+}
+
+export async function generateQuestions(resumeId: string, jobId: string): Promise<QuestionsResult> {
+  return post('/api/tailor/questions', { resumeId, jobId })
+}
+
+export interface TailorResult {
+  tailoredResumeId: string
+  tailoredData: StructuredResume
+  changes: ResumeDiffChange[]
+  matchScore: number
+  tailoredScore: number
+}
+
+export async function tailorResume(params: {
+  resumeId: string
+  jobId: string
+  answers: Record<string, string>
+}): Promise<TailorResult> {
+  return post('/api/tailor/generate', params)
+}
+
+/**
+ * Streams the cover letter as plain text.
+ * Pass an onChunk callback to update UI in real time.
+ */
+export async function generateCoverLetter(
+  tailoredResumeId: string,
+  onChunk: (text: string) => void
+): Promise<string> {
+  const res = await fetch('/api/tailor/cover-letter', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tailoredResumeId }),
+  })
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({ error: res.statusText }))
+    throw new APIError(res.status, data.error ?? 'Failed to generate cover letter')
+  }
+
+  const reader = res.body!.getReader()
+  const decoder = new TextDecoder()
+  let full = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    const chunk = decoder.decode(value, { stream: true })
+    full += chunk
+    onChunk(full)
+  }
+
+  return full
+}
+
+// ---------------------------------------------------------------------------
+// Export
+// ---------------------------------------------------------------------------
+
+export async function exportPDF(tailoredResumeId: string): Promise<Blob> {
+  const res = await fetch('/api/export/pdf', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tailoredResumeId }),
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({ error: res.statusText }))
+    throw new APIError(res.status, data.error ?? 'Failed to export PDF')
+  }
+  return res.blob()
+}
+
+export async function exportDOCX(tailoredResumeId: string): Promise<Blob> {
+  const res = await fetch('/api/export/docx', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tailoredResumeId }),
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({ error: res.statusText }))
+    throw new APIError(res.status, data.error ?? 'Failed to export DOCX')
+  }
+  return res.blob()
+}
+
+/** Triggers a file download in the browser from a Blob */
+export function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}

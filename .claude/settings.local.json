@@ -16,7 +16,16 @@
       "Bash(.\\\\node_modules\\\\.bin\\\\next build *)",
       "Bash(npx next *)",
       "Bash(node -e \"console.log\\(require\\('./node_modules/eslint/package.json'\\).version\\)\")",
-      "Bash(dir c:/Users/kings/wrkspace/HireIQ /b)"
+      "Bash(dir c:/Users/kings/wrkspace/HireIQ /b)",
+      "WebSearch",
+      "WebFetch(domain:supabase.com)",
+      "WebFetch(domain:github.com)",
+      "mcp__supabase__get_logs",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__apply_migration",
+      "PowerShell(Remove-Item *)",
+      "Bash(node *)"
     ]
   }
 }

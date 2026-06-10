@@ -145,7 +145,9 @@ export interface ResumeDiffChange {
 // DB row types
 export interface Profile {
   id: string
-  full_name: string | null
+  first_name: string
+  last_name: string
+  username: string | null
   email: string | null
   target_role: string | null
   years_experience: number | null

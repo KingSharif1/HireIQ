@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
 import { anthropic } from '@ai-sdk/anthropic'
 import { generateText } from 'ai'
 import { RESUME_PARSER_PROMPT, extractJSON } from '@/lib/ai/prompts'
+import { aiErrorResponse } from '@/lib/ai/error-response'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import type { StructuredResume } from '@/types'
 
@@ -11,17 +11,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 60
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (cs) => cs.forEach(({ name, value, options }) => cookieStore.set(name, value, options)),
-      },
-    }
-  )
+  const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -39,10 +29,13 @@ export async function POST(request: Request) {
   let rawText = ''
   try {
     if (fileType === 'pdf') {
+      // pdf-parse v2 uses class-based API — PDFParse({ data }) then .getText()
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const pdfParse = require('pdf-parse')
-      const data = await pdfParse(buffer)
-      rawText = data.text
+      const { PDFParse } = require('pdf-parse')
+      const parser = new PDFParse({ data: buffer })
+      const result = await parser.getText()
+      rawText = result.text ?? ''
+      await parser.destroy()
     } else {
       const mammoth = await import('mammoth')
       const result = await mammoth.extractRawText({ buffer })
@@ -79,8 +72,8 @@ export async function POST(request: Request) {
       maxOutputTokens: 4096,
     })
     structuredData = JSON.parse(extractJSON(result.text))
-  } catch {
-    return NextResponse.json({ error: 'Failed to parse resume with AI. Please try again.' }, { status: 500 })
+  } catch (err) {
+    return aiErrorResponse(err, 'Failed to parse resume with AI. Please try again.')
   }
 
   // Format score (no job needed — just format quality)
