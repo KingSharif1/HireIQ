@@ -15,7 +15,8 @@
       "Bash(npm run *)",
       "Bash(.\\\\node_modules\\\\.bin\\\\next build *)",
       "Bash(npx next *)",
-      "Bash(node -e \"console.log\\(require\\('./node_modules/eslint/package.json'\\).version\\)\")"
+      "Bash(node -e \"console.log\\(require\\('./node_modules/eslint/package.json'\\).version\\)\")",
+      "Bash(dir c:/Users/kings/wrkspace/HireIQ /b)"
     ]
   }
 }
