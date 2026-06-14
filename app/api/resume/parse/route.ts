@@ -3,9 +3,11 @@ import { createClient } from '@/lib/supabase/server'
 import { anthropic } from '@ai-sdk/anthropic'
 import { generateText } from 'ai'
 import { RESUME_PARSER_PROMPT, extractJSON } from '@/lib/ai/prompts'
+import { AI_MODELS } from '@/lib/ai/models'
 import { aiErrorResponse } from '@/lib/ai/error-response'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
-import type { StructuredResume } from '@/types'
+import { buildProfileSeedFromParse, profileRowUpdatesFromSeed } from '@/lib/profile/master'
+import type { StructuredResume, Profile } from '@/types'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -30,7 +32,6 @@ export async function POST(request: Request) {
   try {
     if (fileType === 'pdf') {
       // pdf-parse v2 uses class-based API — PDFParse({ data }) then .getText()
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { PDFParse } = require('pdf-parse')
       const parser = new PDFParse({ data: buffer })
       const result = await parser.getText()
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
   let structuredData: StructuredResume
   try {
     const result = await generateText({
-      model: anthropic('claude-sonnet-4-20250514'),
+      model: anthropic(AI_MODELS.strong),
       prompt,
       maxOutputTokens: 4096,
     })
@@ -103,5 +104,18 @@ export async function POST(request: Request) {
 
   if (dbErr) return NextResponse.json({ error: 'Failed to save resume' }, { status: 500 })
 
-  return NextResponse.json({ resumeId: resumeRow.id, structuredData, atsFormatScore })
+  // Seed master profile from parsed resume (profile is source of truth).
+  const { data: profileRow } = await supabase
+    .from('profiles')
+    .select('first_name, last_name, email, profile_data')
+    .eq('id', user.id)
+    .single<Pick<Profile, 'first_name' | 'last_name' | 'email' | 'profile_data'>>()
+
+  const seed = buildProfileSeedFromParse(structuredData, profileRow)
+  await supabase
+    .from('profiles')
+    .update(profileRowUpdatesFromSeed(seed, profileRow))
+    .eq('id', user.id)
+
+  return NextResponse.json({ resumeId: resumeRow.id, structuredData, atsFormatScore, profileSeeded: true })
 }

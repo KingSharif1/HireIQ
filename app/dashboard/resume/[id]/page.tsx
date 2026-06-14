@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, Sparkles, Download } from 'lucide-react'
+import { ArrowLeft, ExternalLink } from 'lucide-react'
 import type { ResumeExperience, ResumeProject } from '@/types'
 
 export default async function ResumeDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -42,11 +42,13 @@ export default async function ResumeDetailPage({ params }: { params: Promise<{ i
             )}
           </div>
         </div>
-        <Button asChild>
-          <Link href={`/dashboard/tailor?resumeId=${resume.id}`}>
-            <Sparkles className="w-4 h-4" />Tailor to a Job
-          </Link>
-        </Button>
+        {resume.original_file_url && (
+          <Button asChild variant="outline">
+            <a href={resume.original_file_url} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="w-4 h-4" />View original upload
+            </a>
+          </Button>
+        )}
       </div>
 
       <Card>

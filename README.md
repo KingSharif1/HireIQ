@@ -220,7 +220,11 @@ App runs at `http://localhost:3000`.
 
 ### Database Setup
 
-Run the migration in `supabase/migrations/001_initial_schema.sql` in your Supabase SQL Editor. This creates all tables, enables RLS, sets up policies, and creates the auto-profile trigger.
+Run these migrations **in order** in your Supabase SQL Editor:
+
+1. `supabase/migrations/001_initial_schema.sql` — base tables, RLS, auto-profile trigger
+2. `supabase/migrations/002_profile_data.sql` — `profiles.profile_data` JSONB column
+3. `supabase/migrations/004_notifications.sql` — notifications table (Alerts feature)
 
 Then create two private storage buckets in the Supabase Dashboard:
 - `resumes`

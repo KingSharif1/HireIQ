@@ -18,6 +18,8 @@ export interface ResumeExperience {
   endDate: string
   current: boolean
   bullets: string[]
+  /** Stable ids parallel to `bullets` — keys into profile_data.provenance */
+  bulletIds?: string[]
   skills_used: string[]
 }
 
@@ -45,6 +47,7 @@ export interface ResumeProject {
   name: string
   description: string
   bullets: string[]
+  bulletIds?: string[]
   technologies: string[]
   url: string
   github: string
@@ -124,6 +127,8 @@ export interface GapQuestion {
   gap_being_filled: string
   why_it_matters: string
   example_answer: string
+  /** AI-suggested quick answers the user can pick instead of typing (hybrid Q&A). */
+  choices?: string[]
 }
 
 export interface CoverLetterResult {
@@ -138,8 +143,103 @@ export interface ResumeDiffChange {
   section: string
   field: string
   expId?: string
+  projId?: string
   before: string | string[]
   after: string | string[]
+  changeType?: 'added' | 'changed' | 'removed' | 'reordered'
+  reason?: string
+}
+
+// ---------------------------------------------------------------------------
+// Structured profile (Sprout-style sectioned profile)
+// ---------------------------------------------------------------------------
+
+export interface ProfilePersonalInfo {
+  firstName: string
+  lastName: string
+  headline: string
+  email: string
+  phone: string
+  location: string
+  pronouns: string
+}
+
+export interface ProfileURL {
+  id: string
+  label: string
+  url: string
+}
+
+export interface ProfileVolunteering {
+  id: string
+  organization: string
+  role: string
+  location: string
+  startDate: string
+  endDate: string
+  current: boolean
+  bullets: string[]
+  bulletIds?: string[]
+}
+
+export interface ProfileAchievement {
+  id: string
+  title: string
+  issuer: string
+  date: string
+  description: string
+}
+
+export interface ProfileDocument {
+  id: string
+  name: string
+  url: string
+  note: string
+}
+
+export type PendingSuggestionSection = 'experience' | 'projects' | 'summary' | 'skills'
+
+export interface ProvenanceEvent {
+  type: 'added_from_tailor' | 'edited' | 'accepted'
+  date: string
+  tailoredResumeId?: string
+  jobLabel?: string
+}
+
+export interface ProvenanceEntry {
+  origin: 'base' | 'tailor'
+  sourceTailoredResumeId?: string
+  jobLabel?: string
+  history: ProvenanceEvent[]
+}
+
+export interface PendingSuggestion {
+  id: string
+  section: PendingSuggestionSection
+  targetEntryId?: string
+  proposedText: string
+  reason: string
+  sourceTailoredResumeId: string
+  jobLabel: string
+  createdAt: string
+}
+
+export interface ProfileData {
+  personal: ProfilePersonalInfo
+  summary: string
+  urls: ProfileURL[]
+  experience: ResumeExperience[]
+  volunteering: ProfileVolunteering[]
+  projects: ResumeProject[]
+  education: ResumeEducation[]
+  skills: ResumeSkills
+  certifications: ResumeCertification[]
+  achievements: ProfileAchievement[]
+  additional: string
+  additionalDocuments: ProfileDocument[]
+  attachments: ProfileDocument[]
+  provenance?: Record<string, ProvenanceEntry>
+  pendingSuggestions?: PendingSuggestion[]
 }
 
 // DB row types
@@ -151,6 +251,7 @@ export interface Profile {
   email: string | null
   target_role: string | null
   years_experience: number | null
+  profile_data: ProfileData | null
   created_at: string
   updated_at: string
 }
@@ -169,6 +270,16 @@ export interface Resume {
   updated_at: string
 }
 
+export type ApplicationStatus =
+  | 'not_applied'
+  | 'applied'
+  | 'interviewing'
+  | 'offer'
+  | 'rejected'
+  | 'accepted'
+
+export type TailoringStatus = 'not_started' | 'in_progress' | 'tailored'
+
 export interface Job {
   id: string
   user_id: string
@@ -180,7 +291,10 @@ export interface Job {
   remote_type: string | null
   apply_url: string | null
   extracted_data: JobExtractedData | null
+  application_status: ApplicationStatus
+  tailoring_status: TailoringStatus
   created_at: string
+  updated_at: string
 }
 
 export interface TailoredResume {
@@ -195,5 +309,28 @@ export interface TailoredResume {
   tailored_score: number | null
   pdf_url: string | null
   docx_url: string | null
+  version: number
+  gap_answers: TailorGapAnswer[]
+  user_edited: boolean
+  created_at: string
+}
+
+export interface TailorGapAnswer {
+  questionId: string
+  question: string
+  answer: string
+}
+
+export type NotificationType = 'suggestion' | 'tailor_complete' | 'email_status'
+
+export interface Notification {
+  id: string
+  user_id: string
+  type: NotificationType
+  title: string
+  body: string | null
+  link: string | null
+  ref_id: string | null
+  read: boolean
   created_at: string
 }

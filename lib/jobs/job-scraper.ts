@@ -50,8 +50,10 @@ async function scrapeLever(url: string): Promise<{ text: string; company: string
 }
 
 async function scrapeAshby(url: string): Promise<{ text: string; company: string; title: string }> {
-  // Parse: https://{company}.ashbyhq.com/job/{id} or https://jobs.ashbyhq.com/{company}/{id}
-  const match = url.match(/ashbyhq\.com\/([^/]+)\/([^/?]+)/)
+  // Strip tracking/query params so UUID parsing stays clean.
+  const cleanUrl = url.split('?')[0]
+  // jobs.ashbyhq.com/{company}/{jobId}  OR  {company}.ashbyhq.com/job/{jobId}
+  const match = cleanUrl.match(/ashbyhq\.com\/([^/]+)\/([^/?]+)/)
   if (!match) throw new Error('Could not parse Ashby URL')
 
   const [, company, jobId] = match
@@ -59,12 +61,37 @@ async function scrapeAshby(url: string): Promise<{ text: string; company: string
   const res = await fetch(apiUrl, { headers: { 'User-Agent': 'HireIQ/1.0' } })
   if (!res.ok) throw new Error('Failed to fetch Ashby board')
 
-  const data = await res.json()
-  const job = (data.jobPostings || []).find((j: { id: string; title: string; descriptionPlain: string }) => j.id === jobId || url.includes(j.id))
+  const data = await res.json() as {
+    jobs?: Array<{
+      id: string
+      title: string
+      descriptionPlain?: string
+      descriptionHtml?: string
+      jobUrl?: string
+    }>
+    // Legacy field name some integrations used — keep as fallback.
+    jobPostings?: Array<{
+      id: string
+      title: string
+      descriptionPlain?: string
+      description?: string
+    }>
+  }
+
+  const postings = data.jobs ?? data.jobPostings ?? []
+  const job = postings.find(
+    j => j.id === jobId || cleanUrl.includes(j.id) || ('jobUrl' in j && j.jobUrl?.includes(jobId))
+  )
   if (!job) throw new Error('Job not found on Ashby board')
 
+  const plain = job.descriptionPlain
+    ?? ('description' in job ? job.description : undefined)
+    ?? ('descriptionHtml' in job && job.descriptionHtml
+      ? job.descriptionHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+      : '')
+
   return {
-    text: `${job.title}\n\n${job.descriptionPlain || job.description || ''}`,
+    text: `${job.title}\n\n${plain}`,
     company,
     title: job.title || '',
   }

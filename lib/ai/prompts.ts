@@ -126,6 +126,16 @@ Generate 3-5 questions that will help fill these gaps. Questions should:
 3. Be answerable in 2-4 sentences
 4. Focus on the biggest gaps first
 5. Be conversational and encouraging in tone
+6. NEVER assume the candidate has done something — ask if they have (honesty: ask first, never invent)
+7. Ground every question in THIS candidate's real profile — reference their actual roles,
+   tools, or projects so it never feels generic.
+
+For EACH question also provide:
+- "choices": 2-4 short, realistic answer options the candidate can tap instead of typing.
+  Make them plausible given the profile (e.g. "Yes — at [their company]", "Used it on a side project",
+  "Not yet"). The user can still type their own answer, so choices are shortcuts, not the only path.
+- "example_answer": one concrete, well-written example answer (1-2 sentences) that shows the
+  candidate exactly how a strong, specific, honest answer reads.
 
 Return ONLY valid JSON:
 {
@@ -136,39 +146,37 @@ Return ONLY valid JSON:
       "category": "experience|skills|projects|education|achievement",
       "gap_being_filled": "",
       "why_it_matters": "",
+      "choices": ["", ""],
       "example_answer": ""
     }
   ]
 }`
 
-export const RESUME_TAILOR_PROMPT = `You are an expert resume writer and career coach. Rewrite this resume to maximize chances of getting an interview for this specific job.
+export const TAILOR_GENERATE_PROMPT = `You are an expert resume writer. Tailor this resume for ONE specific job using ONLY real evidence from the candidate's profile and Q&A answers.
 
-ORIGINAL RESUME:
+ORIGINAL RESUME (master — do not invent beyond this + Q&A):
 {structuredResume}
 
-TARGET JOB:
+TARGET JOB ANALYSIS:
 {jobAnalysis}
 
-USER'S NEW INFORMATION (from Q&A):
+USER Q&A (new evidence — incorporate truthfully):
 {enhancements}
 
-TAILORING INSTRUCTIONS:
-1. Incorporate all new information from user's Q&A answers naturally
-2. Rewrite experience bullets to highlight relevance to this role
-3. Use EXACT keywords from the job description (ATS optimization)
-4. Start every bullet with a strong action verb (Built, Led, Designed, etc.)
-5. Quantify achievements wherever possible (%, $, users, time saved)
-6. Keep bullets under 2 lines each
-7. Reorder skills to put most relevant first
-8. Update summary to speak directly to this role
-9. DO NOT invent or exaggerate any information
-10. DO NOT remove anything that was in the original resume
-11. Maintain authentic voice throughout
+RULES (honesty spine):
+1. NEVER fabricate experience, skills, metrics, or employers.
+2. Map job success language to the closest REAL bullet or Q&A answer.
+3. Reframe weak-but-true bullets in the company's vocabulary — no new claims.
+4. Full restructure allowed in this tailored snapshot only: reorder sections/bullets, drop weak irrelevant bullets, merge duplicates.
+5. Length budget: {lengthBudget} — prioritize strongest relevant content; never pad to fill.
+6. Start bullets with strong action verbs; quantify only when the source material supports it.
+7. Reorder skills with most job-relevant first.
+8. Rewrite summary to speak directly to this role.
 
-TARGET ATS SYSTEM: {atsSystem}
-SENIORITY LEVEL: {seniority}
+TARGET ATS: {atsSystem}
+SENIORITY: {seniority}
 
-Return the complete tailored resume in the exact same JSON structure as the original, plus:
+Return ONLY valid JSON — same structure as the original resume plus tailoring_notes:
 {
   "contact": {},
   "summary": "",
@@ -179,13 +187,84 @@ Return the complete tailored resume in the exact same JSON structure as the orig
   "certifications": [],
   "volunteer": [],
   "awards": [],
-  "tailoring_notes": [
+  "tailoring_notes": [{ "section": "", "change": "", "reason": "" }]
+}`
+
+/** @deprecated Use TAILOR_GENERATE_PROMPT */
+export const RESUME_TAILOR_PROMPT = TAILOR_GENERATE_PROMPT
+
+export const TAILOR_CRITIQUE_PROMPT = `You are TWO judges reviewing a tailored resume against a job description.
+
+JUDGE 1 — ATS parser: What % of the job's success phrases and required keywords are credibly present in the resume? (0-100)
+
+JUDGE 2 — Skeptical human recruiter: Flag unsupported claims, vague bullets, generic filler, robotic phrasing.
+
+ORIGINAL MASTER RESUME:
+{structuredResume}
+
+TAILORED DRAFT:
+{tailoredResume}
+
+JOB ANALYSIS:
+{jobAnalysis}
+
+Return ONLY valid JSON:
+{
+  "language_overlap_percent": 0,
+  "ats_pass": true,
+  "human_pass": true,
+  "flags": [
     {
-      "section": "",
-      "change": "",
-      "reason": ""
+      "type": "unsupported_claim|vague|generic|robotic",
+      "section": "summary|experience|skills|projects|education",
+      "field": "bullets|text",
+      "expId": "optional",
+      "detail": ""
     }
-  ]
+  ],
+  "weak_sections": ["summary", "experience:exp_1"],
+  "suggestions": ["short actionable fix"]
+}
+
+Gate rules you apply:
+- unsupported_claim flags are serious — any unsupported claim means human_pass should be false.
+- weak_sections lists sections that need targeted rewrite (use experience:ID for specific roles).`
+
+export const TAILOR_REGENERATE_PROMPT = `Regenerate ONLY the weak sections of this tailored resume. Keep all other sections identical.
+
+WEAK SECTIONS TO FIX:
+{weakSections}
+
+CRITIQUE FLAGS:
+{critiqueFlags}
+
+FIX SUGGESTIONS:
+{suggestions}
+
+ORIGINAL MASTER (source of truth — no fabrication):
+{structuredResume}
+
+CURRENT TAILORED DRAFT:
+{tailoredResume}
+
+JOB ANALYSIS:
+{jobAnalysis}
+
+Q&A EVIDENCE:
+{enhancements}
+
+Return ONLY valid JSON with the FULL resume structure (all sections), fixing only the weak areas:
+{
+  "contact": {},
+  "summary": "",
+  "experience": [],
+  "education": [],
+  "skills": {},
+  "projects": [],
+  "certifications": [],
+  "volunteer": [],
+  "awards": [],
+  "tailoring_notes": [{ "section": "", "change": "", "reason": "" }]
 }`
 
 export const COVER_LETTER_PROMPT = `You are an expert cover letter writer. Write a compelling, personalized cover letter.

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { anthropic } from '@ai-sdk/anthropic'
 import { generateText } from 'ai'
 import { JOB_ANALYZER_PROMPT, extractJSON } from '@/lib/ai/prompts'
+import { AI_MODELS } from '@/lib/ai/models'
 import { aiErrorResponse } from '@/lib/ai/error-response'
 import type { JobExtractedData } from '@/types'
 
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
   let extractedData: JobExtractedData
   try {
     const result = await generateText({
-      model: anthropic('claude-sonnet-4-20250514'),
+      model: anthropic(AI_MODELS.strong),
       prompt,
       maxOutputTokens: 2048,
     })

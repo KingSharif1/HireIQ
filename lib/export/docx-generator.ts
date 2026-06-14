@@ -3,6 +3,7 @@ import {
   AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType,
 } from 'docx'
 import type { StructuredResume } from '@/types'
+import { normalizeResumeForDisplay, toTitleCaseName } from '@/lib/format/normalize'
 
 function hr(): Paragraph {
   return new Paragraph({
@@ -18,7 +19,8 @@ function sectionHeading(text: string): Paragraph {
   })
 }
 
-export async function generateDocx(data: StructuredResume): Promise<Buffer> {
+export async function generateDocx(rawData: StructuredResume): Promise<Buffer> {
+  const data = normalizeResumeForDisplay(rawData)
   const children: Paragraph[] = []
 
   // Name
@@ -163,6 +165,44 @@ export async function generateDocx(data: StructuredResume): Promise<Buffer> {
         },
       },
     },
+  })
+
+  return await Packer.toBuffer(doc)
+}
+
+export async function generateCoverDocx(
+  coverLetter: string,
+  contact: StructuredResume['contact']
+): Promise<Buffer> {
+  const name = toTitleCaseName(contact?.name)
+  const contactLine = [contact?.email, contact?.phone, contact?.location].filter(Boolean).join('  |  ')
+  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  const paragraphs = (coverLetter || '').split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
+
+  const children: Paragraph[] = []
+  if (name) {
+    children.push(new Paragraph({ children: [new TextRun({ text: name, bold: true, size: 28 })] }))
+  }
+  if (contactLine) {
+    children.push(new Paragraph({
+      children: [new TextRun({ text: contactLine, size: 18, color: '666666' })],
+      spacing: { after: 240 },
+    }))
+  }
+  children.push(new Paragraph({
+    children: [new TextRun({ text: today, size: 20, color: '444444' })],
+    spacing: { after: 240 },
+  }))
+  for (const p of paragraphs) {
+    children.push(new Paragraph({
+      children: [new TextRun({ text: p, size: 22 })],
+      spacing: { after: 200 },
+    }))
+  }
+
+  const doc = new Document({
+    sections: [{ children }],
+    styles: { default: { document: { run: { font: 'Calibri', size: 22 } } } },
   })
 
   return await Packer.toBuffer(doc)

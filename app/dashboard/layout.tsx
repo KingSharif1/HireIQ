@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getProfile } from '@/lib/supabase/queries'
-import { Sidebar } from '@/components/shared/Sidebar'
-import { MobileNav } from '@/components/shared/MobileNav'
+import { getProfile, getUnreadNotificationCount } from '@/lib/supabase/queries'
+import { DashboardShell } from '@/components/shared/DashboardShell'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -10,15 +9,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!user) redirect('/login')
 
-  const { data: profile } = await getProfile(supabase, user.id)
+  const [{ data: profile }, unreadRes] = await Promise.all([
+    getProfile(supabase, user.id),
+    getUnreadNotificationCount(supabase, user.id),
+  ])
+  const unreadCount = unreadRes.error ? 0 : (unreadRes.count ?? 0)
 
   return (
-    <div className="min-h-screen bg-navy-900">
-      <Sidebar profile={profile} />
-      <main className="md:ml-60 min-h-screen pb-20 md:pb-0">
-        {children}
-      </main>
-      <MobileNav />
-    </div>
+    <DashboardShell profile={profile} unreadCount={unreadCount}>
+      {children}
+    </DashboardShell>
   )
 }

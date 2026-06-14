@@ -7,7 +7,9 @@ import type {
   StructuredResume,
   JobExtractedData,
   ResumeDiffChange,
+  Notification,
 } from '@/types'
+import type { NotificationInsert } from '@/lib/notifications'
 
 // ---------------------------------------------------------------------------
 // Profiles
@@ -109,10 +111,23 @@ export async function deleteResume(db: SupabaseClient, resumeId: string) {
 export async function getJobs(db: SupabaseClient, userId: string) {
   return db
     .from('jobs')
-    .select('id, company, title, location, remote_type, source, created_at')
+    .select('id, company, title, location, remote_type, source, application_status, tailoring_status, created_at, updated_at')
     .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .returns<Pick<Job, 'id' | 'company' | 'title' | 'location' | 'remote_type' | 'source' | 'created_at'>[]>()
+    .order('updated_at', { ascending: false })
+    .returns<Pick<Job, 'id' | 'company' | 'title' | 'location' | 'remote_type' | 'source' | 'application_status' | 'tailoring_status' | 'created_at' | 'updated_at'>[]>()
+}
+
+export async function updateJobStatus(
+  db: SupabaseClient,
+  jobId: string,
+  updates: Partial<Pick<Job, 'application_status' | 'tailoring_status'>>
+) {
+  return db
+    .from('jobs')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', jobId)
+    .select()
+    .single<Job>()
 }
 
 export async function getJob(db: SupabaseClient, jobId: string) {
@@ -207,9 +222,9 @@ export async function getTailoredResume(db: SupabaseClient, tailoredId: string) 
 export async function getTailoredResumesForJob(db: SupabaseClient, jobId: string) {
   return db
     .from('tailored_resumes')
-    .select('id, match_score, tailored_score, created_at')
+    .select('id, version, match_score, tailored_score, cover_letter, user_edited, created_at')
     .eq('job_id', jobId)
-    .order('created_at', { ascending: false })
+    .order('version', { ascending: false })
 }
 
 export async function getTailoredResumesForUser(db: SupabaseClient, userId: string) {
@@ -266,4 +281,54 @@ export async function updateTailoredResumeExportUrls(
     .eq('id', tailoredId)
     .select()
     .single<TailoredResume>()
+}
+
+// ---------------------------------------------------------------------------
+// Notifications (Phase 4)
+// ---------------------------------------------------------------------------
+
+export async function getNotifications(db: SupabaseClient, userId: string, limit = 50) {
+  return db
+    .from('notifications')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+    .returns<Notification[]>()
+}
+
+export async function getUnreadNotificationCount(db: SupabaseClient, userId: string) {
+  return db
+    .from('notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('read', false)
+}
+
+export async function insertNotifications(db: SupabaseClient, rows: NotificationInsert[]) {
+  if (rows.length === 0) return { data: [], error: null }
+  return db.from('notifications').insert(rows).select()
+}
+
+export async function markNotificationsRead(
+  db: SupabaseClient,
+  userId: string,
+  opts: { ids?: string[]; refId?: string; markAll?: boolean }
+) {
+  let query = db
+    .from('notifications')
+    .update({ read: true })
+    .eq('user_id', userId)
+    .eq('read', false)
+
+  if (opts.markAll) {
+    return query.select('id')
+  }
+  if (opts.refId) {
+    return query.eq('ref_id', opts.refId).select('id')
+  }
+  if (opts.ids?.length) {
+    return query.in('id', opts.ids).select('id')
+  }
+  return { data: [], error: null }
 }

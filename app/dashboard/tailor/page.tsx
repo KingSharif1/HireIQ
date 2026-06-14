@@ -11,9 +11,12 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { FileText, Briefcase, Loader2, Sparkles, Plus, ArrowRight } from 'lucide-react'
+import { FileText, Briefcase, Loader2, Sparkles, Plus, ArrowRight, UserCircle, Pencil } from 'lucide-react'
 import Link from 'next/link'
-import type { Resume, Job } from '@/types'
+import { resolveProfileData } from '@/lib/profile/data'
+import { hasProfileContent } from '@/lib/profile/master'
+import { profileCompleteness } from '@/lib/profile/sections'
+import type { Resume, Job, Profile, ProfileData } from '@/types'
 
 // Inner component that safely uses useSearchParams (must be inside Suspense)
 function TailorFlowContent() {
@@ -23,6 +26,7 @@ function TailorFlowContent() {
 
   const [resumes, setResumes] = useState<Resume[]>([])
   const [jobs, setJobs] = useState<Job[]>([])
+  const [profileData, setProfileData] = useState<ProfileData | null>(null)
   const [loadingData, setLoadingData] = useState(true)
   const [loadingScore, setLoadingScore] = useState(false)
   const [loadingQuestions, setLoadingQuestions] = useState(false)
@@ -46,13 +50,24 @@ function TailorFlowContent() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const [resumeRes, jobRes] = await Promise.all([
+      const [resumeRes, jobRes, profileRes] = await Promise.all([
         supabase.from('resumes').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
         supabase.from('jobs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+        supabase.from('profiles').select('*').eq('id', user.id).single<Profile>(),
       ])
 
-      setResumes(resumeRes.data || [])
+      const resumeList = resumeRes.data || []
+      setResumes(resumeList)
       setJobs(jobRes.data || [])
+
+      const latestStructured = resumeList[0]?.structured_data ?? null
+      const resolved = resolveProfileData(profileRes.data, latestStructured)
+      setProfileData(resolved)
+
+      // Link FK for tailored_resumes — content comes from profile master.
+      const linkResume = resumeList.find(r => r.is_primary) ?? resumeList[0]
+      if (linkResume) store.setSelectedResume(linkResume)
+
       setLoadingData(false)
 
       if (preselectedJobId && jobRes.data) {
@@ -68,14 +83,17 @@ function TailorFlowContent() {
   }, [])
 
   async function handleScoreStep() {
-    if (!store.selectedResume || !store.selectedJob) return
+    if (!store.selectedJob) return
     setLoadingScore(true)
     setError(null)
     try {
       const res = await fetch('/api/tailor/score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resumeId: store.selectedResume.id, jobId: store.selectedJob.id }),
+        body: JSON.stringify({
+          resumeId: store.selectedResume?.id,
+          jobId: store.selectedJob.id,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
@@ -90,14 +108,17 @@ function TailorFlowContent() {
   }
 
   async function handleGenerateQuestions() {
-    if (!store.selectedResume || !store.selectedJob) return
+    if (!store.selectedJob) return
     setLoadingQuestions(true)
     setError(null)
     try {
       const res = await fetch('/api/tailor/questions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resumeId: store.selectedResume.id, jobId: store.selectedJob.id }),
+        body: JSON.stringify({
+          resumeId: store.selectedResume?.id,
+          jobId: store.selectedJob.id,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
@@ -112,7 +133,7 @@ function TailorFlowContent() {
   }
 
   async function handleGenerate() {
-    if (!store.selectedResume || !store.selectedJob) return
+    if (!store.selectedJob) return
     setGenerating(true)
     setError(null)
     try {
@@ -120,15 +141,17 @@ function TailorFlowContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          resumeId: store.selectedResume.id,
+          resumeId: store.selectedResume?.id,
           jobId: store.selectedJob.id,
           answers: store.answers,
+          questions: store.questions.map(q => ({ id: q.id, question: q.question })),
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       store.setTailoredResumeId(data.tailoredResumeId)
-      router.push(`/dashboard/tailor/${data.tailoredResumeId}`)
+      // Job Hub is the single home for a job's documents.
+      router.push(`/dashboard/jobs/${store.selectedJob.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to tailor resume')
       setGenerating(false)
@@ -160,61 +183,70 @@ function TailorFlowContent() {
         </div>
       )}
 
-      {/* Step 1: Select Resume */}
+      {/* Step 1: Confirm master profile */}
       {currentStep === 1 && (
         <div className="space-y-4">
-          <h2 className="font-semibold text-foreground">Select a resume</h2>
+          <h2 className="font-semibold text-foreground">Your profile</h2>
+          <p className="text-sm text-muted-foreground">
+            Tailoring uses your master profile. Edit it anytime — changes apply to the next tailor run.
+          </p>
           {loadingData ? (
             <div className="space-y-2">
               {[1, 2].map(i => <Skeleton key={i} className="h-20 rounded-xl" />)}
             </div>
-          ) : resumes.length === 0 ? (
+          ) : !profileData || !hasProfileContent(profileData) ? (
             <Card className="border-dashed">
               <CardContent className="py-8 text-center space-y-3">
-                <FileText className="w-8 h-8 text-muted-foreground mx-auto" />
-                <p className="text-sm text-muted-foreground">No resumes yet</p>
-                <Button asChild size="sm">
-                  <Link href="/dashboard/resume/upload"><Plus className="w-4 h-4" />Upload Resume</Link>
-                </Button>
+                <UserCircle className="w-8 h-8 text-muted-foreground mx-auto" />
+                <p className="text-sm text-muted-foreground">Your profile is empty</p>
+                <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                  <Button asChild size="sm">
+                    <Link href="/dashboard/resume/upload"><Plus className="w-4 h-4" />Upload Resume</Link>
+                  </Button>
+                  <Button asChild size="sm" variant="secondary">
+                    <Link href="/dashboard/profile"><Pencil className="w-4 h-4" />Fill Profile</Link>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ) : (
             <>
-              <div className="space-y-2">
-                {resumes.map(resume => (
-                  <button
-                    key={resume.id}
-                    onClick={() => store.setSelectedResume(resume)}
-                    className={`w-full text-left rounded-xl border p-4 transition-all ${
-                      store.selectedResume?.id === resume.id
-                        ? 'border-brand-purple bg-brand-purple/5'
-                        : 'border-border hover:border-brand-purple/40'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{resume.title}</p>
-                        <p className="text-xs text-muted-foreground">{resume.structured_data?.contact?.name}</p>
-                      </div>
-                      {resume.ats_format_score != null && (
-                        <Badge variant={resume.ats_format_score >= 70 ? 'success' : 'warning'}>
-                          {resume.ats_format_score}%
-                        </Badge>
+              <Card>
+                <CardContent className="p-5 space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-foreground">
+                        {profileData.personal.firstName} {profileData.personal.lastName}
+                      </p>
+                      {profileData.personal.headline && (
+                        <p className="text-sm text-brand-purple mt-0.5">{profileData.personal.headline}</p>
                       )}
                     </div>
-                  </button>
-                ))}
-              </div>
+                    <Badge variant="secondary">
+                      {profileCompleteness(profileData, resumes.length)}% complete
+                    </Badge>
+                  </div>
+                  {profileData.summary && (
+                    <p className="text-sm text-muted-foreground line-clamp-3">{profileData.summary}</p>
+                  )}
+                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                    <Badge variant="muted">{profileData.experience.length} roles</Badge>
+                    <Badge variant="muted">{profileData.education.length} education</Badge>
+                    <Badge variant="muted">{profileData.projects.length} projects</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+              <Button asChild variant="ghost" size="sm" className="w-full">
+                <Link href="/dashboard/profile"><Pencil className="w-4 h-4" />Edit profile before tailoring</Link>
+              </Button>
               <Button
-                disabled={!store.selectedResume}
                 onClick={() => {
                   store.setStep(2)
                   router.replace('/dashboard/tailor?step=2', { scroll: false })
                 }}
                 className="w-full"
               >
-                Continue <ArrowRight className="w-4 h-4" />
+                Continue to job selection <ArrowRight className="w-4 h-4" />
               </Button>
             </>
           )}

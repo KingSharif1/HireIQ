@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { anthropic } from '@ai-sdk/anthropic'
 import { streamText } from 'ai'
 import { COVER_LETTER_PROMPT } from '@/lib/ai/prompts'
+import { AI_MODELS } from '@/lib/ai/models'
 import { NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
@@ -51,7 +52,7 @@ Summary: ${resume.summary || 'Not provided'}
     .replace('{topExperiences}', topExperiences)
 
   const result = streamText({
-    model: anthropic('claude-sonnet-4-20250514'),
+    model: anthropic(AI_MODELS.strong),
     prompt,
     maxOutputTokens: 1024,
     onFinish: async ({ text }) => {

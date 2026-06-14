@@ -1,5 +1,28 @@
 import type { StructuredResume, JobExtractedData, ATSScore } from '@/types'
 import { normalizeSkill } from './keyword-extractor'
+import { normalizeJobExtractedData } from '@/lib/jobs/normalize-job'
+
+function parseResumeDate(dateStr: string, endOfMonth = false): Date | null {
+  if (!dateStr || dateStr === 'Present') return null
+  const trimmed = dateStr.trim()
+  const slash = trimmed.split('/')
+  if (slash.length === 2) {
+    const [m, y] = slash.map(Number)
+    if (Number.isFinite(m) && Number.isFinite(y)) {
+      return new Date(y, m - 1, endOfMonth ? 28 : 1)
+    }
+  }
+  if (/^\d{4}$/.test(trimmed)) {
+    return new Date(Number(trimmed), endOfMonth ? 11 : 0, endOfMonth ? 31 : 1)
+  }
+  const parsed = new Date(trimmed)
+  return Number.isFinite(parsed.getTime()) ? parsed : null
+}
+
+function clampScore(value: number): number {
+  if (!Number.isFinite(value)) return 0
+  return Math.max(0, Math.min(100, Math.round(value)))
+}
 
 const ACTION_VERBS = [
   'built','developed','designed','implemented','led','managed','created','improved',
@@ -27,7 +50,13 @@ function calculateKeywordScore(resume: StructuredResume, job: JobExtractedData) 
   const matched: string[] = []
   const missing: string[] = []
 
-  const allKeywords = [...new Set([...job.keywords, ...job.required_skills, ...job.responsibilities.slice(0, 5)])]
+  const allKeywords = [
+    ...new Set([
+      ...(job.keywords ?? []),
+      ...(job.required_skills ?? []),
+      ...(job.responsibilities ?? []).slice(0, 5),
+    ]),
+  ]
 
   for (const kw of allKeywords) {
     const normalized = kw.toLowerCase().replace(/[^a-z0-9\s]/g, '')
@@ -39,7 +68,7 @@ function calculateKeywordScore(resume: StructuredResume, job: JobExtractedData) 
   }
 
   const score = allKeywords.length > 0 ? Math.round((matched.length / allKeywords.length) * 100) : 100
-  return { score, matched, missing }
+  return { score: clampScore(score), matched, missing }
 }
 
 function calculateSkillScore(resume: StructuredResume, job: JobExtractedData) {
@@ -56,7 +85,7 @@ function calculateSkillScore(resume: StructuredResume, job: JobExtractedData) {
   let earnedPoints = 0
   let totalPoints = 0
 
-  for (const skill of job.required_skills) {
+  for (const skill of job.required_skills ?? []) {
     totalPoints += 2
     if (resumeSkills.includes(normalizeSkill(skill))) {
       earnedPoints += 2
@@ -66,7 +95,7 @@ function calculateSkillScore(resume: StructuredResume, job: JobExtractedData) {
     }
   }
 
-  for (const skill of job.preferred_skills) {
+  for (const skill of job.preferred_skills ?? []) {
     totalPoints += 1
     if (resumeSkills.includes(normalizeSkill(skill))) {
       earnedPoints += 1
@@ -75,39 +104,38 @@ function calculateSkillScore(resume: StructuredResume, job: JobExtractedData) {
   }
 
   const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 100
-  return { score, matched: [...new Set(matched)], missing: [...new Set(missing)] }
+  return { score: clampScore(score), matched: [...new Set(matched)], missing: [...new Set(missing)] }
 }
 
 function calculateExperienceScore(resume: StructuredResume, job: JobExtractedData): { score: number } {
-  if (!job.required_experience_years || job.required_experience_years === 0) return { score: 100 }
+  const requiredYears = job.required_experience_years ?? 0
+  if (!requiredYears || requiredYears <= 0) return { score: 100 }
 
   let totalMonths = 0
   const now = new Date()
 
-  for (const exp of resume.experience) {
-    try {
-      const [startM, startY] = exp.startDate.split('/').map(Number)
-      let endDate: Date
+  for (const exp of resume.experience ?? []) {
+    const startDate = parseResumeDate(exp.startDate)
+    if (!startDate) continue
 
-      if (exp.current || exp.endDate === 'Present') {
-        endDate = now
-      } else {
-        const [endM, endY] = exp.endDate.split('/').map(Number)
-        endDate = new Date(endY, endM - 1)
-      }
+    let endDate: Date
+    if (exp.current || exp.endDate === 'Present' || !exp.endDate) {
+      endDate = now
+    } else {
+      endDate = parseResumeDate(exp.endDate, true) ?? now
+    }
 
-      const startDate = new Date(startY, startM - 1)
-      const months = (endDate.getFullYear() - startDate.getFullYear()) * 12 +
-                     (endDate.getMonth() - startDate.getMonth())
+    const months =
+      (endDate.getFullYear() - startDate.getFullYear()) * 12 +
+      (endDate.getMonth() - startDate.getMonth())
+    if (Number.isFinite(months)) {
       totalMonths += Math.max(0, months)
-    } catch {
-      // Skip unparseable dates
     }
   }
 
   const resumeYears = totalMonths / 12
-  const score = Math.min(100, Math.round((resumeYears / job.required_experience_years) * 100))
-  return { score }
+  const score = Math.min(100, Math.round((resumeYears / requiredYears) * 100))
+  return { score: clampScore(score) }
 }
 
 function calculateFormatScore(resume: StructuredResume): { score: number } {
@@ -132,7 +160,7 @@ function calculateFormatScore(resume: StructuredResume): { score: number } {
   if ((resume.skills?.technical?.length || 0) + (resume.skills?.tools?.length || 0) > 3) score += 10
   if (resume.education?.length > 0) score += 5
 
-  return { score: Math.min(100, score) }
+  return { score: clampScore(Math.min(100, score)) }
 }
 
 function calculateEducationScore(resume: StructuredResume, job: JobExtractedData): { score: number } {
@@ -147,7 +175,7 @@ function calculateEducationScore(resume: StructuredResume, job: JobExtractedData
   else if (topDegree.includes('bachelor') || topDegree.includes('b.s') || topDegree.includes('b.a')) resumeTier = 2
   else if (topDegree.includes('associate')) resumeTier = 1
 
-  return { score: resumeTier >= required ? 100 : Math.round((resumeTier / required) * 60) }
+  return { score: clampScore(resumeTier >= required ? 100 : Math.round((resumeTier / required) * 60)) }
 }
 
 function generateRecommendations(
@@ -174,14 +202,18 @@ function generateRecommendations(
   return recs
 }
 
-export function calculateATSScore(resume: StructuredResume, job: JobExtractedData): ATSScore {
+export function calculateATSScore(
+  resume: StructuredResume,
+  jobInput: JobExtractedData | Partial<JobExtractedData>
+): ATSScore {
+  const job = normalizeJobExtractedData(jobInput)
   const keywordResult = calculateKeywordScore(resume, job)
   const skillResult = calculateSkillScore(resume, job)
   const expResult = calculateExperienceScore(resume, job)
   const formatResult = calculateFormatScore(resume)
   const eduResult = calculateEducationScore(resume, job)
 
-  const total = Math.round(
+  const total = clampScore(
     keywordResult.score * 0.35 +
     skillResult.score * 0.25 +
     expResult.score * 0.20 +

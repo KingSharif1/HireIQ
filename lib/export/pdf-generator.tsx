@@ -3,6 +3,7 @@ import {
   Document, Page, Text, View, StyleSheet, Font,
 } from '@react-pdf/renderer'
 import type { StructuredResume } from '@/types'
+import { normalizeResumeForDisplay } from '@/lib/format/normalize'
 
 const styles = StyleSheet.create({
   page: {
@@ -87,7 +88,8 @@ interface ResumePDFProps {
   data: StructuredResume
 }
 
-export function ResumePDF({ data }: ResumePDFProps) {
+export function ResumePDF({ data: rawData }: ResumePDFProps) {
+  const data = normalizeResumeForDisplay(rawData)
   const contactLine = [
     data.contact.email,
     data.contact.phone,
@@ -190,6 +192,49 @@ export function ResumePDF({ data }: ResumePDFProps) {
             ))}
           </View>
         )}
+      </Page>
+    </Document>
+  )
+}
+
+const coverStyles = StyleSheet.create({
+  page: {
+    fontFamily: 'Helvetica',
+    fontSize: 11,
+    paddingTop: 56,
+    paddingBottom: 56,
+    paddingHorizontal: 64,
+    color: '#1a1a1a',
+    lineHeight: 1.5,
+  },
+  name: { fontSize: 18, fontFamily: 'Helvetica-Bold', marginBottom: 2 },
+  contact: { fontSize: 9.5, color: '#555555', marginBottom: 24 },
+  date: { fontSize: 10, color: '#444444', marginBottom: 20 },
+  para: { fontSize: 11, marginBottom: 12 },
+})
+
+interface CoverLetterPDFProps {
+  coverLetter: string
+  contact: StructuredResume['contact']
+}
+
+export function CoverLetterPDF({ coverLetter, contact }: CoverLetterPDFProps) {
+  const name = normalizeResumeForDisplay({ contact } as StructuredResume).contact?.name || ''
+  const contactLine = [contact?.email, contact?.phone, contact?.location]
+    .filter(Boolean)
+    .join('  ·  ')
+  const paragraphs = (coverLetter || '').split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
+  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+
+  return (
+    <Document>
+      <Page size="LETTER" style={coverStyles.page}>
+        {name ? <Text style={coverStyles.name}>{name}</Text> : null}
+        {contactLine ? <Text style={coverStyles.contact}>{contactLine}</Text> : null}
+        <Text style={coverStyles.date}>{today}</Text>
+        {paragraphs.map((p, i) => (
+          <Text key={i} style={coverStyles.para}>{p}</Text>
+        ))}
       </Page>
     </Document>
   )

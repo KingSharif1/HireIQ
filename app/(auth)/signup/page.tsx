@@ -59,7 +59,7 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-navy-900 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <Card className="w-full max-w-md text-center">
           <CardContent className="py-10 space-y-3">
             <div className="w-14 h-14 rounded-full bg-brand-green/15 flex items-center justify-center mx-auto">
@@ -79,7 +79,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-navy-900 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <div className="w-full max-w-md space-y-6">
         <div className="flex flex-col items-center gap-2">
           <div className="flex items-center gap-2">

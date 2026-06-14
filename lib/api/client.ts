@@ -122,6 +122,7 @@ export async function tailorResume(params: {
   resumeId: string
   jobId: string
   answers: Record<string, string>
+  questions?: { id: string; question: string }[]
 }): Promise<TailorResult> {
   return post('/api/tailor/generate', params)
 }

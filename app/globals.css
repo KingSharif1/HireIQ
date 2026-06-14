@@ -4,6 +4,29 @@
 
 @layer base {
   :root {
+    --background: 220 20% 98%;
+    --foreground: 222 35% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 35% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 35% 11%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 94%;
+    --secondary-foreground: 222 25% 25%;
+    --muted: 220 14% 94%;
+    --muted-foreground: 220 10% 46%;
+    --accent: 142 71% 40%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 14% 90%;
+    --input: 220 14% 96%;
+    --ring: 262 83% 58%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
     --background: 220 30% 8%;
     --foreground: 210 40% 95%;
     --card: 220 25% 12%;
@@ -23,7 +46,6 @@
     --border: 220 20% 20%;
     --input: 220 20% 18%;
     --ring: 262 83% 64%;
-    --radius: 0.75rem;
   }
 }
 
@@ -32,7 +54,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground font-sans antialiased transition-colors duration-200;
   }
   html {
     @apply scroll-smooth;
@@ -41,7 +63,7 @@
 
 @layer utilities {
   .glass {
-    @apply bg-white/5 backdrop-blur-sm border border-white/10;
+    @apply bg-foreground/5 backdrop-blur-sm border border-border;
   }
   .score-ring-green {
     stroke: #22C55E;

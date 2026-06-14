@@ -10,10 +10,13 @@ interface MatchScoreProps {
 }
 
 export function MatchScore({ score, compact }: MatchScoreProps) {
+  const safeTotal = Number.isFinite(score.total)
+    ? Math.max(0, Math.min(100, Math.round(score.total)))
+    : 0
   const radius = 56
   const circumference = 2 * Math.PI * radius
-  const progress = (score.total / 100) * circumference
-  const color = scoreRingColor(score.total)
+  const progress = (safeTotal / 100) * circumference
+  const color = scoreRingColor(safeTotal)
 
   return (
     <div className="space-y-4">
@@ -39,29 +42,31 @@ export function MatchScore({ score, compact }: MatchScoreProps) {
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-3xl font-bold text-white">{score.total}</span>
+            <span className="text-3xl font-bold text-white">{safeTotal}</span>
             <span className="text-xs text-muted-foreground">/ 100</span>
           </div>
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-lg" style={{ color }}>{scoreLabel(score.total)}</p>
+          <p className="font-semibold text-lg" style={{ color }}>{scoreLabel(safeTotal)}</p>
           <p className="text-sm text-muted-foreground mt-0.5">ATS Match Score</p>
 
           {!compact && (
             <div className="mt-3 space-y-1.5">
-              {Object.entries(score.breakdown).map(([key, val]) => (
+              {Object.entries(score.breakdown).map(([key, val]) => {
+                const safeVal = Number.isFinite(val) ? val : 0
+                return (
                 <div key={key} className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground w-20 capitalize">{key}</span>
                   <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-700"
-                      style={{ width: `${val}%`, backgroundColor: scoreRingColor(val) }}
+                      style={{ width: `${safeVal}%`, backgroundColor: scoreRingColor(safeVal) }}
                     />
                   </div>
-                  <span className="text-xs text-muted-foreground w-8 text-right">{val}%</span>
+                  <span className="text-xs text-muted-foreground w-8 text-right">{safeVal}%</span>
                 </div>
-              ))}
+              )})}
             </div>
           )}
         </div>
