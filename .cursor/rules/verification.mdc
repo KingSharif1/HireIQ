@@ -1,0 +1,57 @@
+---
+description: How to test & verify any change — code review first, then MCP, then real UI testing
+alwaysApply: true
+---
+
+# Verification Ladder (run in this order)
+
+When testing or verifying ANY change, climb these rungs in order. Each rung is
+risk-tiered — always do rung 1; add 2 and 3 only when the change reaches them.
+
+## 1. Code review — ALWAYS (every change)
+
+Read the change like a **senior developer**:
+- No errors. Run `ReadLints` on edited files; run `npm run test` and `npx tsc --noEmit` when logic changed.
+- Meets standards: clear names, no dead code, follows existing patterns in the repo.
+- **Hunt failure cases**: null/empty/loading/error states, async races, bad input, missing auth, edge values (0, NaN, huge, special chars).
+- Ask "can this be simpler or better?" — note improvements, don't gold-plate.
+
+## 2. MCP confirm — when data / DB / state is touched
+
+Before assuming, confirm with an MCP if one fits (Supabase, Neon, Stripe, shadcn):
+- Check schema/tables/rows actually match what the code expects (`list_tables`, `execute_sql`, `get_advisors`, `get_logs`).
+- Always read the tool's JSON descriptor before calling it.
+- If no MCP can confirm it, say so — don't guess.
+
+## 3. UI test — when UI/UX or a user-facing flow changes
+
+First the cheap check, then the real one:
+- **curl** for fast route/health checks: `curl -s -o NUL -w "%{http_code}" <url>`.
+- **Playwright** (`scripts/ui-shots.mjs`) to actually click through and look at it.
+  - **Headed by default** so the change can be watched: `npm run ui:shots:headed`.
+  - Credentials come from `TEST_USER_EMAIL` / `TEST_USER_PASSWORD` in `.env.local` (gitignored). Never hardcode or commit secrets.
+  - Screenshots land in `.ui-audit/` (gitignored).
+- Review the live UI through **two lenses**:
+  - **Senior dev / designer**: hierarchy, consistency, spacing, theme tokens (light AND dark), accessibility, responsive.
+  - **New user**: is it obvious what to do? Any confusing/dead-end/empty state? Can I finish the core task without help?
+
+# Design philosophy: simple but great
+
+Modern UI/UX that is **simple AND great at the same time** — clarity over cleverness.
+Minimal, purposeful, well-spaced; one clear primary action per view; reuse existing
+design tokens/components; no clutter, no slop. Simple is the feature.
+
+# Reporting (what to tell the user)
+
+After verifying, report concisely in chat:
+- **What I tested** and **pass/fail** for each.
+- **Issues found** with severity: critical / moderate / minor + the fix.
+- **Improvement ideas** (the "simple but great" angle).
+- Include key screenshots inline when a UI test ran.
+
+# Fixing & asking
+
+- **Fix-then-report**: auto-fix clear, low-risk problems (lint, broken state, obvious UX bugs) and report them.
+- **Stop and ask** for anything ambiguous or scope-changing before changing it.
+- If you don't fully understand what something *should* do, **ask** — and use the
+  `/grill-me` skill to interview the user one question at a time until it's clear.

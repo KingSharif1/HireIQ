@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HireIQ — Redesign Prototype</title>
+<style>
+  :root {
+    --bg: #0A0D14;
+    --bg-elevated: #0F141D;
+    --card: #161B26;
+    --card-hover: #1B2130;
+    --border: #242b39;
+    --border-strong: #313a4d;
+    --text: #EAEEF5;
+    --text-dim: #99A2B2;
+    --text-faint: #5E6677;
+    --purple: #8B5CF6;
+    --purple-soft: rgba(139, 92, 246, 0.14);
+    --purple-border: rgba(139, 92, 246, 0.32);
+    --green: #22C55E;
+    --green-soft: rgba(34, 197, 94, 0.14);
+    --amber: #F59E0B;
+    --amber-soft: rgba(245, 158, 11, 0.14);
+    --red: #EF4444;
+    --red-soft: rgba(239, 68, 68, 0.14);
+    --radius: 14px;
+    --radius-sm: 10px;
+  }
+  [data-theme="light"] {
+    --bg: #F6F7F9;
+    --bg-elevated: #FFFFFF;
+    --card: #FFFFFF;
+    --card-hover: #F1F3F7;
+    --border: #E4E7EE;
+    --border-strong: #D2D7E0;
+    --text: #131720;
+    --text-dim: #5A6373;
+    --text-faint: #8A92A1;
+    --purple-soft: rgba(139, 92, 246, 0.10);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.45;
+  }
+  .app { display: flex; min-height: 100vh; }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar {
+    width: 232px; flex-shrink: 0; background: var(--bg-elevated);
+    border-right: 1px solid var(--border); padding: 18px 12px;
+    display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 18px; }
+  .brand .logo {
+    width: 30px; height: 30px; border-radius: 9px; background: var(--purple);
+    display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 15px;
+  }
+  .brand .name { font-weight: 700; font-size: 17px; letter-spacing: -0.3px; }
+  .nav { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+  .nav button {
+    display: flex; align-items: center; gap: 11px; width: 100%;
+    padding: 9px 11px; border: none; background: transparent; cursor: pointer;
+    color: var(--text-dim); font-size: 14px; font-weight: 500; border-radius: var(--radius-sm);
+    text-align: left; font-family: inherit; transition: all .15s;
+  }
+  .nav button .ico { width: 17px; text-align: center; opacity: .85; }
+  .nav button:hover { background: var(--card); color: var(--text); }
+  .nav button.active { background: var(--purple-soft); color: var(--purple); }
+  .nav .badge {
+    margin-left: auto; background: var(--amber); color: #1a1205; font-size: 10px;
+    font-weight: 700; border-radius: 999px; padding: 1px 6px;
+  }
+  .side-foot { margin-top: auto; border-top: 1px solid var(--border); padding-top: 12px; }
+  .user { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: var(--radius-sm); cursor: pointer; }
+  .user:hover { background: var(--card); }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%; background: var(--purple-soft);
+    border: 1px solid var(--purple-border); color: var(--purple); display: grid;
+    place-items: center; font-weight: 700; font-size: 12px; flex-shrink: 0;
+  }
+  .user .meta { min-width: 0; }
+  .user .meta b { font-size: 12.5px; font-weight: 600; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user .meta span { font-size: 11px; color: var(--text-faint); }
+
+  /* ---------- Main ---------- */
+  .main { flex: 1; min-width: 0; }
+  .topbar {
+    display: flex; align-items: center; gap: 10px; padding: 14px 28px;
+    border-bottom: 1px solid var(--border); position: sticky; top: 0; background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px); z-index: 5;
+  }
+  .topbar .crumbs { font-size: 13px; color: var(--text-faint); }
+  .topbar .crumbs b { color: var(--text); font-weight: 600; }
+  .spacer { flex: 1; }
+  .theme-toggle, .ghost-btn {
+    border: 1px solid var(--border-strong); background: var(--card); color: var(--text-dim);
+    border-radius: 9px; padding: 7px 12px; font-size: 12.5px; cursor: pointer; font-family: inherit; font-weight: 500;
+  }
+  .theme-toggle:hover, .ghost-btn:hover { color: var(--text); border-color: var(--purple-border); }
+  .view { padding: 28px; max-width: 1080px; margin: 0 auto; display: none; }
+  .view.active { display: block; animation: fade .25s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  h1.page { font-size: 23px; font-weight: 700; letter-spacing: -0.4px; }
+  .sub { color: var(--text-dim); font-size: 14px; margin-top: 3px; }
+  .row { display: flex; align-items: center; gap: 12px; }
+  .between { justify-content: space-between; }
+  .btn {
+    background: var(--purple); color: #fff; border: none; border-radius: 10px;
+    padding: 9px 16px; font-size: 13.5px; font-weight: 600; cursor: pointer; font-family: inherit;
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn.green { background: var(--green); color: #04210f; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px;
+  }
+  .card.link { cursor: pointer; transition: border-color .15s, transform .15s; }
+  .card.link:hover { border-color: var(--purple-border); transform: translateY(-1px); }
+  .grid { display: grid; gap: 14px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600;
+    padding: 3px 9px; border-radius: 999px; border: 1px solid transparent;
+  }
+  .pill.green { background: var(--green-soft); color: var(--green); border-color: rgba(34,197,94,.25); }
+  .pill.amber { background: var(--amber-soft); color: var(--amber); border-color: rgba(245,158,11,.25); }
+  .pill.red { background: var(--red-soft); color: var(--red); border-color: rgba(239,68,68,.25); }
+  .pill.purple { background: var(--purple-soft); color: var(--purple); border-color: var(--purple-border); }
+  .pill.muted { background: var(--bg-elevated); color: var(--text-dim); border-color: var(--border); }
+  .muted { color: var(--text-dim); }
+  .faint { color: var(--text-faint); }
+  .tag {
+    display: inline-block; font-size: 11.5px; padding: 3px 9px; border-radius: 7px;
+    background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-dim); margin: 0 5px 5px 0;
+  }
+  .tag.hit { background: var(--green-soft); border-color: rgba(34,197,94,.3); color: var(--green); }
+  .tag.miss { background: var(--red-soft); border-color: rgba(239,68,68,.3); color: var(--red); }
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .co-logo {
+    width: 42px; height: 42px; border-radius: 11px; display: grid; place-items: center;
+    font-weight: 700; font-size: 15px; color: #fff; flex-shrink: 0;
+  }
+  .ring { position: relative; width: 92px; height: 92px; flex-shrink: 0; }
+  .ring svg { transform: rotate(-90deg); }
+  .ring .val { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 800; font-size: 22px; }
+  .stat { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 15px; }
+  .stat .n { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  .stat .l { font-size: 11.5px; color: var(--text-dim); margin-top: 2px; }
+  .section-label { font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 9px; }
+  .step-dots { display: flex; gap: 6px; }
+  .step-dots i { height: 5px; border-radius: 3px; background: var(--border-strong); flex: 1; }
+  .step-dots i.on { background: var(--purple); }
+  .choice {
+    border: 1px solid var(--border-strong); background: var(--bg-elevated); color: var(--text);
+    border-radius: 999px; padding: 8px 14px; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .choice:hover { border-color: var(--purple-border); }
+  .choice.sel { background: var(--purple-soft); color: var(--purple); border-color: var(--purple); }
+  .ta {
+    width: 100%; background: var(--bg-elevated); border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm); padding: 11px 13px; color: var(--text); font-family: inherit;
+    font-size: 13.5px; resize: vertical; min-height: 84px;
+  }
+  .annot {
+    border-left: 3px solid var(--purple); background: var(--purple-soft); border-radius: 0 8px 8px 0;
+    padding: 10px 13px; font-size: 12.5px; color: var(--text); margin-top: 14px;
+  }
+  .annot b { color: var(--purple); }
+  .resume-paper {
+    background: #fff; color: #1a1a1a; border-radius: 8px; padding: 26px 30px; font-size: 11px; line-height: 1.5;
+  }
+  .resume-paper h2 { font-size: 17px; letter-spacing: 1px; }
+  .resume-paper .rsec { font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; border-bottom: 1.5px solid #1a1a1a; margin: 13px 0 6px; padding-bottom: 2px; }
+  .resume-paper .hl { background: #d9fbe7; }
+  .gh-repo { display: flex; gap: 11px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .gh-repo:last-child { border-bottom: none; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .check-row { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .check-row:last-child { border-bottom: none; }
+  .check-ico { width: 18px; flex-shrink: 0; font-weight: 800; }
+  .flow-tabs { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 18px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand"><div class="logo">⚡</div><div class="name">HireIQ</div></div>
+    <nav class="nav" id="nav">
+      <button data-view="apps" class="active"><span class="ico">▦</span> Applications</button>
+      <button data-view="tailor"><span class="ico">✦</span> Tailor</button>
+      <button data-view="profile"><span class="ico">◔</span> Master Profile</button>
+      <button data-view="alerts"><span class="ico">◉</span> Alerts <span class="badge">2</span></button>
+    </nav>
+    <div class="side-foot">
+      <div class="user">
+        <div class="avatar">SA</div>
+        <div class="meta"><b>Sharif Ahmed</b><span>CS Student · Fort Worth</span></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="crumbs" id="crumbs"><b>Applications</b></div>
+      <div class="spacer"></div>
+      <button class="ghost-btn" onclick="show('tailor')">+ Tailor a job</button>
+      <button class="theme-toggle" id="themeBtn">☾ Dark</button>
+    </div>
+
+    <!-- ============ VIEW: APPLICATIONS ============ -->
+    <section class="view active" id="view-apps">
+      <div class="row between">
+        <div><h1 class="page">Applications</h1><div class="sub">Every job you're targeting — tailored, tracked, ready to apply.</div></div>
+        <button class="btn" onclick="show('tailor')">✦ Tailor a job</button>
+      </div>
+
+      <div class="grid" style="grid-template-columns: repeat(4,1fr); margin: 20px 0;">
+        <div class="stat"><div class="n">6</div><div class="l">Jobs tracked</div></div>
+        <div class="stat"><div class="n" style="color:var(--green)">4</div><div class="l">Tailored</div></div>
+        <div class="stat"><div class="n" style="color:var(--amber)">2</div><div class="l">Need attention</div></div>
+        <div class="stat"><div class="n" style="color:var(--purple)">81%</div><div class="l">Avg fit after tailor</div></div>
+      </div>
+
+      <div class="grid" style="grid-template-columns: 1fr;">
+        <div class="card link" onclick="show('hub')">
+          <div class="row between">
+            <div class="row">
+              <div class="co-logo" style="background:#1f6feb">H</div>
+              <div>
+                <div style="font-weight:600;font-size:14.5px">Forward Deployed Engineer</div>
+                <div class="faint" style="font-size:12.5px">Harper · Remote · added 2d ago</div>
+                <div style="margin-top:7px" class="row">
+                  <span class="pill green">● Tailored v2</span>
+                  <span class="pill muted">Greenhouse ATS</span>
+                </div>
+              </div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-weight:800;font-size:20px;color:var(--green)">88%</div>
+              <div class="faint" style="font-size:11px">fit · was 71%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card link" onclick="show('hub')">
+          <div class="row between">
+            <div class="row">
+              <div class="co-logo" style="background:#8957e5">N</div>
+              <div>
+                <div style="font-weight:600;font-size:14.5px">Software Engineer Intern</div>
+                <div class="faint" style="font-size:12.5px">Notion · Hybrid · added 3d ago</div>
+                <div style="margin-top:7px" class="row">
+                  <span class="pill green">● Tailored v1</span>
+                  <span class="pill muted">Lever ATS</span>
+                </div>
+              </div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-weight:800;font-size:20px;color:var(--amber)">74%</div>
+              <div class="faint" style="font-size:11px">fit · was 60%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card link" onclick="show('tailor')">
+          <div class="row between">
+            <div class="row">
+              <div class="co-logo" style="background:#db6d28">S</div>
+              <div>
+                <div style="font-weight:600;font-size:14.5px">Backend Engineer (New Grad)</div>
+                <div class="faint" style="font-size:12.5px">Stripe · Onsite · added 5h ago</div>
+                <div style="margin-top:7px" class="row">
+                  <span class="pill amber">● Not tailored yet</span>
+                  <span class="pill muted">Workday ATS · stricter</span>
+                </div>
+              </div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-weight:800;font-size:20px;color:var(--red)">52%</div>
+              <div class="faint" style="font-size:11px">raw fit</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="annot"><b>What changed:</b> company-initial avatars, ATS badge per job, and a <b>value-aware fit score</b> (green/amber/red — not always green). One glance tells you which job needs attention.</div>
+    </section>
+
+    <!-- ============ VIEW: TAILOR (unified flow) ============ -->
+    <section class="view" id="view-tailor">
+      <h1 class="page">Tailor a resume</h1>
+      <div class="sub">Paste a job. We use your master profile + GitHub to make you fit — honestly.</div>
+
+      <div class="flow-tabs" style="margin-top:18px">
+        <button class="choice sel" onclick="flowStep(1)">1 · Paste job</button>
+        <button class="choice" onclick="flowStep(2)">2 · We analyze</button>
+        <button class="choice" onclick="flowStep(3)">3 · Fill the gaps</button>
+        <button class="choice" onclick="flowStep(4)">4 · Result</button>
+      </div>
+
+      <!-- Step 1 -->
+      <div id="fstep-1" class="fstep">
+        <div class="card">
+          <div class="section-label">Paste a job URL or description</div>
+          <textarea class="ta" style="min-height:60px" placeholder="https://boards.greenhouse.io/...  — or paste the full description">https://job-boards.greenhouse.io/harper/jobs/forward-deployed-engineer</textarea>
+          <div class="row between" style="margin-top:13px">
+            <span class="faint" style="font-size:12px">Works with Greenhouse, Lever, Ashby, Workday + paste.</span>
+            <button class="btn" onclick="flowStep(2)">Analyze job →</button>
+          </div>
+        </div>
+        <div class="annot"><b>One entry point.</b> No 4-step wizard, no "add job somewhere else first." Paste → go.</div>
+      </div>
+
+      <!-- Step 2 -->
+      <div id="fstep-2" class="fstep" style="display:none">
+        <div class="card">
+          <div class="row between">
+            <div class="row"><div class="co-logo" style="background:#1f6feb">H</div>
+              <div><div style="font-weight:700;font-size:15px">Forward Deployed Engineer</div><div class="faint" style="font-size:12.5px">Harper · Remote · Greenhouse</div></div>
+            </div>
+            <span class="pill purple">Analyzed in 4s</span>
+          </div>
+          <div class="divider"></div>
+          <div class="section-label">Skills they want — matched to your profile + GitHub</div>
+          <div>
+            <span class="tag hit">✓ TypeScript</span><span class="tag hit">✓ React</span><span class="tag hit">✓ Node.js</span>
+            <span class="tag hit">✓ PostgreSQL</span><span class="tag hit">✓ REST APIs</span>
+            <span class="tag miss">✗ Customer-facing</span><span class="tag miss">✗ Python</span><span class="tag miss">✗ Kubernetes</span>
+          </div>
+          <div class="row" style="margin-top:14px;gap:18px">
+            <div><span class="faint" style="font-size:12px">Raw fit</span><div style="font-weight:800;font-size:18px;color:var(--amber)">71%</div></div>
+            <div><span class="faint" style="font-size:12px">Gaps to close</span><div style="font-weight:800;font-size:18px">3</div></div>
+            <div style="flex:1"></div>
+            <button class="btn" onclick="flowStep(3)">Close the gaps →</button>
+          </div>
+        </div>
+        <div class="annot"><b>Green = you already have it</b> (from resume or a GitHub repo). <b>Red = a gap</b> we'll ask about — never invented.</div>
+      </div>
+
+      <!-- Step 3 -->
+      <div id="fstep-3" class="fstep" style="display:none">
+        <div class="card">
+          <div class="row between"><div class="section-label" style="margin:0">Gap question 2 of 3</div><span class="pill amber">Honest — we only ask, never invent</span></div>
+          <div class="step-dots" style="margin:10px 0 16px"><i class="on"></i><i class="on"></i><i></i></div>
+          <div style="font-weight:600;font-size:15px;margin-bottom:4px">Have you worked directly with customers or users to ship something?</div>
+          <div class="faint" style="font-size:12.5px;margin-bottom:12px">Harper wants "customer-facing" — your NEMT Billing project looks close.</div>
+
+          <div class="section-label">Quick answers — tap one, or write your own</div>
+          <div class="row" style="flex-wrap:wrap;gap:8px">
+            <button class="choice sel" onclick="selChoice(this)">Yes — on my NEMT Billing project</button>
+            <button class="choice" onclick="selChoice(this)">Yes — in a part-time role</button>
+            <button class="choice" onclick="selChoice(this)">Not directly</button>
+          </div>
+
+          <div style="margin-top:14px">
+            <div class="section-label">In your own words (optional)</div>
+            <textarea class="ta" placeholder="Add detail…">Worked with 2 NEMT providers to define billing rules, demoed weekly, and shipped fixes from their feedback.</textarea>
+          </div>
+
+          <div class="annot" style="margin-top:12px">💡 <b>Example answer:</b> "Collaborated with 2 clinic admins to scope billing requirements, ran weekly demos, and iterated based on their feedback."</div>
+
+          <div class="row between" style="margin-top:14px">
+            <button class="choice">Skip</button>
+            <button class="btn" onclick="flowStep(4)">Next → generate</button>
+          </div>
+        </div>
+        <div class="annot"><b>These answers are remembered.</b> Next time a job wants "customer-facing," we already have your answer — and we write it back to the right place in your master profile.</div>
+      </div>
+
+      <!-- Step 4 -->
+      <div id="fstep-4" class="fstep" style="display:none">
+        <div class="card" style="background:var(--green-soft);border-color:rgba(34,197,94,.3)">
+          <div class="row between">
+            <div><div style="font-weight:700;font-size:16px">Tailored — fit jumped 71% → 88%</div><div class="muted" style="font-size:13px;margin-top:2px">Passes Greenhouse keyword + format checks. 1 page.</div></div>
+            <div class="ring"><svg width="92" height="92"><circle cx="46" cy="46" r="40" stroke="var(--border)" stroke-width="7" fill="none"/><circle cx="46" cy="46" r="40" stroke="var(--green)" stroke-width="7" fill="none" stroke-dasharray="251" stroke-dashoffset="30" stroke-linecap="round"/></svg><div class="val" style="color:var(--green)">88</div></div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:13px;gap:10px">
+          <button class="btn green" onclick="show('hub')">Open in Job Hub →</button>
+          <button class="ghost-btn">Regenerate</button>
+          <button class="ghost-btn">Download PDF</button>
+        </div>
+        <div class="annot"><b>2 write-backs proposed</b> to your master profile (your customer-facing answer + a metric). Review them in Master Profile — we update the <b>existing</b> NEMT project, not a duplicate.</div>
+      </div>
+    </section>
+
+    <!-- ============ VIEW: MASTER PROFILE ============ -->
+    <section class="view" id="view-profile">
+      <div class="row between">
+        <div><h1 class="page">Master Profile</h1><div class="sub">Everything about you — resume, GitHub, and remembered answers. The single source we tailor from.</div></div>
+        <span class="pill green">● 100% complete</span>
+      </div>
+
+      <div class="grid" style="grid-template-columns: 1.3fr 1fr; margin-top:18px; align-items:start;">
+        <!-- GitHub-connected projects -->
+        <div class="card">
+          <div class="row between"><div class="section-label" style="margin:0">⌥ GitHub — connected</div><span class="pill purple">@sharif-codes · synced 1h ago</span></div>
+          <div class="faint" style="font-size:12px;margin:8px 0 4px">We keep a short summary of each repo and re-read it only when it changes — so tailoring is fast and always current.</div>
+          <div class="gh-repo">
+            <div class="dot" style="background:#3178c6"></div>
+            <div style="flex:1">
+              <div class="row between"><b style="font-size:13.5px">nemt-billing</b><span class="faint" style="font-size:11px">TypeScript · 1.2k commits</span></div>
+              <div class="muted" style="font-size:12.5px">Billing automation for non-emergency medical transport. React, Node, PostgreSQL, Stripe.</div>
+              <div style="margin-top:5px"><span class="tag">React</span><span class="tag">Node</span><span class="tag">PostgreSQL</span><span class="tag">Stripe</span></div>
+            </div>
+          </div>
+          <div class="gh-repo">
+            <div class="dot" style="background:#f1e05a"></div>
+            <div style="flex:1">
+              <div class="row between"><b style="font-size:13.5px">flashcards-app</b><span class="faint" style="font-size:11px">Ionic · 430 commits</span></div>
+              <div class="muted" style="font-size:12.5px">Cross-platform spaced-repetition flashcards. Ionic, Capacitor, offline-first.</div>
+              <div style="margin-top:5px"><span class="tag">Ionic</span><span class="tag">Capacitor</span><span class="tag">SQLite</span></div>
+            </div>
+          </div>
+          <div class="gh-repo">
+            <div class="dot" style="background:#3572A5"></div>
+            <div style="flex:1">
+              <div class="row between"><b style="font-size:13.5px">ml-study-buddy</b><span class="faint" style="font-size:11px">Python · 210 commits</span></div>
+              <div class="muted" style="font-size:12.5px">LLM study assistant. Python, FastAPI, vector search.</div>
+              <div style="margin-top:5px"><span class="tag">Python</span><span class="tag">FastAPI</span><span class="tag">Embeddings</span></div>
+            </div>
+          </div>
+          <div class="annot" style="margin-top:6px"><b>Your idea, built in:</b> AI sees all your projects so when a job wants Python, it surfaces <b>ml-study-buddy</b> automatically — no hunting through every repo each time.</div>
+        </div>
+
+        <!-- right column: sections + memory -->
+        <div class="grid" style="grid-template-columns:1fr">
+          <div class="card">
+            <div class="section-label">Profile sections</div>
+            <div class="row between" style="padding:6px 0"><span>Experience</span><span class="pill muted">3</span></div>
+            <div class="row between" style="padding:6px 0"><span>Projects</span><span class="pill green">5 · 3 from GitHub</span></div>
+            <div class="row between" style="padding:6px 0"><span>Skills</span><span class="pill muted">49</span></div>
+            <div class="row between" style="padding:6px 0"><span>Education</span><span class="pill muted">1</span></div>
+          </div>
+
+          <div class="card">
+            <div class="row between"><div class="section-label" style="margin:0">◈ Answer memory</div><span class="pill purple">7 saved</span></div>
+            <div class="faint" style="font-size:12px;margin:7px 0 10px">Questions you've answered, reused across jobs.</div>
+            <div style="font-size:12.5px;border-left:2px solid var(--purple);padding-left:10px;margin-bottom:10px">
+              <div class="muted">"Worked directly with customers?"</div>
+              <div>Yes — NEMT Billing, 2 providers, weekly demos.</div>
+            </div>
+            <div style="font-size:12.5px;border-left:2px solid var(--purple);padding-left:10px">
+              <div class="muted">"Largest dataset handled?"</div>
+              <div>~50k billing records, Postgres + indexing.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- write-back suggestion -->
+      <div class="card" style="margin-top:14px;border-color:var(--purple-border)">
+        <div class="row between"><div class="section-label" style="margin:0;color:var(--purple)">✎ Suggested update — review before saving</div><span class="pill amber">From Harper tailor run</span></div>
+        <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px;margin-top:10px">
+          <div>
+            <div class="faint" style="font-size:11px;margin-bottom:5px">UPDATE EXISTING PROJECT → NEMT Billing</div>
+            <div class="card" style="background:var(--bg-elevated);padding:12px;font-size:12.5px">
+              + Collaborated with 2 NEMT providers to scope billing rules; ran weekly demos and shipped fixes from feedback.
+            </div>
+          </div>
+          <div>
+            <div class="faint" style="font-size:11px;margin-bottom:5px">WHY THIS, NOT A NEW PROJECT</div>
+            <div style="font-size:12.5px" class="muted">You already have NEMT Billing. We add this bullet <b style="color:var(--text)">inside it</b> instead of creating a duplicate — keeping your profile clean and truthful.</div>
+            <div class="row" style="margin-top:10px;gap:8px"><button class="btn green" style="padding:7px 13px">Accept</button><button class="ghost-btn">Edit</button><button class="ghost-btn">Decline</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="annot"><b>Exactly your ask:</b> answers write back to the <b>right place</b> — update the existing project's detail, not spawn a new one. Same logic for every section.</div>
+    </section>
+
+    <!-- ============ VIEW: JOB HUB ============ -->
+    <section class="view" id="view-hub">
+      <div class="row" style="gap:13px"><div class="co-logo" style="background:#1f6feb">H</div>
+        <div style="flex:1"><h1 class="page" style="font-size:19px">Forward Deployed Engineer</h1><div class="faint" style="font-size:13px">Harper · Remote · Greenhouse</div></div>
+        <button class="ghost-btn">Regenerate</button><button class="btn">Download PDF</button>
+      </div>
+
+      <div class="grid" style="grid-template-columns: 1.55fr 1fr; margin-top:18px; align-items:start;">
+        <!-- resume preview -->
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="row" style="padding:11px 14px;border-bottom:1px solid var(--border);gap:8px">
+            <span class="pill purple">Resume</span><span class="pill muted">Cover letter</span><div style="flex:1"></div><span class="faint" style="font-size:11.5px">v2 · 1 page</span>
+          </div>
+          <div style="padding:16px;background:var(--bg-elevated)">
+            <div class="resume-paper">
+              <h2>SHARIF AHMED</h2>
+              <div style="font-size:10px;color:#555">Fort Worth, TX · sharif@email.com · github.com/sharif-codes</div>
+              <div class="rsec">Summary</div>
+              <div><span class="hl">Software Engineer</span> building <span class="hl">customer-facing, full-stack</span> apps with <span class="hl">React, Node.js, and PostgreSQL</span>.</div>
+              <div class="rsec">Projects</div>
+              <div><b>NEMT Billing</b> — <span class="hl">React, Node, PostgreSQL, Stripe</span></div>
+              <div style="color:#333">• <span class="hl">Collaborated with 2 NEMT providers</span> to scope billing rules; weekly demos, shipped from feedback.</div>
+              <div style="color:#333">• Processed ~50k billing records with indexed Postgres queries.</div>
+              <div class="rsec">Skills</div>
+              <div style="color:#333">TypeScript, React, Node.js, PostgreSQL, REST APIs, Stripe, Python</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- sidebar -->
+        <div class="grid" style="grid-template-columns:1fr">
+          <div class="card">
+            <div class="section-label">Job fit</div>
+            <div class="row" style="gap:14px">
+              <div class="ring"><svg width="92" height="92"><circle cx="46" cy="46" r="40" stroke="var(--border)" stroke-width="7" fill="none"/><circle cx="46" cy="46" r="40" stroke="var(--green)" stroke-width="7" fill="none" stroke-dasharray="251" stroke-dashoffset="30" stroke-linecap="round"/></svg><div class="val" style="color:var(--green)">88</div></div>
+              <div><div style="font-weight:700">Strong match</div><div class="faint" style="font-size:12px">was 71% before tailor</div></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="row between"><div class="section-label" style="margin:0">ATS readiness — Greenhouse</div><span class="pill green">Pass</span></div>
+            <div class="check-row"><span class="check-ico" style="color:var(--green)">✓</span><div>Single-column, standard headers (Experience, Skills, Projects)</div></div>
+            <div class="check-row"><span class="check-ico" style="color:var(--green)">✓</span><div>Dates as MM/YYYY — consistent timeline</div></div>
+            <div class="check-row"><span class="check-ico" style="color:var(--green)">✓</span><div>No tables / text boxes / images · contact not in header</div></div>
+            <div class="check-row"><span class="check-ico" style="color:var(--green)">✓</span><div>Exact JD keywords present (TypeScript, REST APIs, customer-facing)</div></div>
+            <div class="check-row"><span class="check-ico" style="color:var(--amber)">!</span><div>Python mentioned but light — add one project bullet</div></div>
+            <div class="check-row"><span class="check-ico" style="color:var(--green)">✓</span><div>No hidden / white-text keywords (penalized by ATS)</div></div>
+          </div>
+
+          <div class="card">
+            <div class="section-label">Application</div>
+            <div class="row between" style="padding:5px 0;font-size:13px"><span class="muted">Status</span><span class="pill amber">Not applied</span></div>
+            <div class="row between" style="padding:5px 0;font-size:13px"><span class="muted">Versions</span><span>2</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="annot"><b>ATS panel is research-backed:</b> single-column, standard headers, MM/YYYY dates, no tables, exact keywords, no white-text. Optimized for the strictest parsers so it clears all of them.</div>
+    </section>
+
+    <!-- ============ VIEW: ALERTS ============ -->
+    <section class="view" id="view-alerts">
+      <h1 class="page">Alerts</h1>
+      <div class="sub">Write-backs to review and tailor runs that finished.</div>
+      <div class="grid" style="grid-template-columns:1fr;margin-top:18px">
+        <div class="card link" onclick="show('profile')">
+          <div class="row"><span class="pill purple">Review</span><b style="margin-left:8px">2 profile updates from your Harper tailor</b></div>
+          <div class="muted" style="font-size:13px;margin-top:6px">Customer-facing bullet + a metric, both targeting your existing NEMT Billing project. Tap to review.</div>
+        </div>
+        <div class="card link" onclick="show('hub')">
+          <div class="row"><span class="pill green">Done</span><b style="margin-left:8px">Harper resume tailored — 88% fit</b></div>
+          <div class="muted" style="font-size:13px;margin-top:6px">Up from 71%. Ready to download or apply.</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+  const nav = document.getElementById('nav');
+  const crumbs = document.getElementById('crumbs');
+  const labels = { apps:'Applications', tailor:'Tailor', profile:'Master Profile', hub:'Applications › Forward Deployed Engineer', alerts:'Alerts' };
+  function show(view){
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-'+view).classList.add('active');
+    document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
+    crumbs.innerHTML = '<b>'+labels[view]+'</b>';
+    window.scrollTo({top:0});
+  }
+  nav.addEventListener('click', e=>{ const b=e.target.closest('button'); if(b) show(b.dataset.view); });
+  document.querySelectorAll('[data-view]').forEach(el=>{});
+  // links that jump to hub/tailor/profile from inside views
+  window.addEventListener('click', e=>{
+    const t = e.target.closest('[onclick]'); // handled inline
+  });
+  function flowStep(n){
+    for(let i=1;i<=4;i++){ document.getElementById('fstep-'+i).style.display = i===n?'block':'none'; }
+    document.querySelectorAll('#view-tailor .flow-tabs .choice').forEach((c,idx)=>c.classList.toggle('sel', idx===(n-1)));
+  }
+  function selChoice(el){ el.parentElement.querySelectorAll('.choice').forEach(c=>c.classList.remove('sel')); el.classList.add('sel'); }
+  // theme toggle
+  const tb = document.getElementById('themeBtn');
+  tb.addEventListener('click', ()=>{
+    const r = document.documentElement;
+    const dark = r.getAttribute('data-theme')==='dark';
+    r.setAttribute('data-theme', dark?'light':'dark');
+    tb.textContent = dark?'☀ Light':'☾ Dark';
+  });
+  // expose view jumps used by inline onclick that target [data-view]
+  document.querySelectorAll('[onclick*="data-view"]').forEach(()=>{});
+</script>
+</body>
+</html>

@@ -35,7 +35,7 @@ export function TailorStepper({ currentStep }: TailorStepperProps) {
                   {done ? <Check className="w-4 h-4" /> : stepNum}
                 </div>
                 <div className="mt-1.5 text-center">
-                  <p className={cn('text-xs font-medium', active ? 'text-white' : 'text-muted-foreground')}>{step.label}</p>
+                  <p className={cn('text-xs font-medium', active ? 'text-foreground' : 'text-muted-foreground')}>{step.label}</p>
                 </div>
               </div>
               {i < STEPS.length - 1 && (

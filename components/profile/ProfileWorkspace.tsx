@@ -123,7 +123,7 @@ export function ProfileWorkspace({ userId, initialData, profile, resumes }: Prop
                 {initials}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-white truncate">{fullName}</p>
+                <p className="text-sm font-semibold text-foreground truncate">{fullName}</p>
                 <p className="text-xs text-muted-foreground truncate">{data.personal.email || profile?.email}</p>
               </div>
             </div>

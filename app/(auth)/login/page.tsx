@@ -53,7 +53,7 @@ export default function LoginPage() {
             <div className="w-10 h-10 rounded-xl bg-brand-purple flex items-center justify-center">
               <Zap className="w-5 h-5 text-white" fill="white" />
             </div>
-            <span className="text-2xl font-bold text-white">HireIQ</span>
+            <span className="text-2xl font-bold text-foreground">HireIQ</span>
           </div>
           <p className="text-muted-foreground text-sm text-center">
             The resume tailor that actually gets you interviews

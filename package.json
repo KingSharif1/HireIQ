@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "ui:shots": "node scripts/ui-shots.mjs",
+    "ui:shots:headed": "node scripts/ui-shots.mjs --headed"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.81",
@@ -68,6 +70,7 @@
     "@types/pdf-parse": "^1.1.5",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.7",
+    "playwright": "^1.60.0",
     "vitest": "^3.2.6"
   }
 }

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Briefcase, ArrowRight, Plus } from 'lucide-react'
+import { scoreColor, cn } from '@/lib/utils'
 
 export default async function DashboardHome() {
   const supabase = await createClient()
@@ -85,7 +86,7 @@ export default async function DashboardHome() {
                           {latest ? 'Tailored' : 'Not started'}
                         </Badge>
                         {score != null && (
-                          <span className="text-xs text-brand-green font-medium">{score}% fit</span>
+                          <span className={cn('text-xs font-medium', scoreColor(score))}>{score}% fit</span>
                         )}
                       </div>
                     </div>

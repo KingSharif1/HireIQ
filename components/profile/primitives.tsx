@@ -42,7 +42,7 @@ export function SectionHeader({
   return (
     <div className="flex items-start justify-between gap-4 mb-5">
       <div>
-        <h2 className="text-xl font-bold text-white">{title}</h2>
+        <h2 className="text-xl font-bold text-foreground">{title}</h2>
         {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}
       </div>
       {action}

@@ -34,7 +34,7 @@ export default async function ResumeDetailPage({ params }: { params: Promise<{ i
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-white">{resume.title}</h1>
+            <h1 className="text-xl font-bold text-foreground">{resume.title}</h1>
             {resume.ats_format_score != null && (
               <Badge variant={resume.ats_format_score >= 70 ? 'success' : 'warning'} className="mt-1">
                 Format score: {resume.ats_format_score}%
@@ -55,7 +55,7 @@ export default async function ResumeDetailPage({ params }: { params: Promise<{ i
         <CardContent className="p-6 space-y-6">
           {/* Contact */}
           <div>
-            <h2 className="text-xl font-bold text-white">{data.contact?.name}</h2>
+            <h2 className="text-xl font-bold text-foreground">{data.contact?.name}</h2>
             <p className="text-sm text-muted-foreground">
               {[data.contact?.email, data.contact?.phone, data.contact?.location].filter(Boolean).join(' · ')}
             </p>
@@ -84,7 +84,7 @@ export default async function ResumeDetailPage({ params }: { params: Promise<{ i
                     <div key={exp.id}>
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <p className="font-semibold text-sm text-white">{exp.title}</p>
+                          <p className="font-semibold text-sm text-foreground">{exp.title}</p>
                           <p className="text-xs text-muted-foreground">{exp.company}{exp.location ? ` · ${exp.location}` : ''}</p>
                         </div>
                         <p className="text-xs text-muted-foreground flex-shrink-0">
@@ -128,7 +128,7 @@ export default async function ResumeDetailPage({ params }: { params: Promise<{ i
                 {data.education.map((edu: { id: string; degree: string; field: string; institution: string; startDate: string; endDate: string; gpa: string }) => (
                   <div key={edu.id} className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="font-semibold text-sm text-white">
+                      <p className="font-semibold text-sm text-foreground">
                         {edu.degree}{edu.field ? ` in ${edu.field}` : ''}
                       </p>
                       <p className="text-xs text-muted-foreground">{edu.institution}</p>
@@ -151,7 +151,7 @@ export default async function ResumeDetailPage({ params }: { params: Promise<{ i
                 <div className="space-y-4">
                   {data.projects.map((proj: ResumeProject) => (
                     <div key={proj.id}>
-                      <p className="font-semibold text-sm text-white">{proj.name}</p>
+                      <p className="font-semibold text-sm text-foreground">{proj.name}</p>
                       {proj.technologies?.length > 0 && (
                         <p className="text-xs text-muted-foreground mt-0.5">{proj.technologies.join(', ')}</p>
                       )}

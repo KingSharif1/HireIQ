@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-accent="lime">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HireIQ — Job Hub (simple)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     HireIQ — simple & confident. Ink + ONE accent used sparingly.
+     Type: Archivo (headings) · IBM Plex Sans (body) · IBM Plex Mono (small labels only)
+     Signature kept but quiet: a small "Sources" feature, not a wall.
+     ============================================================ */
+  :root {
+    --bg:        #0C0F13;
+    --surface:   #12161C;
+    --surface-2: #161B22;
+    --line:      #232A32;
+    --line-soft: #1B212880;
+    --ink:       #EAEEF3;
+    --dim:       #97A1AC;
+    --faint:     #5C6671;
+    --ok:        #4ADE80;
+    --warn:      #FBBF24;
+    --tray:      #07090b;   /* darker than bg so the white page pops */
+    --r:    10px;
+    --r-sm: 7px;
+  }
+  [data-theme="light"] {
+    --bg:        #FAFAF7;
+    --surface:   #FFFFFF;
+    --surface-2: #F5F6F2;
+    --line:      #E7E8E2;
+    --line-soft: #EFF0EB;
+    --ink:       #14181C;
+    --dim:       #5E6770;
+    --faint:     #97A0A6;
+    --ok:        #15803D;
+    --warn:      #B45309;
+    --tray:      #E6E7E2;   /* neutral gray tray so the white page reads as paper */
+  }
+  /* accent only as fills / key numbers / active markers */
+  [data-accent="lime"]   { --acc:#BCE82F; --acc-ink:#10140A; --acc-text:#7d9e16; }
+  [data-accent="blue"]   { --acc:#3BA7FB; --acc-ink:#04121F; --acc-text:#1d7fcc; }
+  [data-accent="amber"]  { --acc:#F6B526; --acc-ink:#1c1304; --acc-text:#a9740a; }
+  [data-accent="orange"] { --acc:#FB7A3C; --acc-ink:#1c0c04; --acc-text:#cf531c; }
+  [data-theme="light"][data-accent="lime"]  { --acc:#A3CC1F; }
+  /* accent text auto-pick: dark theme uses bright --acc, light uses --acc-text */
+  [data-theme="dark"]  { --acc-on-surface: var(--acc); }
+  [data-theme="light"] { --acc-on-surface: var(--acc-text); }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: "IBM Plex Mono", monospace; }
+  .disp { font-family: "Archivo", sans-serif; letter-spacing: -0.02em; }
+  a { color: inherit; text-decoration: none; }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+  :focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+  ::selection { background: var(--acc); color: var(--acc-ink); }
+  .label { font-family:"IBM Plex Mono"; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
+
+  .app { display: flex; min-height: 100vh; }
+
+  /* ---------- sidebar ---------- */
+  .nav { width: 224px; flex-shrink:0; border-right:1px solid var(--line); padding:18px 14px;
+    display:flex; flex-direction:column; position:sticky; top:0; height:100vh; }
+  .brand { display:flex; align-items:center; gap:10px; padding:4px 8px 22px; }
+  .brand .mark { width:28px; height:28px; background:var(--acc); border-radius:8px; display:grid; place-items:center;
+    color:var(--acc-ink); font-family:"Archivo"; font-weight:800; font-size:16px; }
+  .brand .word { font-family:"Archivo"; font-weight:800; font-size:18px; letter-spacing:-0.03em; }
+  .nav-item { display:flex; align-items:center; gap:11px; padding:9px 11px; border-radius:var(--r-sm);
+    color:var(--dim); font-size:14px; font-weight:500; margin-bottom:2px; transition:background .12s,color .12s; }
+  .nav-item svg { width:17px; height:17px; stroke-width:1.8; }
+  .nav-item:hover { background:var(--surface-2); color:var(--ink); }
+  .nav-item.on { background:var(--surface-2); color:var(--ink); }
+  .nav-item.on svg { color:var(--acc-on-surface); }
+  .nav-item .badge { margin-left:auto; font-family:"IBM Plex Mono"; font-size:10px; font-weight:500;
+    background:var(--acc); color:var(--acc-ink); border-radius:999px; padding:1px 7px; }
+  .nav-foot { margin-top:auto; border-top:1px solid var(--line); padding-top:14px; }
+  .who { display:flex; align-items:center; gap:10px; padding:2px 6px; }
+  .who .av { width:30px; height:30px; border-radius:8px; background:var(--surface-2); border:1px solid var(--line);
+    display:grid; place-items:center; font-family:"IBM Plex Mono"; font-size:11px; font-weight:500; color:var(--acc-on-surface); }
+  .who .nm { font-size:13px; font-weight:600; line-height:1.2; }
+  .who .em { font-size:11px; color:var(--faint); }
+
+  /* ---------- main ---------- */
+  .main { flex:1; min-width:0; }
+  .wrap { max-width: 1160px; margin:0 auto; padding: 30px 32px 60px; }
+
+  /* header */
+  .head { display:flex; align-items:flex-start; gap:14px; margin-bottom:8px; }
+  .back { width:34px; height:34px; border:1px solid var(--line); border-radius:var(--r-sm);
+    display:grid; place-items:center; color:var(--dim); flex-shrink:0; transition:.12s; margin-top:2px; }
+  .back:hover { background:var(--surface-2); color:var(--ink); }
+  .head h1 { font-family:"Archivo"; font-weight:800; font-size:27px; letter-spacing:-0.03em; line-height:1.12; }
+  .head .sub { font-size:14px; color:var(--dim); margin-top:3px; }
+  .head .spacer { flex:1; }
+  .btn { display:inline-flex; align-items:center; gap:8px; font-weight:600; font-size:14px; padding:10px 16px;
+    border-radius:var(--r-sm); transition:.12s; white-space:nowrap; }
+  .btn svg { width:16px; height:16px; stroke-width:2; }
+  .btn-acc { background:var(--acc); color:var(--acc-ink); }
+  .btn-acc:hover { filter:brightness(1.07); }
+  .btn-ghost { border:1px solid var(--line); color:var(--ink); }
+  .btn-ghost:hover { background:var(--surface-2); }
+
+  /* simple stat line */
+  .stats { display:flex; align-items:center; gap:22px; margin:20px 0 26px; padding-left:48px; flex-wrap:wrap; }
+  .stat { display:flex; align-items:baseline; gap:7px; }
+  .stat .n { font-family:"Archivo"; font-weight:700; font-size:19px; letter-spacing:-.02em; }
+  .stat .n.ok { color:var(--ok); }
+  .stat .t { font-size:13px; color:var(--dim); }
+  .stat .sep { width:1px; height:20px; background:var(--line); }
+
+  /* layout */
+  .grid { display:grid; grid-template-columns: minmax(0,1fr) 300px; gap:26px; align-items:start; }
+
+  /* tabs */
+  .tabs { display:flex; gap:24px; border-bottom:1px solid var(--line); margin-bottom:20px; }
+  .tab { font-size:14px; font-weight:600; padding:0 0 12px; color:var(--dim); border-bottom:2px solid transparent; margin-bottom:-1px; }
+  .tab:hover { color:var(--ink); }
+  .tab.on { color:var(--ink); border-bottom-color:var(--acc); }
+  .tab .ct { font-family:"IBM Plex Mono"; font-size:11px; color:var(--faint); margin-left:6px; }
+
+  /* toolbar */
+  .toolbar { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:18px; flex-wrap:wrap; }
+  .seg { display:inline-flex; background:var(--surface-2); border-radius:var(--r-sm); padding:3px; }
+  .seg button { font-size:13px; font-weight:500; padding:6px 14px; border-radius:5px; color:var(--dim); }
+  .seg button.on { background:var(--surface); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.18); }
+  [data-theme="dark"] .seg button.on { background:var(--line); }
+  .mini { display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:500; padding:8px 13px;
+    border:1px solid var(--line); border-radius:var(--r-sm); color:var(--ink); transition:.12s; }
+  .mini:hover { background:var(--surface-2); }
+  .mini svg { width:15px; height:15px; stroke-width:2; }
+
+  /* document viewer — Sprout-style WYSIWYG paper page */
+  .pill-page { display:inline-flex; align-items:center; gap:6px; font-family:"IBM Plex Mono"; font-size:11px;
+    color:var(--dim); padding:7px 11px; border:1px solid var(--line); border-radius:var(--r-sm); }
+  .pill-src { display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:500; padding:7px 12px;
+    border:1px solid var(--line); border-radius:var(--r-sm); color:var(--dim); cursor:default; transition:.12s; }
+  .pill-src:hover { border-color:var(--acc); color:var(--ink); }
+  .pill-src svg { width:14px; height:14px; color:var(--acc-on-surface); }
+
+  .viewer { background:var(--tray); border:1px solid var(--line); border-radius:var(--r);
+    padding:26px; display:flex; flex-direction:column; align-items:center; gap:11px; overflow:auto; }
+  /* true-scale Letter page (612×792 = 8.5×11 @72dpi), zoomed via transform like the real component */
+  .page-frame { width: calc(612px * var(--zoom, .9)); height: calc(792px * var(--zoom, .9)); flex-shrink:0; }
+  .page { width:612px; height:792px; transform: scale(var(--zoom, .9)); transform-origin: top left;
+    background:#fff; color:#1a1a1a; box-shadow:0 12px 44px rgba(0,0,0,.30); padding:40px 46px; overflow:hidden;
+    font-family:"IBM Plex Sans", Arial, sans-serif; }
+  .pagelabel { font-family:"IBM Plex Mono"; font-size:11px; color:var(--faint); }
+  /* document internals — always dark-on-white (mirrors the exported PDF) */
+  .doc-name { font-family:"Archivo"; font-weight:800; font-size:19px; letter-spacing:-.01em; text-align:center; color:#16181d; }
+  .doc-contact { font-size:8.4px; color:#666; text-align:center; margin-top:4px; }
+  .doc-sec { margin-top:13px; }
+  .doc-h { font-size:8.4px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; color:#333;
+    padding-bottom:2px; border-bottom:1px solid #d9d9d9; margin-bottom:6px; }
+  .doc-sec p { font-size:9.2px; color:#333; line-height:1.45; }
+  .doc-job { display:flex; justify-content:space-between; gap:10px; margin-top:7px; }
+  .doc-job .jt { font-weight:700; font-size:9.7px; color:#1a1a1a; }
+  .doc-job .jo { font-size:8.8px; color:#555; margin-top:1px; }
+  .doc-job .jd { font-size:8.4px; color:#777; font-style:italic; white-space:nowrap; }
+  .doc-ul { list-style:none; margin-top:3px; }
+  .doc-ul li { position:relative; padding-left:12px; font-size:9.1px; color:#2a2a2a; margin-top:2px; line-height:1.4; }
+  .doc-ul li::before { content:"•"; position:absolute; left:1px; color:#888; }
+  .doc-proj { margin-top:7px; }
+  .doc-proj .jt { display:flex; justify-content:space-between; gap:10px; }
+  .doc-proj .jt .gh { font-weight:400; font-size:8.2px; color:#777; font-style:italic; }
+  .doc-skills { font-size:9.1px; color:#333; margin-top:3px; line-height:1.6; }
+  .doc-skills b { color:#1a1a1a; font-weight:700; }
+  /* zoom control */
+  .zoom { display:inline-flex; align-items:center; border:1px solid var(--line); border-radius:var(--r-sm); }
+  .zoom button { width:30px; height:33px; color:var(--dim); display:grid; place-items:center; }
+  .zoom button:hover { background:var(--surface-2); color:var(--ink); }
+  .zoom button svg { width:14px; height:14px; stroke-width:2; }
+  .zoom .zl { font-family:"IBM Plex Mono"; font-size:11px; color:var(--dim); width:40px; text-align:center; }
+
+  /* right rail */
+  .rail { display:flex; flex-direction:column; gap:16px; position:sticky; top:24px; }
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:18px; }
+  .card > .label { display:block; margin-bottom:14px; }
+
+  .fit { display:flex; align-items:baseline; gap:9px; margin-bottom:16px; }
+  .fit .n { font-family:"Archivo"; font-weight:800; font-size:42px; letter-spacing:-.03em; color:var(--ok); line-height:1; }
+  .fit .s { font-size:13px; color:var(--dim); }
+  .bar { margin-bottom:12px; }
+  .bar:last-child { margin-bottom:0; }
+  .bar .bl { display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px; }
+  .bar .bl .bn { color:var(--dim); }
+  .bar .bl .bv { font-family:"IBM Plex Mono"; font-size:11px; color:var(--ink); }
+  .bar .track { height:5px; background:var(--surface-2); border-radius:999px; overflow:hidden; }
+  [data-theme="dark"] .bar .track { background:var(--bg); }
+  .bar .fill { height:100%; background:var(--acc); border-radius:999px; }
+
+  /* refined evidence — quiet */
+  .ev-sum { font-size:13px; color:var(--dim); margin-bottom:14px; line-height:1.5; }
+  .ev-sum b { color:var(--ink); font-weight:600; }
+  .ev-stat { display:flex; gap:8px; margin-bottom:14px; }
+  .ev-pill { flex:1; text-align:center; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-sm); padding:9px 4px; }
+  .ev-pill .pn { font-family:"Archivo"; font-weight:700; font-size:18px; }
+  .ev-pill .pl { font-family:"IBM Plex Mono"; font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); margin-top:2px; }
+  .ev-check { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--ok); padding-top:13px; border-top:1px solid var(--line); }
+  .ev-link { display:block; margin-top:12px; font-size:12.5px; color:var(--acc-on-surface); font-weight:500; }
+
+  .field label { display:block; margin-bottom:7px; }
+  .field select { width:100%; font-size:13.5px; font-weight:600; padding:9px 11px; border-radius:var(--r-sm);
+    border:1px solid var(--line); background:var(--surface-2); color:var(--ink); cursor:pointer; margin-bottom:14px; }
+  .kv { display:flex; justify-content:space-between; font-size:13px; padding:4px 0; }
+  .kv .k { color:var(--dim); }
+  .kv .v { font-family:"IBM Plex Mono"; font-size:12px; display:flex; align-items:center; gap:5px; }
+  .kv .v.ok { color:var(--ok); }
+
+  /* controls dock */
+  .dock { position:fixed; right:18px; bottom:18px; z-index:30; display:flex; align-items:center; gap:12px;
+    background:var(--surface); border:1px solid var(--line); border-radius:999px; padding:8px 14px; box-shadow:0 10px 34px rgba(0,0,0,.28); }
+  .dock .grp { display:flex; align-items:center; gap:7px; }
+  .dock .lbl { font-family:"IBM Plex Mono"; font-size:10px; letter-spacing:.1em; color:var(--faint); text-transform:uppercase; }
+  .sw-acc { width:18px; height:18px; border-radius:50%; border:2px solid transparent; cursor:pointer; transition:.12s; }
+  .sw-acc[data-on="true"] { border-color:var(--ink); transform:scale(1.12); }
+  .sw-acc.lime{background:#BCE82F}.sw-acc.blue{background:#3BA7FB}.sw-acc.amber{background:#F6B526}.sw-acc.orange{background:#FB7A3C}
+  .divd { width:1px; height:18px; background:var(--line); }
+  .t-toggle { display:flex; align-items:center; gap:7px; font-family:"IBM Plex Mono"; font-size:10px; color:var(--dim); }
+  .t-toggle .sw { width:30px; height:16px; border-radius:999px; background:var(--line); position:relative; transition:.18s; }
+  .t-toggle .sw::after { content:""; position:absolute; top:2px; left:2px; width:12px; height:12px; border-radius:50%; background:var(--acc); transition:.18s; }
+  [data-theme="light"] .t-toggle .sw::after { transform:translateX(14px); }
+
+  @media (max-width:940px){ .nav{display:none} .grid{grid-template-columns:1fr} .rail{position:static} }
+  @media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- sidebar -->
+  <aside class="nav">
+    <div class="brand"><div class="mark">H</div><div class="word">HireIQ</div></div>
+    <a class="nav-item on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Applications</a>
+    <a class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>Alerts <span class="badge">2</span></a>
+    <a class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l1.9 5.6L20 10l-5.1 2L13 18l-1-5-6-2 5.1-1.4z"/></svg>Tailor</a>
+    <a class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>Master Profile</a>
+    <div class="nav-foot"><div class="who"><div class="av">SA</div><div><div class="nm">sharif ahmed</div><div class="em">kingsharif314@…</div></div></div></div>
+  </aside>
+
+  <!-- main -->
+  <main class="main"><div class="wrap">
+    <div class="head">
+      <a class="back" aria-label="Back"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></a>
+      <div>
+        <h1 class="disp">Forward Deployed Engineer</h1>
+        <div class="sub">Harper · New York, NY · Hybrid</div>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn btn-acc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l1.9 5.6L20 10l-5.1 2L13 18l-1-5-6-2 5.1-1.4z"/></svg>Tailor again</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><span class="n ok">78</span><span class="t">fit score</span></div>
+      <div class="sep"></div>
+      <div class="stat"><span class="n ok">Pass</span><span class="t">ATS check</span></div>
+      <div class="sep"></div>
+      <div class="stat"><span class="n">23<span style="color:var(--faint);font-size:14px">/29</span></span><span class="t">keywords</span></div>
+      <div class="sep"></div>
+      <div class="stat"><span class="n">1</span><span class="t">page</span></div>
+    </div>
+
+    <div class="grid">
+      <!-- center -->
+      <section>
+        <div class="tabs">
+          <button class="tab on">Documents</button>
+          <button class="tab">Questions <span class="ct">4</span></button>
+        </div>
+
+        <div class="toolbar">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="seg"><button class="on">Resume</button><button>Cover letter</button></div>
+            <span class="pill-page">1 page · target 1</span>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <div class="zoom">
+              <button onclick="zoomBy(-0.1)" aria-label="Zoom out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14"/></svg></button>
+              <span class="zl" id="zl">90%</span>
+              <button onclick="zoomBy(0.1)" aria-label="Zoom in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg></button>
+              <button onclick="fitWidth()" aria-label="Fit width"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
+            </div>
+            <span class="pill-src" title="Open Sources to review where each claim comes from">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg>12 sourced
+            </span>
+            <button class="mini"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>PDF</button>
+            <button class="mini"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>DOCX</button>
+          </div>
+        </div>
+
+        <!-- Sprout-style WYSIWYG paper page on a gray tray -->
+        <div class="viewer">
+          <div class="page-frame">
+            <div class="page">
+              <div class="doc-name">Sharif Ahmed</div>
+              <div class="doc-contact">kingsharif314@gmail.com&nbsp;·&nbsp;(817) 555-0142&nbsp;·&nbsp;Fort Worth, TX&nbsp;·&nbsp;github.com/sharif-a&nbsp;·&nbsp;linkedin.com/in/sharif-ahmed</div>
+
+              <div class="doc-sec">
+                <div class="doc-h">Summary</div>
+                <p>Full-stack software engineer and CS senior who ships customer-facing features end-to-end. I turn ambiguous problems into deployed, tested software and like working directly with users. Strongest in TypeScript, Python, React/Next.js, and cloud infrastructure.</p>
+              </div>
+
+              <div class="doc-sec">
+                <div class="doc-h">Experience</div>
+                <div class="doc-job">
+                  <div><div class="jt">Software Engineer Intern</div><div class="jo">Vantage Labs · Remote</div></div>
+                  <div class="jd">May 2025 – Aug 2025</div>
+                </div>
+                <ul class="doc-ul">
+                  <li>Built a customer-facing analytics dashboard in Next.js + TypeScript used by 1,200+ weekly users.</li>
+                  <li>Cut API latency 38% by adding Redis caching and eliminating N+1 Postgres queries.</li>
+                  <li>Shipped 14 features over the summer, partnering directly with PM and design.</li>
+                </ul>
+                <div class="doc-job">
+                  <div><div class="jt">Undergraduate Teaching Assistant</div><div class="jo">TCU Computer Science</div></div>
+                  <div class="jd">Aug 2024 – Present</div>
+                </div>
+                <ul class="doc-ul">
+                  <li>Lead weekly labs for 60+ students in Data Structures &amp; Algorithms.</li>
+                  <li>Built a Python autograder that cut grading time ~70%.</li>
+                </ul>
+              </div>
+
+              <div class="doc-sec">
+                <div class="doc-h">Projects</div>
+                <div class="doc-proj">
+                  <div class="jt"><span>HireIQ — AI Resume Tailoring</span><span class="gh">github.com/sharif-a/hireiq</span></div>
+                  <ul class="doc-ul">
+                    <li>Built an ATS-aware scoring engine and a two-pass tailoring pipeline that rewrites resumes per job.</li>
+                    <li>Designed the Postgres schema with row-level security; 50+ tests; deployed on Vercel.</li>
+                  </ul>
+                </div>
+                <div class="doc-proj">
+                  <div class="jt"><span>Realtime Match Engine</span><span class="gh">github.com/sharif-a/match-engine</span></div>
+                  <ul class="doc-ul">
+                    <li>Low-latency Python/FastAPI scoring service handling 500 req/s on a managed cloud runtime.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="doc-sec">
+                <div class="doc-h">Education</div>
+                <div class="doc-job">
+                  <div><div class="jt">B.S. Computer Science — Texas Christian University</div><div class="jo">GPA 3.8 / 4.0 · Dean's List</div></div>
+                  <div class="jd">Expected May 2026</div>
+                </div>
+                <p style="margin-top:3px; color:#555; font-size:8.8px;">Relevant coursework: Algorithms, Databases, Distributed Systems, Machine Learning</p>
+              </div>
+
+              <div class="doc-sec">
+                <div class="doc-h">Skills</div>
+                <div class="doc-skills"><b>Languages:</b> TypeScript, Python, Java, SQL, Go</div>
+                <div class="doc-skills"><b>Frameworks:</b> React, Next.js, Node.js, FastAPI, Tailwind CSS</div>
+                <div class="doc-skills"><b>Tools &amp; Cloud:</b> PostgreSQL, Supabase, Redis, Docker, AWS, Git, Vercel</div>
+              </div>
+            </div>
+          </div>
+          <div class="pagelabel">Page 1 of 1</div>
+        </div>
+      </section>
+
+      <!-- rail -->
+      <aside class="rail">
+        <div class="card">
+          <span class="label">Job fit</span>
+          <div class="fit"><span class="n">78</span><span class="s">Strong match</span></div>
+          <div class="bar"><div class="bl"><span class="bn">Keyword coverage</span><span class="bv">79%</span></div><div class="track"><div class="fill" style="width:79%"></div></div></div>
+          <div class="bar"><div class="bl"><span class="bn">Title alignment</span><span class="bv">92%</span></div><div class="track"><div class="fill" style="width:92%"></div></div></div>
+          <div class="bar"><div class="bl"><span class="bn">Format / parse</span><span class="bv">100%</span></div><div class="track"><div class="fill" style="width:100%"></div></div></div>
+        </div>
+
+        <!-- refined, quiet evidence -->
+        <div class="card">
+          <span class="label">Sources</span>
+          <p class="ev-sum">Every claim in this resume is backed by your real work — <b>nothing invented</b>.</p>
+          <div class="ev-stat">
+            <div class="ev-pill"><div class="pn">8</div><div class="pl">GitHub</div></div>
+            <div class="ev-pill"><div class="pn">3</div><div class="pl">Answers</div></div>
+            <div class="ev-pill"><div class="pn">1</div><div class="pl">Resume</div></div>
+          </div>
+          <div class="ev-check"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg>All 12 claims sourced</div>
+          <a class="ev-link">Review sources →</a>
+        </div>
+
+        <div class="card">
+          <span class="label">Application</span>
+          <div class="field">
+            <label class="label" style="letter-spacing:.06em">Status</label>
+            <select><option>Draft</option><option>Applied</option><option>Interviewing</option><option>Offer</option><option>Rejected</option></select>
+          </div>
+          <div class="kv"><span class="k">Tailoring</span><span class="v ok">✓ tailored</span></div>
+          <div class="kv"><span class="k">Versions</span><span class="v">3</span></div>
+          <div class="kv"><span class="k">Source</span><span class="v">linkedin ↗</span></div>
+        </div>
+      </aside>
+    </div>
+  </div></main>
+</div>
+
+<!-- controls -->
+<div class="dock">
+  <div class="grp">
+    <span class="lbl">Accent</span>
+    <span class="sw-acc lime"   data-on="true"  onclick="setAcc('lime',this)"></span>
+    <span class="sw-acc blue"   data-on="false" onclick="setAcc('blue',this)"></span>
+    <span class="sw-acc amber"  data-on="false" onclick="setAcc('amber',this)"></span>
+    <span class="sw-acc orange" data-on="false" onclick="setAcc('orange',this)"></span>
+  </div>
+  <div class="divd"></div>
+  <button class="t-toggle" onclick="toggleTheme()"><span class="sw"></span>Dark / Light</button>
+</div>
+
+<script>
+  function setAcc(a, el){
+    document.documentElement.dataset.accent = a;
+    document.querySelectorAll('.sw-acc').forEach(s=>s.dataset.on='false');
+    el.dataset.on='true';
+  }
+  function toggleTheme(){
+    var h=document.documentElement; h.dataset.theme = h.dataset.theme==='dark'?'light':'dark';
+  }
+  // zoom (mirrors the real ResumePreview: zoom in/out + fit-to-width)
+  window.__zoom = 0.9;
+  function setZoom(z){
+    z = Math.min(1.3, Math.max(0.5, z)); window.__zoom = z;
+    document.documentElement.style.setProperty('--zoom', z.toFixed(2));
+    var el = document.getElementById('zl'); if (el) el.textContent = Math.round(z*100) + '%';
+  }
+  function zoomBy(d){ setZoom(window.__zoom + d); }
+  function fitWidth(){
+    var v = document.querySelector('.viewer'); if (!v) return;
+    setZoom((v.clientWidth - 52) / 612);
+  }
+  window.addEventListener('load', fitWidth);
+  window.addEventListener('resize', fitWidth);
+</script>
+</body>
+</html>

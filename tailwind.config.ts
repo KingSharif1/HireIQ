@@ -24,7 +24,7 @@ const config: Config = {
         },
         brand: {
           green: '#22C55E',
-          purple: '#8B5CF6',
+          purple: 'hsl(var(--primary))',
           amber: '#F59E0B',
         },
         border: 'hsl(var(--border))',

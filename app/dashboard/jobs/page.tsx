@@ -94,7 +94,7 @@ export default function JobsPage() {
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-white">Job Analyzed</h1>
+            <h1 className="text-xl font-bold text-foreground">Job Analyzed</h1>
             <p className="text-sm text-muted-foreground">Ready to tailor your resume</p>
           </div>
         </div>
@@ -162,7 +162,7 @@ export default function JobsPage() {
           <ChevronLeft className="w-5 h-5" />
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-white">Add a Job</h1>
+          <h1 className="text-xl font-bold text-foreground">Add a Job</h1>
           <p className="text-sm text-muted-foreground">Paste the description or drop the URL</p>
         </div>
       </div>

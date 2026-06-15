@@ -65,7 +65,7 @@ export default function UploadResumePage() {
             <CheckCircle className="w-5 h-5 text-brand-green" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white">Resume Parsed!</h1>
+            <h1 className="text-xl font-bold text-foreground">Resume Parsed!</h1>
             <p className="text-sm text-muted-foreground">AI extracted {parsedData.experience.length} roles and {
               (parsedData.skills.technical.length + parsedData.skills.tools.length)
             } skills</p>
@@ -98,15 +98,15 @@ export default function UploadResumePage() {
 
             <div className="grid grid-cols-3 gap-3 pt-1">
               <div className="text-center">
-                <p className="text-lg font-bold text-white">{parsedData.experience.length}</p>
+                <p className="text-lg font-bold text-foreground">{parsedData.experience.length}</p>
                 <p className="text-xs text-muted-foreground">Roles</p>
               </div>
               <div className="text-center">
-                <p className="text-lg font-bold text-white">{parsedData.education.length}</p>
+                <p className="text-lg font-bold text-foreground">{parsedData.education.length}</p>
                 <p className="text-xs text-muted-foreground">Education</p>
               </div>
               <div className="text-center">
-                <p className="text-lg font-bold text-white">{parsedData.projects.length}</p>
+                <p className="text-lg font-bold text-foreground">{parsedData.projects.length}</p>
                 <p className="text-xs text-muted-foreground">Projects</p>
               </div>
             </div>
@@ -135,7 +135,7 @@ export default function UploadResumePage() {
           <ChevronLeft className="w-5 h-5" />
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-white">Upload Resume</h1>
+          <h1 className="text-xl font-bold text-foreground">Upload Resume</h1>
           <p className="text-sm text-muted-foreground">PDF or DOCX · We&apos;ll parse it with AI</p>
         </div>
       </div>

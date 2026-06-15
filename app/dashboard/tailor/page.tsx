@@ -164,7 +164,7 @@ function TailorFlowContent() {
         <div className="w-16 h-16 rounded-2xl bg-brand-purple/15 flex items-center justify-center mx-auto mb-4">
           <Sparkles className="w-8 h-8 text-brand-purple animate-pulse" />
         </div>
-        <h2 className="text-xl font-bold text-white mb-2">Tailoring Your Resume</h2>
+        <h2 className="text-xl font-bold text-foreground mb-2">Tailoring Your Resume</h2>
         <p className="text-muted-foreground text-sm">AI is rewriting your resume to maximize your match score. This takes ~30 seconds.</p>
       </div>
     )
@@ -173,7 +173,7 @@ function TailorFlowContent() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-white mb-4">Tailor Resume</h1>
+        <h1 className="text-xl font-bold text-foreground mb-4">Tailor Resume</h1>
         <TailorStepper currentStep={currentStep} />
       </div>
 

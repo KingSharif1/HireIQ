@@ -71,7 +71,7 @@ export function Sidebar({ profile, unreadCount = 0, collapsed = false, onToggle 
             <div className="w-8 h-8 rounded-lg bg-brand-purple flex items-center justify-center flex-shrink-0">
               <Zap className="w-4 h-4 text-white" fill="white" />
             </div>
-            {!collapsed && <span className="font-bold text-lg text-white">HireIQ</span>}
+            {!collapsed && <span className="font-bold text-lg text-foreground">HireIQ</span>}
           </Link>
           {!collapsed && onToggle && (
             <button

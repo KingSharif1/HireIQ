@@ -35,3 +35,6 @@ next-env.d.ts
 
 # local planning/design docs (not part of the repo)
 /_docs/
+
+# Playwright UI audit screenshots
+/.ui-audit/

@@ -42,7 +42,7 @@ export function MatchScore({ score, compact }: MatchScoreProps) {
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-3xl font-bold text-white">{safeTotal}</span>
+            <span className="text-3xl font-bold text-foreground">{safeTotal}</span>
             <span className="text-xs text-muted-foreground">/ 100</span>
           </div>
         </div>
