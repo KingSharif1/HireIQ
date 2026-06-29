@@ -9,8 +9,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "ui:shots": "node scripts/ui-shots.mjs",
-    "ui:shots:headed": "node scripts/ui-shots.mjs --headed"
+    "ui:shots": "node docs/scripts/ui-shots.mjs",
+    "ui:shots:headed": "node docs/scripts/ui-shots.mjs --headed"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.81",

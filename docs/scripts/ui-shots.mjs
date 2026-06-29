@@ -39,7 +39,7 @@ const ROUTES = [
 
 mkdirSync(OUT, { recursive: true })
 
-// Visible browser: node scripts/ui-shots.mjs --headed
+// Visible browser: node docs/scripts/ui-shots.mjs --headed
 // Or: npm run ui:shots:headed
 const HEADED = process.argv.includes('--headed') || process.env.PW_HEADED === '1'
 const SLOW_MO = HEADED ? 250 : 0

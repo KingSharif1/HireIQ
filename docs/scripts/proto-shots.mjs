@@ -3,7 +3,7 @@ import { mkdirSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
 
-const FILE = pathToFileURL(resolve('prototype/hireiq-redesign.html')).href
+const FILE = pathToFileURL(resolve('docs/prototype/hireiq-redesign.html')).href
 const OUT = '.ui-audit'
 const HEADED = process.argv.includes('--headed')
 mkdirSync(OUT, { recursive: true })

@@ -25,7 +25,7 @@ export default async function NotificationsPage() {
           <div className="rounded-xl border border-brand-amber/30 bg-brand-amber/10 p-4 text-sm text-foreground space-y-2">
             <p className="font-medium">Database setup required</p>
             <p className="text-muted-foreground">
-              Run <code className="text-xs bg-secondary px-1 py-0.5 rounded">supabase/migrations/004_notifications.sql</code> in
+              Run <code className="text-xs bg-secondary px-1 py-0.5 rounded">docs/supabase/migrations/004_notifications.sql</code> in
               your Supabase SQL editor, then refresh this page.
             </p>
           </div>

@@ -27,7 +27,7 @@ Before assuming, confirm with an MCP if one fits (Supabase, Neon, Stripe, shadcn
 
 First the cheap check, then the real one:
 - **curl** for fast route/health checks: `curl -s -o NUL -w "%{http_code}" <url>`.
-- **Playwright** (`scripts/ui-shots.mjs`) to actually click through and look at it.
+- **Playwright** (`docs/scripts/ui-shots.mjs`) to actually click through and look at it.
   - **Headed by default** so the change can be watched: `npm run ui:shots:headed`.
   - Credentials come from `TEST_USER_EMAIL` / `TEST_USER_PASSWORD` in `.env.local` (gitignored). Never hardcode or commit secrets.
   - Screenshots land in `.ui-audit/` (gitignored).

@@ -1,5 +1,5 @@
 /**
- * Quick Anthropic API key diagnostic — run: node scripts/test-anthropic-key.mjs
+ * Quick Anthropic API key diagnostic — run: node docs/scripts/test-anthropic-key.mjs
  * Does NOT print the key itself.
  */
 import { readFileSync, existsSync } from 'fs'
