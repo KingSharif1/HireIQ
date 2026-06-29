@@ -2,8 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useMemo, useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
@@ -12,22 +11,36 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Loader2, Link2, FileText, AlertTriangle, ArrowRight, ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
+import { isLinkedInJobUrl, LINKEDIN_PASTE_MESSAGE } from '@/lib/jobs/url-detect'
 import type { JobExtractedData } from '@/types'
 
 export default function JobsPage() {
-  const router = useRouter()
   const [url, setUrl] = useState('')
   const [description, setDescription] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [urlWarning, setUrlWarning] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'url' | 'paste'>('url')
   const [extractedData, setExtractedData] = useState<JobExtractedData | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
-  const [scrapedText, setScrapedText] = useState<string | null>(null)
+
+  const linkedInDetected = useMemo(() => isLinkedInJobUrl(url), [url])
+
+  function handleUrlChange(value: string) {
+    setUrl(value)
+    setError(null)
+    if (isLinkedInJobUrl(value)) {
+      setUrlWarning(LINKEDIN_PASTE_MESSAGE)
+    } else {
+      setUrlWarning(null)
+    }
+  }
 
   async function handleFetchUrl() {
-    if (!url.trim()) return
+    if (!url.trim() || linkedInDetected) return
     setLoading(true)
     setError(null)
+    setUrlWarning(null)
 
     try {
       const scrapeRes = await fetch('/api/jobs/fetch-url', {
@@ -36,9 +49,18 @@ export default function JobsPage() {
         body: JSON.stringify({ url }),
       })
       const scrapeData = await scrapeRes.json()
-      if (!scrapeRes.ok) throw new Error(scrapeData.error)
+      if (!scrapeRes.ok) {
+        if (scrapeData.code === 'LINKEDIN_BLOCKED') {
+          setActiveTab('paste')
+          setUrlWarning(scrapeData.error)
+          return
+        }
+        throw new Error(scrapeData.error)
+      }
 
-      setScrapedText(scrapeData.text)
+      if (scrapeData.warning) {
+        setUrlWarning(scrapeData.warning)
+      }
 
       const analyzeRes = await fetch('/api/jobs/analyze', {
         method: 'POST',
@@ -72,7 +94,10 @@ export default function JobsPage() {
       const res = await fetch('/api/jobs/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description }),
+        body: JSON.stringify({
+          description,
+          applyUrl: url.trim() || undefined,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
@@ -167,7 +192,7 @@ export default function JobsPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="url">
+      <Tabs value={activeTab} onValueChange={v => setActiveTab(v as 'url' | 'paste')}>
         <TabsList className="w-full mb-4">
           <TabsTrigger value="url" className="flex-1">
             <Link2 className="w-3.5 h-3.5 mr-1.5" />
@@ -183,18 +208,38 @@ export default function JobsPage() {
           <Card>
             <CardContent className="p-5 space-y-3">
               <p className="text-sm text-muted-foreground">
-                Works with Greenhouse, Lever, Ashby, and most job boards.
+                Works with Greenhouse, Lever, Ashby, Workday, and most career sites.
+                LinkedIn URLs must be pasted as text.
               </p>
               <Input
-                placeholder="https://boards.greenhouse.io/company/jobs/..."
+                placeholder="https://company.wd1.myworkdayjobs.com/... or greenhouse.io/..."
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                onChange={(e) => handleUrlChange(e.target.value)}
                 disabled={loading}
               />
+              {linkedInDetected && (
+                <div className="rounded-lg border border-brand-amber/30 bg-brand-amber/10 p-3 space-y-2">
+                  <p className="text-sm text-foreground">{LINKEDIN_PASTE_MESSAGE}</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveTab('paste')}
+                  >
+                    Switch to Paste Text
+                  </Button>
+                </div>
+              )}
+              {urlWarning && !linkedInDetected && (
+                <div className="flex items-start gap-2 text-sm text-brand-amber bg-brand-amber/10 border border-brand-amber/20 rounded-lg p-3">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <p>{urlWarning}</p>
+                </div>
+              )}
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button
                 onClick={handleFetchUrl}
-                disabled={!url.trim() || loading}
+                disabled={!url.trim() || loading || linkedInDetected}
                 className="w-full"
               >
                 {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Fetching…</> : 'Fetch & Analyze'}
@@ -208,6 +253,7 @@ export default function JobsPage() {
             <CardContent className="p-5 space-y-3">
               <p className="text-sm text-muted-foreground">
                 Copy the full job description and paste it below.
+                {url.trim() && linkedInDetected && ' Your LinkedIn URL will be saved as the apply link.'}
               </p>
               <Textarea
                 placeholder="Paste the full job description here..."

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-06-29 — Task 103: Workday + LinkedIn job URL handling
+
+**What:** Workday careers URLs fetch via internal `/wday/cxs/` API. LinkedIn job URLs blocked with `LINKEDIN_BLOCKED` code and UI redirect to Paste Text. Indeed/ZipRecruiter/Glassdoor show aggregator warning.
+
+**Files:** `lib/jobs/url-detect.ts`, `lib/jobs/job-scraper.ts`, `app/dashboard/jobs/page.tsx`, tests
+
+**Next:** Task 104 (GitHub OAuth) or Task 106 (visual render QA).
+
+---
+
 ## 2026-06-29 — Task 101: Structured 3-tier gap analysis
 
 **What:** `/api/tailor/questions` now runs `GAP_ANALYSIS_PROMPT` returning direct/adjacent/real gaps plus max 3 questions. Gap summary shown on tailor step 4 before Q&A. Real gaps and adjacent framing injected into tailor generate/regenerate prompts.

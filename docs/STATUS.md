@@ -11,7 +11,7 @@
 | Resume upload (PDF/DOCX) | ✓ |
 | Resume parse (Claude) | ✓ — needs tiered skills + low-confidence flags |
 | Profile workspace | ✓ — JSONB `profile_data`, provenance, pending suggestions |
-| Job URL fetch | Partial — Greenhouse, Lever, Ashby |
+| Job URL fetch | Partial — GH/Lever/Ashby/Workday; LinkedIn → paste |
 | Job analyze | ✓ |
 | ATS score | ✓ — algorithmic |
 | Gap Q&A | ✓ — 3-tier gap analysis + max 3 targeted questions |
@@ -28,7 +28,7 @@
 |---|------|--------|-------|
 | 1 | Resume upload + parse | 🟡 80% | Add tiered skills, parse confidence flags, OCR fallback |
 | 2 | GitHub connect | 🔴 0% | OAuth + repo sync + resume cross-ref |
-| 3 | Job URL ingestion | 🟡 50% | Add Workday API, LinkedIn paste prompt, Playwright fallback |
+| 3 | Job URL ingestion | 🟡 70% | Workday + LinkedIn done; Playwright fallback still pending |
 | 4 | Gap analysis | 🟡 85% | 3-tier JSON + UI; refine prompts with real usage |
 | 5 | Tailored resume + tracked changes | 🟡 85% | Accept/decline/edit UI done; feedback loop for future runs pending |
 | 6 | ATS + visual check | 🟡 55% | PDF layout QA pass (length, orphans, placeholders) |

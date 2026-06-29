@@ -36,13 +36,9 @@ Result: Per-change accept/decline/edit with reasons; Changes tab on Job Hub; exp
 ---
 
 ## Task 103 — Job fetch: Workday + LinkedIn handling (spec §2.1)
-Status: PENDING  
-Scope: `lib/jobs/job-scraper.ts`, `components/jobs/JobHub.tsx` or job input UI, tests  
-Goal: Workday internal API parser; detect LinkedIn URLs → force paste mode with clear message.  
-Acceptance:
-- Workday URL returns full JD text
-- LinkedIn URL never silently fails
-- Tests for URL detection
+Status: DONE  
+Scope: `lib/jobs/url-detect.ts`, `lib/jobs/job-scraper.ts`, `app/api/jobs/fetch-url/route.ts`, `app/dashboard/jobs/page.tsx`  
+Result: Workday internal API fetch; LinkedIn blocked with paste prompt; aggregator low-confidence warning.  
 
 ---
 

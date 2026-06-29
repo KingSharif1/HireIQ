@@ -1,14 +1,82 @@
-export type JobSource = 'greenhouse' | 'lever' | 'ashby' | 'generic'
+import {
+  AGGREGATOR_WARNING,
+  buildWorkdayApiUrl,
+  detectJobUrlKind,
+  isLinkedInJobUrl,
+  isAggregatorJobUrl,
+  parseWorkdayUrl,
+  LINKEDIN_PASTE_MESSAGE,
+} from '@/lib/jobs/url-detect'
+
+export type JobSource = 'greenhouse' | 'lever' | 'ashby' | 'workday' | 'generic'
+
+export class LinkedInBlockedError extends Error {
+  readonly code = 'LINKEDIN_BLOCKED' as const
+
+  constructor(message = LINKEDIN_PASTE_MESSAGE) {
+    super(message)
+    this.name = 'LinkedInBlockedError'
+  }
+}
 
 function detectSource(url: string): JobSource {
-  if (url.includes('greenhouse.io')) return 'greenhouse'
-  if (url.includes('lever.co')) return 'lever'
-  if (url.includes('ashbyhq.com')) return 'ashby'
+  const kind = detectJobUrlKind(url)
+  if (kind === 'workday') return 'workday'
+  if (kind === 'greenhouse') return 'greenhouse'
+  if (kind === 'lever') return 'lever'
+  if (kind === 'ashby') return 'ashby'
   return 'generic'
 }
 
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+async function scrapeWorkday(url: string): Promise<{ text: string; company: string; title: string }> {
+  const parts = parseWorkdayUrl(url)
+  if (!parts) throw new Error('Could not parse Workday URL')
+
+  const apiUrl = buildWorkdayApiUrl(parts)
+  const res = await fetch(apiUrl, {
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      'User-Agent': 'HireIQ/1.0',
+    },
+  })
+  if (!res.ok) throw new Error('Failed to fetch Workday job — try pasting the description instead')
+
+  const data = await res.json() as {
+    jobPostingInfo?: {
+      title?: string
+      location?: string
+      jobDescription?: string
+      company?: { descriptor?: string }
+    }
+    title?: string
+    jobDescription?: string
+    location?: string
+  }
+
+  const info = data.jobPostingInfo ?? data
+  const title = info.title ?? ''
+  const location = 'location' in info && info.location ? `\n${info.location}` : ''
+  const description = info.jobDescription ?? data.jobDescription ?? ''
+  const text = stripHtml(description)
+  const company = data.jobPostingInfo?.company?.descriptor ?? parts.tenant
+
+  if (!text || text.length < 50) {
+    throw new Error('Workday returned empty content — paste the job description instead')
+  }
+
+  return {
+    text: `${title}${location}\n\n${text}`,
+    company,
+    title,
+  }
+}
+
 async function scrapeGreenhouse(url: string): Promise<{ text: string; company: string; title: string }> {
-  // Parse: https://boards.greenhouse.io/{company}/jobs/{id}
   const match = url.match(/greenhouse\.io\/([^/]+)\/jobs\/(\d+)/)
   if (!match) throw new Error('Could not parse Greenhouse URL')
 
@@ -19,7 +87,7 @@ async function scrapeGreenhouse(url: string): Promise<{ text: string; company: s
 
   const data = await res.json()
   const rawHtml = data.content || ''
-  const text = rawHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+  const text = stripHtml(rawHtml)
 
   return {
     text: `${data.title}\n\n${text}`,
@@ -29,7 +97,6 @@ async function scrapeGreenhouse(url: string): Promise<{ text: string; company: s
 }
 
 async function scrapeLever(url: string): Promise<{ text: string; company: string; title: string }> {
-  // Parse: https://jobs.lever.co/{company}/{postingId}
   const match = url.match(/lever\.co\/([^/]+)\/([a-f0-9-]{36})/)
   if (!match) throw new Error('Could not parse Lever URL')
 
@@ -39,7 +106,7 @@ async function scrapeLever(url: string): Promise<{ text: string; company: string
   if (!res.ok) throw new Error('Failed to fetch Lever job')
 
   const data = await res.json()
-  const lists = (data.lists || []).map((l: { text: string; content: string }) => `${l.text}\n${l.content.replace(/<[^>]+>/g, ' ')}`).join('\n\n')
+  const lists = (data.lists || []).map((l: { text: string; content: string }) => `${l.text}\n${stripHtml(l.content)}`).join('\n\n')
   const text = `${data.text}\n\n${data.descriptionPlain || ''}\n\n${lists}`
 
   return {
@@ -50,9 +117,7 @@ async function scrapeLever(url: string): Promise<{ text: string; company: string
 }
 
 async function scrapeAshby(url: string): Promise<{ text: string; company: string; title: string }> {
-  // Strip tracking/query params so UUID parsing stays clean.
   const cleanUrl = url.split('?')[0]
-  // jobs.ashbyhq.com/{company}/{jobId}  OR  {company}.ashbyhq.com/job/{jobId}
   const match = cleanUrl.match(/ashbyhq\.com\/([^/]+)\/([^/?]+)/)
   if (!match) throw new Error('Could not parse Ashby URL')
 
@@ -69,7 +134,6 @@ async function scrapeAshby(url: string): Promise<{ text: string; company: string
       descriptionHtml?: string
       jobUrl?: string
     }>
-    // Legacy field name some integrations used — keep as fallback.
     jobPostings?: Array<{
       id: string
       title: string
@@ -87,7 +151,7 @@ async function scrapeAshby(url: string): Promise<{ text: string; company: string
   const plain = job.descriptionPlain
     ?? ('description' in job ? job.description : undefined)
     ?? ('descriptionHtml' in job && job.descriptionHtml
-      ? job.descriptionHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+      ? stripHtml(job.descriptionHtml)
       : '')
 
   return {
@@ -107,10 +171,8 @@ async function scrapeGeneric(url: string): Promise<{ text: string; company: stri
   const { load } = await import('cheerio')
   const $ = load(html)
 
-  // Remove noise
   $('script, style, nav, header, footer, aside, [class*="sidebar"], [class*="nav"]').remove()
 
-  // Try to find job content in priority order
   const selectors = [
     '[class*="job-description"]',
     '[class*="job_description"]',
@@ -146,12 +208,27 @@ export async function scrapeJobUrl(url: string): Promise<{
   title: string
   source: JobSource
   atsSystem: string
+  confidence: 'high' | 'medium' | 'low'
+  warning?: string
 }> {
+  if (isLinkedInJobUrl(url)) {
+    throw new LinkedInBlockedError()
+  }
+
   const source = detectSource(url)
+  const confidence = source === 'generic' ? 'low' : 'high'
+  let warning: string | undefined
+
+  if (isAggregatorJobUrl(url)) {
+    warning = AGGREGATOR_WARNING
+  }
 
   let result: { text: string; company: string; title: string }
 
   switch (source) {
+    case 'workday':
+      result = await scrapeWorkday(url)
+      break
     case 'greenhouse':
       result = await scrapeGreenhouse(url)
       break
@@ -165,9 +242,15 @@ export async function scrapeJobUrl(url: string): Promise<{
       result = await scrapeGeneric(url)
   }
 
+  if (result.text.trim().length < 100 && source === 'generic') {
+    throw new Error('Could not extract enough job content from this URL — paste the description instead')
+  }
+
   return {
     ...result,
     source,
     atsSystem: source === 'generic' ? '' : source,
+    confidence: warning ? 'medium' : confidence,
+    warning,
   }
 }
