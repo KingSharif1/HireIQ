@@ -7,7 +7,7 @@
 
 | Area | State |
 |------|-------|
-| Auth | Email + Google via Supabase ✓ |
+| Auth | Email + Google via Supabase ✓ — middleware, reset password, profile names |
 | Resume upload (PDF/DOCX) | ✓ |
 | Resume parse (Claude) | ✓ — needs tiered skills + low-confidence flags |
 | Profile workspace | ✓ — JSONB `profile_data`, provenance, pending suggestions |

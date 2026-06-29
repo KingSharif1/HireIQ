@@ -42,7 +42,14 @@ Result: Workday internal API fetch; LinkedIn blocked with paste prompt; aggregat
 
 ---
 
-## Task 104 — GitHub OAuth + repo sync (spec §1.2)
+## Task 104 — Basic auth hardening
+Status: DONE  
+Scope: `middleware.ts`, auth pages, `lib/auth/*`, migration 007, `docs/AUTH.md`  
+Result: Middleware wired; forgot/reset password; profile names on signup/OAuth; clearer errors.  
+
+---
+
+## Task 105 — GitHub OAuth + repo sync (spec §1.2)
 Status: PENDING  
 Scope: new `app/api/github/*`, `lib/github/`, migration in `docs/supabase/migrations/`, profile UI  
 Goal: Connect GitHub, pull repo metadata, store in `profiles.github_data`, cross-ref projects.  

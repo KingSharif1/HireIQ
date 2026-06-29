@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { syncProfileFromAuthUser } from '@/lib/auth/profile-sync'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -27,6 +28,15 @@ export async function GET(request: NextRequest) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        await syncProfileFromAuthUser(
+          supabase,
+          user.id,
+          user.email,
+          user.user_metadata as Record<string, unknown>
+        )
+      }
       return NextResponse.redirect(`${origin}${next}`)
     }
   }

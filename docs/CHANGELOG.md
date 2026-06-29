@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-06-29 — Task 104: Basic auth hardening
+
+**What:** Wired `middleware.ts` (session refresh + route guards). Added forgot/reset password flow. Profile trigger migration 007 sets first/last name from email signup and Google OAuth. Auth callback syncs profile metadata. Added `docs/AUTH.md` setup guide.
+
+**Files:** `middleware.ts`, `app/(auth)/*`, `lib/auth/*`, `components/auth/AuthShell.tsx`, migration 007
+
+**Next:** Run migration 007 in Supabase; configure redirect URLs per AUTH.md.
+
+---
+
 ## 2026-06-29 — Task 103: Workday + LinkedIn job URL handling
 
 **What:** Workday careers URLs fetch via internal `/wday/cxs/` API. LinkedIn job URLs blocked with `LINKEDIN_BLOCKED` code and UI redirect to Paste Text. Indeed/ZipRecruiter/Glassdoor show aggregator warning.

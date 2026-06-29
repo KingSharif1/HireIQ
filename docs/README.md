@@ -86,6 +86,9 @@ Run migrations **in order** in Supabase SQL Editor:
 3. `docs/supabase/migrations/004_notifications.sql`
 4. `docs/supabase/migrations/005_job_status_and_versions.sql`
 5. `docs/supabase/migrations/006_change_decisions.sql`
+6. `docs/supabase/migrations/007_auth_profile_trigger.sql`
+
+**Auth setup:** [AUTH.md](./AUTH.md)
 
 Create private storage buckets: `resumes`, `exports`  
 RLS: `auth.uid()::text = (storage.foldername(name))[1]`

@@ -1,22 +1,28 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
-import { useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { AuthShell } from '@/components/auth/AuthShell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Zap, Globe } from 'lucide-react'
+import { authErrorMessage, mapSupabaseAuthError } from '@/lib/auth/messages'
+import { Globe } from 'lucide-react'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const code = searchParams.get('error')
+    const msg = authErrorMessage(code)
+    if (msg) setError(msg)
+  }, [searchParams])
 
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -24,10 +30,10 @@ export default function LoginPage() {
     setError(null)
 
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (error) {
-      setError(error.message)
+    if (signInError) {
+      setError(mapSupabaseAuthError(signInError.message))
       setLoading(false)
     } else {
       router.push('/dashboard')
@@ -37,90 +43,90 @@ export default function LoginPage() {
 
   async function handleGoogleLogin() {
     setLoading(true)
+    setError(null)
     const supabase = createClient()
-    await supabase.auth.signInWithOAuth({
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     })
+    if (oauthError) {
+      setError(oauthError.message)
+      setLoading(false)
+    }
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="w-full max-w-md space-y-6">
-        {/* Logo */}
-        <div className="flex flex-col items-center gap-2">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-brand-purple flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" fill="white" />
-            </div>
-            <span className="text-2xl font-bold text-foreground">HireIQ</span>
+    <AuthShell
+      title="Welcome back"
+      description="Sign in to your account"
+      tagline="The resume tailor that actually gets you interviews"
+    >
+      <div className="space-y-4">
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={handleGoogleLogin}
+          disabled={loading}
+          type="button"
+        >
+          <Globe className="w-4 h-4" />
+          Continue with Google
+        </Button>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-border" />
           </div>
-          <p className="text-muted-foreground text-sm text-center">
-            The resume tailor that actually gets you interviews
-          </p>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">or</span>
+          </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Welcome back</CardTitle>
-            <CardDescription>Sign in to your account</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Google OAuth */}
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleGoogleLogin}
-              disabled={loading}
-            >
-              <Globe className="w-4 h-4" />
-              Continue with Google
-            </Button>
+        <form onSubmit={handleEmailLogin} className="space-y-3">
+          <Input
+            type="email"
+            placeholder="Email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            disabled={loading}
+            autoComplete="email"
+          />
+          <Input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            disabled={loading}
+            autoComplete="current-password"
+          />
+          <div className="flex justify-end">
+            <Link href="/forgot-password" className="text-xs text-primary hover:underline">
+              Forgot password?
+            </Link>
+          </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? 'Signing in…' : 'Sign in'}
+          </Button>
+        </form>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">or</span>
-              </div>
-            </div>
-
-            {/* Email/Password */}
-            <form onSubmit={handleEmailLogin} className="space-y-3">
-              <Input
-                type="email"
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-              />
-              <Input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-              />
-              {error && (
-                <p className="text-sm text-destructive">{error}</p>
-              )}
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Signing in…' : 'Sign in'}
-              </Button>
-            </form>
-
-            <p className="text-center text-sm text-muted-foreground">
-              Don&apos;t have an account?{' '}
-              <Link href="/signup" className="text-primary hover:underline">
-                Sign up free
-              </Link>
-            </p>
-          </CardContent>
-        </Card>
+        <p className="text-center text-sm text-muted-foreground">
+          Don&apos;t have an account?{' '}
+          <Link href="/signup" className="text-primary hover:underline">
+            Sign up free
+          </Link>
+        </p>
       </div>
-    </div>
+    </AuthShell>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   )
 }

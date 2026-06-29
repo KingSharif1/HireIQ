@@ -4,15 +4,14 @@ export const dynamic = 'force-dynamic'
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { AuthShell } from '@/components/auth/AuthShell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Zap, Globe } from 'lucide-react'
+import { mapSupabaseAuthError } from '@/lib/auth/messages'
+import { Globe, Zap } from 'lucide-react'
 
 export default function SignupPage() {
-  const router = useRouter()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -33,14 +32,17 @@ export default function SignupPage() {
     }
 
     const supabase = createClient()
-    const { error } = await supabase.auth.signUp({
+    const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { first_name: firstName.trim(), last_name: lastName.trim() } },
+      options: {
+        data: { first_name: firstName.trim(), last_name: lastName.trim() },
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
     })
 
-    if (error) {
-      setError(error.message)
+    if (signUpError) {
+      setError(mapSupabaseAuthError(signUpError.message))
       setLoading(false)
     } else {
       setSuccess(true)
@@ -50,123 +52,115 @@ export default function SignupPage() {
 
   async function handleGoogleSignup() {
     setLoading(true)
+    setError(null)
     const supabase = createClient()
-    await supabase.auth.signInWithOAuth({
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     })
+    if (oauthError) {
+      setError(oauthError.message)
+      setLoading(false)
+    }
   }
 
   if (success) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <Card className="w-full max-w-md text-center">
-          <CardContent className="py-10 space-y-3">
-            <div className="w-14 h-14 rounded-full bg-brand-green/15 flex items-center justify-center mx-auto">
-              <Zap className="w-7 h-7 text-brand-green" />
-            </div>
-            <h2 className="text-xl font-semibold">Check your email</h2>
-            <p className="text-muted-foreground text-sm">
-              We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account.
-            </p>
-            <Link href="/login" className="text-primary text-sm hover:underline">
-              Back to sign in
-            </Link>
-          </CardContent>
-        </Card>
+        <div className="w-full max-w-md text-center space-y-3 rounded-xl border border-border bg-card p-10">
+          <div className="w-14 h-14 rounded-full bg-brand-green/15 flex items-center justify-center mx-auto">
+            <Zap className="w-7 h-7 text-brand-green" />
+          </div>
+          <h2 className="text-xl font-semibold">Check your email</h2>
+          <p className="text-muted-foreground text-sm">
+            We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account.
+          </p>
+          <Link href="/login" className="text-primary text-sm hover:underline inline-block">
+            Back to sign in
+          </Link>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="w-full max-w-md space-y-6">
-        <div className="flex flex-col items-center gap-2">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-brand-purple flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" fill="white" />
-            </div>
-            <span className="text-2xl font-bold text-foreground">HireIQ</span>
+    <AuthShell
+      title="Create your account"
+      description="Get started in 30 seconds"
+      tagline="Start getting more interviews — free"
+    >
+      <div className="space-y-4">
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={handleGoogleSignup}
+          disabled={loading}
+          type="button"
+        >
+          <Globe className="w-4 h-4" />
+          Sign up with Google
+        </Button>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-border" />
           </div>
-          <p className="text-muted-foreground text-sm text-center">
-            Start getting more interviews — free
-          </p>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">or</span>
+          </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Create your account</CardTitle>
-            <CardDescription>Get started in 30 seconds</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleGoogleSignup}
+        <form onSubmit={handleSignup} className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              placeholder="First name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              required
               disabled={loading}
-            >
-              <Globe className="w-4 h-4" />
-              Sign up with Google
-            </Button>
+              autoComplete="given-name"
+            />
+            <Input
+              placeholder="Last name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              required
+              disabled={loading}
+              autoComplete="family-name"
+            />
+          </div>
+          <Input
+            type="email"
+            placeholder="Email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            disabled={loading}
+            autoComplete="email"
+          />
+          <Input
+            type="password"
+            placeholder="Password (min 8 chars)"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            minLength={8}
+            required
+            disabled={loading}
+            autoComplete="new-password"
+          />
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? 'Creating account…' : 'Create free account'}
+          </Button>
+        </form>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">or</span>
-              </div>
-            </div>
-
-            <form onSubmit={handleSignup} className="space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  placeholder="First name"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  required
-                  disabled={loading}
-                />
-                <Input
-                  placeholder="Last name"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  required
-                  disabled={loading}
-                />
-              </div>
-              <Input
-                type="email"
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-              />
-              <Input
-                type="password"
-                placeholder="Password (min 8 chars)"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                minLength={8}
-                required
-                disabled={loading}
-              />
-              {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Creating account…' : 'Create free account'}
-              </Button>
-            </form>
-
-            <p className="text-center text-sm text-muted-foreground">
-              Already have an account?{' '}
-              <Link href="/login" className="text-primary hover:underline">
-                Sign in
-              </Link>
-            </p>
-          </CardContent>
-        </Card>
+        <p className="text-center text-sm text-muted-foreground">
+          Already have an account?{' '}
+          <Link href="/login" className="text-primary hover:underline">
+            Sign in
+          </Link>
+        </p>
       </div>
-    </div>
+    </AuthShell>
   )
 }
