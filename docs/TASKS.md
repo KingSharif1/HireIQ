@@ -22,13 +22,9 @@ Files changed: `docs/**`, `README.md`, `package.json`, `.gitignore`, `.cursor/ru
 ---
 
 ## Task 101 — Structured gap analysis (spec §3.1)
-Status: PENDING  
-Scope: `lib/ai/prompts.ts`, `app/api/tailor/questions/route.ts`, `types/index.ts`, `components/tailor/QuestionFlow.tsx`  
-Goal: API returns `{ direct_matches, adjacent_matches, real_gaps, questions_for_user }` before Q&A. Questions only from unresolved gaps (max 3).  
-Acceptance:
-- Adjacent matches require honest_framing field
-- real_gaps never auto-filled in tailor prompt
-- UI shows gap summary before questions
+Status: DONE  
+Scope: `lib/ai/gap-analysis.ts`, `lib/ai/prompts.ts`, `app/api/tailor/questions/route.ts`, `components/tailor/GapAnalysisSummary.tsx`, tailor flow  
+Result: 3-tier gap analysis API + summary UI before Q&A; max 3 questions; real gaps blocked in tailor prompt.  
 
 ---
 

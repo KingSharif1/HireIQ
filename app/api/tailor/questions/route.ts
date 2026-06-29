@@ -2,15 +2,15 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { anthropic } from '@ai-sdk/anthropic'
 import { generateText } from 'ai'
-import { QUESTION_GENERATOR_PROMPT, extractJSON } from '@/lib/ai/prompts'
+import { GAP_ANALYSIS_PROMPT, extractJSON } from '@/lib/ai/prompts'
 import { AI_MODELS } from '@/lib/ai/models'
 import { aiErrorResponse } from '@/lib/ai/error-response'
+import { normalizeGapAnalysis } from '@/lib/ai/gap-analysis'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { getMasterResumeContext } from '@/lib/profile/master'
-import type { GapQuestion } from '@/types'
 
 export const runtime = 'nodejs'
-export const maxDuration = 30
+export const maxDuration = 45
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -46,23 +46,27 @@ export async function POST(request: Request) {
     ...score.missing_keywords.slice(0, 5).map(k => `Missing keyword: ${k}`),
   ].join('\n')
 
-  const prompt = QUESTION_GENERATOR_PROMPT
+  const prompt = GAP_ANALYSIS_PROMPT
     .replace('{structuredResume}', JSON.stringify(resume, null, 2).slice(0, 4000))
     .replace('{jobRequirements}', JSON.stringify(jobData, null, 2).slice(0, 2000))
-    .replace('{gaps}', gaps || 'No major gaps identified — help surface any relevant achievements')
+    .replace('{gaps}', gaps || 'No major gaps identified from ATS pre-scan')
 
-  let questions: GapQuestion[]
+  let gapAnalysis
   try {
     const result = await generateText({
       model: anthropic(AI_MODELS.strong),
       prompt,
-      maxOutputTokens: 1500,
+      maxOutputTokens: 2500,
     })
-    const parsed = JSON.parse(extractJSON(result.text))
-    questions = parsed.questions || []
+    gapAnalysis = normalizeGapAnalysis(JSON.parse(extractJSON(result.text)))
   } catch (err) {
-    return aiErrorResponse(err, 'Failed to generate questions')
+    return aiErrorResponse(err, 'Failed to analyze gaps')
   }
 
-  return NextResponse.json({ questions, source: master.source, baseResumeId: master.baseResumeId })
+  return NextResponse.json({
+    gapAnalysis,
+    questions: gapAnalysis.questions_for_user,
+    source: master.source,
+    baseResumeId: master.baseResumeId,
+  })
 }

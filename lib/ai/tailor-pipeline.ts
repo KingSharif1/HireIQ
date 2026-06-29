@@ -5,8 +5,9 @@ import {
   extractJSON,
 } from '@/lib/ai/prompts'
 import { AI_MODELS, TAILOR_MAX_AI_CALLS } from '@/lib/ai/models'
-import type { StructuredResume, JobExtractedData } from '@/types'
+import type { StructuredResume, JobExtractedData, GapAnalysis } from '@/types'
 import type { GenerateFn, TailorPipelineResult, TailorCritiqueReport } from '@/lib/ai/tailor-types'
+import { formatAdjacentForPrompt, formatRealGapsForPrompt } from '@/lib/ai/gap-analysis'
 import {
   buildResumeChanges,
   buildTailorWarning,
@@ -26,6 +27,7 @@ interface PipelineInput {
   answers: Record<string, string>
   /** Maps questionId → real question text so the model sees the actual gap question. */
   questionLabels?: Record<string, string>
+  gapAnalysis?: GapAnalysis | null
   generate: GenerateFn
 }
 
@@ -52,8 +54,10 @@ function parseCritique(text: string): TailorCritiqueReport {
 }
 
 export async function runTailorPipeline(input: PipelineInput): Promise<TailorPipelineResult> {
-  const { resume, job, answers, questionLabels, generate } = input
+  const { resume, job, answers, questionLabels, gapAnalysis, generate } = input
   const enhancements = formatEnhancements(answers, questionLabels)
+  const realGaps = formatRealGapsForPrompt(gapAnalysis?.real_gaps ?? [])
+  const adjacentMatches = formatAdjacentForPrompt(gapAnalysis?.adjacent_matches ?? [])
   const aiCallsUsed = { n: 0 }
   const critiques: TailorCritiqueReport[] = []
   const attempts: { resume: StructuredResume; critique: TailorCritiqueReport }[] = []
@@ -62,6 +66,8 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
     .replace('{structuredResume}', sliceForPrompt(resume, 5000))
     .replace('{jobAnalysis}', sliceForPrompt(job, 2000))
     .replace('{enhancements}', enhancements)
+    .replace('{realGaps}', realGaps)
+    .replace('{adjacentMatches}', adjacentMatches)
     .replace('{atsSystem}', job.ats_system || 'generic')
     .replace('{seniority}', job.seniority || 'mid')
     .replace('{lengthBudget}', seniorityLengthBudget(job.seniority || 'mid'))
@@ -102,6 +108,8 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
       .replace('{tailoredResume}', sliceForPrompt(current, 5000))
       .replace('{jobAnalysis}', sliceForPrompt(job, 2000))
       .replace('{enhancements}', enhancements)
+      .replace('{realGaps}', realGaps)
+      .replace('{adjacentMatches}', adjacentMatches)
 
     const regenText = await callGenerate(generate, AI_MODELS.strong, regenPrompt, 6000, aiCallsUsed)
     current = parseResume(regenText)

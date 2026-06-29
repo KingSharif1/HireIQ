@@ -18,7 +18,7 @@ import {
 } from '@/lib/notifications'
 import { insertNotifications } from '@/lib/supabase/queries'
 import { withChangeIds, initialDecisions } from '@/lib/tailor/change-decisions'
-import type { Profile, ProfileData } from '@/types'
+import type { Profile, ProfileData, GapAnalysis } from '@/types'
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
@@ -38,11 +38,12 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { resumeId, jobId, answers, questions } = await request.json() as {
+  const { resumeId, jobId, answers, questions, gapAnalysis } = await request.json() as {
     resumeId?: string
     jobId: string
     answers: Record<string, string>
     questions?: { id: string; question: string }[]
+    gapAnalysis?: GapAnalysis | null
   }
 
   if (!jobId) return NextResponse.json({ error: 'jobId required' }, { status: 400 })
@@ -99,6 +100,7 @@ export async function POST(request: Request) {
       job,
       answers: gapAnswers,
       questionLabels,
+      gapAnalysis: gapAnalysis ?? null,
       generate: generateFn,
     })
   } catch (err) {

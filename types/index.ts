@@ -131,6 +131,30 @@ export interface GapQuestion {
   choices?: string[]
 }
 
+export interface DirectMatch {
+  jd_requirement: string
+  user_evidence: string
+  source: string
+}
+
+export interface AdjacentMatch {
+  jd_requirement: string
+  user_evidence: string
+  honest_framing: string
+}
+
+export interface RealGap {
+  jd_requirement: string
+  note: string
+}
+
+export interface GapAnalysis {
+  direct_matches: DirectMatch[]
+  adjacent_matches: AdjacentMatch[]
+  real_gaps: RealGap[]
+  questions_for_user: GapQuestion[]
+}
+
 export interface CoverLetterResult {
   subject_line: string
   cover_letter: string

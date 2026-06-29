@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-06-29 — Task 101: Structured 3-tier gap analysis
+
+**What:** `/api/tailor/questions` now runs `GAP_ANALYSIS_PROMPT` returning direct/adjacent/real gaps plus max 3 questions. Gap summary shown on tailor step 4 before Q&A. Real gaps and adjacent framing injected into tailor generate/regenerate prompts.
+
+**Files:** `lib/ai/gap-analysis.ts`, `lib/ai/prompts.ts`, `app/api/tailor/questions/route.ts`, `components/tailor/GapAnalysisSummary.tsx`, `store/index.ts`, `app/dashboard/tailor/page.tsx`, `lib/ai/tailor-pipeline.ts`
+
+**Next:** Task 103 (Workday + LinkedIn job URLs).
+
+---
+
 ## 2026-06-29 — Task 102: Tracked changes accept/decline
 
 **What:** Interactive diff review on Job Hub Changes tab. Accept/decline/edit per change with decline reasons. Export (PDF/DOCX) uses approved resume; blocks while changes are pending. Migration 006 adds `original_structured_data` and `change_decisions` columns.

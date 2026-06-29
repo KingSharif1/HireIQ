@@ -109,6 +109,57 @@ Return ONLY valid JSON:
   "summary": ""
 }`
 
+export const GAP_ANALYSIS_PROMPT = `You are a rigorous career analyst comparing a candidate's profile to a job description.
+
+CANDIDATE PROFILE (resume + experience — treat as complete unless Q&A adds more):
+{structuredResume}
+
+TARGET JOB REQUIREMENTS:
+{jobRequirements}
+
+ATS GAP SIGNALS (deterministic pre-scan — use as hints, verify against profile):
+{gaps}
+
+Produce a THREE-TIER gap analysis:
+
+TIER 1 — DIRECT MATCH: Candidate has clear evidence. Cite specific bullet, project, or skill.
+TIER 2 — ADJACENT MATCH: Not exact, but honestly close. Before classifying adjacent, ALL must be true:
+  1) Real work, code, or study demonstrates the underlying concept
+  2) A reasonable interviewer would agree the connection is honest
+  3) Candidate could answer "tell me about your X experience" truthfully
+  Include honest_framing for how to describe it accurately (e.g. "X-adjacent", "similar to X").
+TIER 3 — REAL GAP: Genuinely missing. Never suggest claiming it. Note why.
+
+QUESTIONS (max 3, only if Tier 2/3 cannot be resolved from profile alone):
+- Ask ONLY about specific tools/experiences that might exist but aren't documented
+- NEVER ask what's already in the profile
+- NEVER ask generic "tell me about yourself" questions
+- Each question needs: id, question, category, gap_being_filled, why_it_matters, choices (2-4), example_answer
+
+Return ONLY valid JSON:
+{
+  "direct_matches": [
+    { "jd_requirement": "", "user_evidence": "", "source": "resume|project|skill" }
+  ],
+  "adjacent_matches": [
+    { "jd_requirement": "", "user_evidence": "", "honest_framing": "" }
+  ],
+  "real_gaps": [
+    { "jd_requirement": "", "note": "" }
+  ],
+  "questions_for_user": [
+    {
+      "id": "q1",
+      "question": "",
+      "category": "experience|skills|projects|education|achievement",
+      "gap_being_filled": "",
+      "why_it_matters": "",
+      "choices": ["", ""],
+      "example_answer": ""
+    }
+  ]
+}`
+
 export const QUESTION_GENERATOR_PROMPT = `You are a career coach helping a job seeker strengthen their resume for a specific job.
 
 CANDIDATE'S RESUME:
@@ -162,6 +213,12 @@ TARGET JOB ANALYSIS:
 
 USER Q&A (new evidence — incorporate truthfully):
 {enhancements}
+
+REAL GAPS — NEVER fabricate, imply, or keyword-stuff these requirements:
+{realGaps}
+
+ADJACENT MATCHES — use ONLY with the honest framing provided (no stronger claims):
+{adjacentMatches}
 
 RULES (honesty spine):
 1. NEVER fabricate experience, skills, metrics, or employers.
@@ -252,6 +309,12 @@ JOB ANALYSIS:
 
 Q&A EVIDENCE:
 {enhancements}
+
+REAL GAPS — do not fabricate:
+{realGaps}
+
+ADJACENT MATCHES — honest framing only:
+{adjacentMatches}
 
 Return ONLY valid JSON with the FULL resume structure (all sections), fixing only the weak areas:
 {

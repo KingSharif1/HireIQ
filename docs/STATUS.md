@@ -14,7 +14,7 @@
 | Job URL fetch | Partial — Greenhouse, Lever, Ashby |
 | Job analyze | ✓ |
 | ATS score | ✓ — algorithmic |
-| Gap Q&A | ✓ — not yet 3-tier gap analysis output |
+| Gap Q&A | ✓ — 3-tier gap analysis + max 3 targeted questions |
 | Tailor + diff | ✓ generate — diff is view-only |
 | Accept/decline changes | ✓ — Changes tab, export gated on review |
 | Cover letter | ✓ built — deprioritized per new spec |
@@ -29,7 +29,7 @@
 | 1 | Resume upload + parse | 🟡 80% | Add tiered skills, parse confidence flags, OCR fallback |
 | 2 | GitHub connect | 🔴 0% | OAuth + repo sync + resume cross-ref |
 | 3 | Job URL ingestion | 🟡 50% | Add Workday API, LinkedIn paste prompt, Playwright fallback |
-| 4 | Gap analysis | 🟡 40% | Emit `direct_matches` / `adjacent_matches` / `real_gaps` JSON |
+| 4 | Gap analysis | 🟡 85% | 3-tier JSON + UI; refine prompts with real usage |
 | 5 | Tailored resume + tracked changes | 🟡 85% | Accept/decline/edit UI done; feedback loop for future runs pending |
 | 6 | ATS + visual check | 🟡 55% | PDF layout QA pass (length, orphans, placeholders) |
 | 7 | Application log | 🟡 45% | Migrate toward `applications` schema; Kanban optional |

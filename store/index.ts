@@ -1,7 +1,7 @@
 'use client'
 
 import { create } from 'zustand'
-import type { StructuredResume, JobExtractedData, ATSScore, GapQuestion, CoverLetterResult, Resume, Job } from '@/types'
+import type { StructuredResume, JobExtractedData, ATSScore, GapQuestion, GapAnalysis, CoverLetterResult, Resume, Job } from '@/types'
 
 type TailorStep = 1 | 2 | 3 | 4 | 5
 
@@ -10,6 +10,7 @@ interface TailorFlowState {
   selectedResume: Resume | null
   selectedJob: Job | null
   atsScore: ATSScore | null
+  gapAnalysis: GapAnalysis | null
   questions: GapQuestion[]
   answers: Record<string, string>
   tailoredResumeId: string | null
@@ -24,6 +25,7 @@ interface TailorFlowActions {
   setSelectedResume: (resume: Resume | null) => void
   setSelectedJob: (job: Job | null) => void
   setATSScore: (score: ATSScore) => void
+  setGapAnalysis: (analysis: GapAnalysis | null) => void
   setQuestions: (questions: GapQuestion[]) => void
   setAnswer: (questionId: string, answer: string) => void
   setTailoredResumeId: (id: string) => void
@@ -39,6 +41,7 @@ const initialTailorState: TailorFlowState = {
   selectedResume: null,
   selectedJob: null,
   atsScore: null,
+  gapAnalysis: null,
   questions: [],
   answers: {},
   tailoredResumeId: null,
@@ -55,6 +58,7 @@ export const useAppStore = create<TailorFlowState & TailorFlowActions>((set) => 
   setSelectedResume: (resume) => set({ selectedResume: resume }),
   setSelectedJob: (job) => set({ selectedJob: job }),
   setATSScore: (score) => set({ atsScore: score }),
+  setGapAnalysis: (analysis) => set({ gapAnalysis: analysis }),
   setQuestions: (questions) => set({ questions }),
   setAnswer: (questionId, answer) =>
     set((state) => ({ answers: { ...state.answers, [questionId]: answer } })),

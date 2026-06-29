@@ -7,6 +7,7 @@ import { useAppStore } from '@/store'
 import { TailorStepper } from '@/components/tailor/TailorStepper'
 import { MatchScore } from '@/components/tailor/MatchScore'
 import { QuestionFlow } from '@/components/tailor/QuestionFlow'
+import { GapAnalysisSummary } from '@/components/tailor/GapAnalysisSummary'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -122,7 +123,8 @@ function TailorFlowContent() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      store.setQuestions(data.questions)
+      store.setGapAnalysis(data.gapAnalysis ?? null)
+      store.setQuestions(data.questions ?? [])
       store.setStep(4)
       router.replace('/dashboard/tailor?step=4', { scroll: false })
     } catch (err) {
@@ -145,6 +147,7 @@ function TailorFlowContent() {
           jobId: store.selectedJob.id,
           answers: store.answers,
           questions: store.questions.map(q => ({ id: q.id, question: q.question })),
+          gapAnalysis: store.gapAnalysis,
         }),
       })
       const data = await res.json()
@@ -319,19 +322,23 @@ function TailorFlowContent() {
           </Card>
           <Button onClick={handleGenerateQuestions} disabled={loadingQuestions} className="w-full" size="lg">
             {loadingQuestions
-              ? <><Loader2 className="w-4 h-4 animate-spin" />Generating questions…</>
-              : <><Sparkles className="w-4 h-4" />Fill Gaps & Tailor</>
+              ? <><Loader2 className="w-4 h-4 animate-spin" />Analyzing gaps…</>
+              : <><Sparkles className="w-4 h-4" />Analyze Gaps & Tailor</>
             }
           </Button>
         </div>
       )}
 
-      {/* Step 4: Q&A */}
+      {/* Step 4: Gap analysis + Q&A */}
+      {currentStep === 4 && store.gapAnalysis && (
+        <GapAnalysisSummary analysis={store.gapAnalysis} />
+      )}
+
       {currentStep === 4 && store.questions.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-4 mt-4">
           <div>
             <h2 className="font-semibold text-foreground">Answer a few questions</h2>
-            <p className="text-sm text-muted-foreground mt-1">Help AI surface experience you may have left out.</p>
+            <p className="text-sm text-muted-foreground mt-1">Only for gaps we couldn&apos;t resolve from your profile.</p>
           </div>
           <QuestionFlow
             questions={store.questions}
@@ -342,7 +349,7 @@ function TailorFlowContent() {
         </div>
       )}
 
-      {currentStep === 4 && store.questions.length === 0 && (
+      {currentStep === 4 && store.questions.length === 0 && store.gapAnalysis && (
         <div className="space-y-4 text-center py-8">
           <p className="text-muted-foreground">Your resume already looks strong for this role!</p>
           <Button onClick={handleGenerate} disabled={generating} size="lg">
