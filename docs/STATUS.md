@@ -16,7 +16,7 @@
 | ATS score | ✓ — algorithmic |
 | Gap Q&A | ✓ — not yet 3-tier gap analysis output |
 | Tailor + diff | ✓ generate — diff is view-only |
-| Accept/decline changes | ✗ |
+| Accept/decline changes | ✓ — Changes tab, export gated on review |
 | Cover letter | ✓ built — deprioritized per new spec |
 | Application tracker | Partial — status on `jobs`, no events/Gmail |
 | GitHub integration | ✗ |
@@ -30,7 +30,7 @@
 | 2 | GitHub connect | 🔴 0% | OAuth + repo sync + resume cross-ref |
 | 3 | Job URL ingestion | 🟡 50% | Add Workday API, LinkedIn paste prompt, Playwright fallback |
 | 4 | Gap analysis | 🟡 40% | Emit `direct_matches` / `adjacent_matches` / `real_gaps` JSON |
-| 5 | Tailored resume + tracked changes | 🟡 60% | Accept/decline/edit per change + feedback storage |
+| 5 | Tailored resume + tracked changes | 🟡 85% | Accept/decline/edit UI done; feedback loop for future runs pending |
 | 6 | ATS + visual check | 🟡 55% | PDF layout QA pass (length, orphans, placeholders) |
 | 7 | Application log | 🟡 45% | Migrate toward `applications` schema; Kanban optional |
 

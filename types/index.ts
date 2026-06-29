@@ -140,14 +140,31 @@ export interface CoverLetterResult {
 }
 
 export interface ResumeDiffChange {
+  id?: string
   section: string
   field: string
   expId?: string
   projId?: string
   before: string | string[]
   after: string | string[]
-  changeType?: 'added' | 'changed' | 'removed' | 'reordered'
+  changeType?: 'added' | 'changed' | 'removed' | 'reordered' | 'rephrased'
   reason?: string
+}
+
+export type ChangeDecisionStatus = 'pending' | 'accepted' | 'declined' | 'edited'
+
+export type DeclineReasonCode =
+  | 'not_accurate'
+  | 'too_strong'
+  | 'prefer_original'
+  | 'not_relevant'
+  | 'other'
+
+export interface ChangeDecision {
+  status: ChangeDecisionStatus
+  declineReason?: string
+  declineReasonCode?: DeclineReasonCode
+  editedValue?: string | string[]
 }
 
 // ---------------------------------------------------------------------------
@@ -303,7 +320,9 @@ export interface TailoredResume {
   base_resume_id: string
   job_id: string
   structured_data: StructuredResume
+  original_structured_data: StructuredResume | null
   changes: ResumeDiffChange[]
+  change_decisions: Record<string, ChangeDecision>
   cover_letter: string | null
   match_score: number | null
   tailored_score: number | null

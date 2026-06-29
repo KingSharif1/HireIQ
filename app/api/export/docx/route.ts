@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateDocx, generateCoverDocx } from '@/lib/export/docx-generator'
+import { buildApprovedResume, countPendingDecisions } from '@/lib/tailor/change-decisions'
+import type { StructuredResume } from '@/types'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -20,18 +22,35 @@ export async function POST(request: Request) {
 
   const { data: tailored } = await supabase
     .from('tailored_resumes')
-    .select('structured_data, cover_letter')
+    .select('structured_data, original_structured_data, changes, change_decisions, cover_letter')
     .eq('id', tailoredResumeId)
     .eq('user_id', user.id)
     .single()
 
   if (!tailored) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
+  const changes = tailored.changes ?? []
+  const decisions = tailored.change_decisions ?? {}
+  if (type !== 'cover' && changes.length > 0 && countPendingDecisions(changes, decisions) > 0) {
+    return NextResponse.json(
+      { error: 'Review and accept or decline all changes before exporting' },
+      { status: 422 }
+    )
+  }
+
+  const original = (tailored.original_structured_data ?? tailored.structured_data) as StructuredResume
+  const exportData = buildApprovedResume(
+    original,
+    tailored.structured_data as StructuredResume,
+    changes,
+    decisions
+  )
+
   if (type === 'cover') {
     if (!tailored.cover_letter) {
       return NextResponse.json({ error: 'No cover letter to export' }, { status: 400 })
     }
-    const coverBuffer = await generateCoverDocx(tailored.cover_letter, tailored.structured_data?.contact)
+    const coverBuffer = await generateCoverDocx(tailored.cover_letter, exportData?.contact)
     return new NextResponse(new Uint8Array(coverBuffer), {
       headers: {
         'Content-Type': DOCX_MIME,
@@ -40,7 +59,7 @@ export async function POST(request: Request) {
     })
   }
 
-  const buffer = await generateDocx(tailored.structured_data)
+  const buffer = await generateDocx(exportData)
 
   return new NextResponse(new Uint8Array(buffer), {
     headers: {

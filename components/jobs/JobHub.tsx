@@ -12,7 +12,9 @@ import { Badge } from '@/components/ui/badge'
 import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import { ResumePreview } from '@/components/resume/ResumePreview'
 import { MatchScore } from '@/components/tailor/MatchScore'
+import { TailorDiff } from '@/components/tailor/TailorDiff'
 import { cn } from '@/lib/utils'
+import { buildApprovedResume, countPendingDecisions } from '@/lib/tailor/change-decisions'
 import {
   ChevronLeft, Download, FileText, Mail, Sparkles, Loader2,
   ExternalLink, MapPin, Building2, CheckCircle2, Copy, Check, HelpCircle,
@@ -21,7 +23,7 @@ import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import {
   APPLICATION_STATUSES, applicationStatusClasses, tailoringStatusLabel,
 } from '@/lib/jobs/status'
-import type { ApplicationStatus, Job, TailoredResume } from '@/types'
+import type { ApplicationStatus, ChangeDecision, Job, TailoredResume } from '@/types'
 
 interface JobHubProps {
   job: Job
@@ -51,8 +53,17 @@ export function JobHub({ job, versions }: JobHubProps) {
   const [coverText, setCoverText] = useState('')
   const [coverForId, setCoverForId] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [decisions, setDecisions] = useState<Record<string, ChangeDecision>>({})
+  const [decisionsForId, setDecisionsForId] = useState<string | null>(null)
+  const [savingDecisions, setSavingDecisions] = useState(false)
 
   const selected = versions.find(v => v.id === selectedId) ?? versions[0] ?? null
+
+  // Sync decisions when selected tailored version changes
+  if (selected && decisionsForId !== selected.id) {
+    setDecisionsForId(selected.id)
+    setDecisions(selected.change_decisions ?? {})
+  }
 
   const { complete, completion, isLoading: generatingCover } = useCompletion({
     api: '/api/tailor/cover-letter',
@@ -65,12 +76,29 @@ export function JobHub({ job, versions }: JobHubProps) {
     setCoverText(selected.cover_letter || '')
   }
 
-  const fitScore = useMemo(() => {
-    if (!selected || !job.extracted_data) return null
-    return calculateATSScore(selected.structured_data, job.extracted_data)
-  }, [selected, job.extracted_data])
-
   const recommendedPages = recommendedPagesFor(job.extracted_data?.seniority)
+
+  const originalResume = selected?.original_structured_data ?? selected?.structured_data ?? null
+
+  const approvedResume = useMemo(() => {
+    if (!selected || !originalResume) return null
+    return buildApprovedResume(
+      originalResume,
+      selected.structured_data,
+      selected.changes ?? [],
+      decisions
+    )
+  }, [selected, originalResume, decisions])
+
+  const fitScore = useMemo(() => {
+    if (!approvedResume || !job.extracted_data) return null
+    return calculateATSScore(approvedResume, job.extracted_data)
+  }, [approvedResume, job.extracted_data])
+
+  const pendingChanges = useMemo(() => {
+    if (!selected?.changes?.length) return 0
+    return countPendingDecisions(selected.changes, decisions)
+  }, [selected, decisions])
 
   async function handleStatusChange(value: ApplicationStatus) {
     setAppStatus(value)
@@ -85,6 +113,10 @@ export function JobHub({ job, versions }: JobHubProps) {
 
   async function handleExport(format: 'pdf' | 'docx', type: 'resume' | 'cover' = 'resume') {
     if (!selected) return
+    if (type === 'resume' && pendingChanges > 0) {
+      alert(`Review ${pendingChanges} pending change${pendingChanges === 1 ? '' : 's'} in the Changes tab before exporting.`)
+      return
+    }
     setExporting(`${type}-${format}`)
     try {
       const res = await fetch(`/api/export/${format}`, {
@@ -92,7 +124,10 @@ export function JobHub({ job, versions }: JobHubProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tailoredResumeId: selected.id, type }),
       })
-      if (!res.ok) throw new Error('Export failed')
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(err.error || 'Export failed')
+      }
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -101,8 +136,8 @@ export function JobHub({ job, versions }: JobHubProps) {
       a.download = `${job.company || kind}-${job.title || kind}-${kind}.${format}`.replace(/\s+/g, '_')
       a.click()
       URL.revokeObjectURL(url)
-    } catch {
-      alert('Could not export. Try again.')
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Could not export. Try again.')
     } finally {
       setExporting(null)
     }
@@ -118,6 +153,23 @@ export function JobHub({ job, versions }: JobHubProps) {
       } catch {
         setCoverText(result)
       }
+    }
+  }
+
+  async function handleSaveDecisions() {
+    if (!selected) return
+    setSavingDecisions(true)
+    try {
+      const res = await fetch(`/api/tailor/${selected.id}/decisions`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ change_decisions: decisions }),
+      })
+      if (!res.ok) throw new Error('Failed to save')
+    } catch {
+      alert('Could not save your review. Try again.')
+    } finally {
+      setSavingDecisions(false)
     }
   }
 
@@ -166,6 +218,14 @@ export function JobHub({ job, versions }: JobHubProps) {
           <Tabs defaultValue="documents">
             <TabsList>
               <TabsTrigger value="documents">Documents</TabsTrigger>
+              <TabsTrigger value="changes">
+                Changes
+                {pendingChanges > 0 ? (
+                  <Badge variant="muted" className="ml-1.5 px-1.5 py-0 text-[10px]">
+                    {pendingChanges}
+                  </Badge>
+                ) : null}
+              </TabsTrigger>
               <TabsTrigger value="questions">
                 Questions
                 {selected?.gap_answers?.length ? (
@@ -225,13 +285,16 @@ export function JobHub({ job, versions }: JobHubProps) {
                       )}
                     </div>
 
-                    {docTab === 'resume' && (
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" disabled={exporting !== null} onClick={() => handleExport('pdf')}>
+                  {docTab === 'resume' && (
+                    <div className="flex gap-2 items-center">
+                      {pendingChanges > 0 && (
+                        <span className="text-[10px] text-brand-amber">{pendingChanges} pending</span>
+                      )}
+                      <Button variant="outline" size="sm" disabled={exporting !== null || pendingChanges > 0} onClick={() => handleExport('pdf')}>
                           {exporting === 'resume-pdf' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                           PDF
                         </Button>
-                        <Button variant="outline" size="sm" disabled={exporting !== null} onClick={() => handleExport('docx')}>
+                        <Button variant="outline" size="sm" disabled={exporting !== null || pendingChanges > 0} onClick={() => handleExport('docx')}>
                           {exporting === 'resume-docx' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                           DOCX
                         </Button>
@@ -254,11 +317,13 @@ export function JobHub({ job, versions }: JobHubProps) {
 
                   {/* Resume preview / Cover letter */}
                   {docTab === 'resume' ? (
-                    <ResumePreview
-                      data={selected.structured_data}
-                      recommendedPages={recommendedPages}
-                      showHealth
-                    />
+                    approvedResume ? (
+                      <ResumePreview
+                        data={approvedResume}
+                        recommendedPages={recommendedPages}
+                        showHealth
+                      />
+                    ) : null
                   ) : (
                     <Card>
                       <CardContent className="p-6">
@@ -293,6 +358,32 @@ export function JobHub({ job, versions }: JobHubProps) {
                   )}
                 </div>
               )}
+            </TabsContent>
+
+            {/* CHANGES — accept / decline / edit */}
+            <TabsContent value="changes">
+              <Card>
+                <CardContent className="p-6">
+                  {selected && originalResume && (selected.changes?.length ?? 0) > 0 ? (
+                    <TailorDiff
+                      original={originalResume}
+                      tailored={selected.structured_data}
+                      changes={selected.changes}
+                      decisions={decisions}
+                      onDecisionsChange={setDecisions}
+                      onSave={handleSaveDecisions}
+                      saving={savingDecisions}
+                    />
+                  ) : (
+                    <div className="text-center py-8 space-y-2">
+                      <FileText className="w-8 h-8 text-muted-foreground mx-auto opacity-50" />
+                      <p className="text-sm text-muted-foreground">
+                        {selected ? 'No tracked changes for this version.' : 'Tailor this job to review AI changes.'}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
 
             {/* QUESTIONS */}

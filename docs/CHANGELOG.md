@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-06-29 — Task 102: Tracked changes accept/decline
+
+**What:** Interactive diff review on Job Hub Changes tab. Accept/decline/edit per change with decline reasons. Export (PDF/DOCX) uses approved resume; blocks while changes are pending. Migration 006 adds `original_structured_data` and `change_decisions` columns.
+
+**Files:** `lib/tailor/change-decisions.ts`, `components/tailor/TailorDiff.tsx`, `components/jobs/JobHub.tsx`, `app/api/tailor/[id]/decisions/route.ts`, export routes, `docs/supabase/migrations/006_change_decisions.sql`
+
+**Why:** Spec §3.6 — key UX differentiator for tailoring workflow.
+
+**Next:** Run migration 006 in Supabase; Task 101 (structured gap analysis).
+
+---
+
 ## 2026-06-29 — Task 100: Docs layout + spec alignment audit
 
 **What:** Reorganized repo so `main` is application code only. Created agent session docs mapping current implementation to SPEC v1.0. Moved `prototype/`, `scripts/`, `supabase/`, and legacy spec into `docs/`.

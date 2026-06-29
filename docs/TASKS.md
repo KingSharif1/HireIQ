@@ -33,13 +33,9 @@ Acceptance:
 ---
 
 ## Task 102 — Tracked changes accept/decline (spec §3.6)
-Status: PENDING  
-Scope: `components/tailor/TailorDiff.tsx`, `app/dashboard/tailor/[id]/page.tsx`, `types/index.ts`, optional new API route for feedback  
-Goal: Per-change Accept / Decline / Edit; decline captures reason; partial accept updates `structured_data` before export.  
-Acceptance:
-- Accept all / Decline all at top
-- Declined changes excluded from export
-- Feedback stored on `tailored_resumes` or new `change_feedback` jsonb column
+Status: DONE  
+Scope: `components/tailor/TailorDiff.tsx`, `components/jobs/JobHub.tsx`, `lib/tailor/change-decisions.ts`, `app/api/tailor/[id]/decisions/route.ts`, export routes, migration 006  
+Result: Per-change accept/decline/edit with reasons; Changes tab on Job Hub; export uses approved resume only; pending changes block export.  
 
 ---
 

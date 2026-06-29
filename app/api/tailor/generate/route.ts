@@ -17,6 +17,7 @@ import {
   buildTailorCompleteNotification,
 } from '@/lib/notifications'
 import { insertNotifications } from '@/lib/supabase/queries'
+import { withChangeIds, initialDecisions } from '@/lib/tailor/change-decisions'
 import type { Profile, ProfileData } from '@/types'
 
 export const runtime = 'nodejs'
@@ -105,6 +106,7 @@ export async function POST(request: Request) {
   }
 
   const { tailoredResume, changes, writeBackSuggestions, meta } = pipelineResult
+  const changesWithIds = withChangeIds(changes)
 
   const matchScore = calculateATSScore(resume, job).total
   const tailoredScore = calculateATSScore(tailoredResume, job).total
@@ -126,7 +128,9 @@ export async function POST(request: Request) {
       base_resume_id: baseResumeId,
       job_id: jobId,
       structured_data: tailoredResume,
-      changes,
+      original_structured_data: resume,
+      changes: changesWithIds,
+      change_decisions: initialDecisions(changesWithIds),
       match_score: matchScore,
       tailored_score: tailoredScore,
       version: (priorVersions ?? 0) + 1,
@@ -189,7 +193,7 @@ export async function POST(request: Request) {
   return NextResponse.json({
     tailoredResumeId: tailoredRow.id,
     tailoredData: tailoredResume,
-    changes,
+    changes: changesWithIds,
     matchScore,
     tailoredScore,
     source: master.source,
