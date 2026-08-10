@@ -32,9 +32,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Redirect authenticated users away from auth pages (not password reset — recovery session)
+  // Redirect authenticated users away from auth pages (not password reset — recovery session).
+  // Honor safe relative `?next=` (e.g. extension connect after login).
   if (user && (path === '/login' || path === '/signup' || path === '/forgot-password')) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    const next = request.nextUrl.searchParams.get('next')
+    const safeNext =
+      next && next.startsWith('/') && !next.startsWith('//') && !next.includes('\\') ? next : null
+    return NextResponse.redirect(new URL(safeNext || '/dashboard', request.url))
   }
 
   return supabaseResponse

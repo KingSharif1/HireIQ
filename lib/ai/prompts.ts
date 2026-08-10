@@ -1,9 +1,14 @@
 export function extractJSON(text: string): string {
   const fence = text.match(/```(?:json)?\n?([\s\S]*?)\n?```/)
-  if (fence) return fence[1]
-  const start = text.indexOf('{')
-  const end = text.lastIndexOf('}')
-  if (start !== -1 && end !== -1) return text.slice(start, end + 1)
+  if (fence) return fence[1].trim()
+  const objStart = text.indexOf('{')
+  const arrStart = text.indexOf('[')
+  const start =
+    objStart === -1 ? arrStart : arrStart === -1 ? objStart : Math.min(objStart, arrStart)
+  if (start === -1) return text
+  const close = text[start] === '[' ? ']' : '}'
+  const end = text.lastIndexOf(close)
+  if (end !== -1 && end > start) return text.slice(start, end + 1)
   return text
 }
 
@@ -361,3 +366,32 @@ Return ONLY valid JSON:
   "word_count": 0,
   "tone": "professional|conversational|enthusiastic"
 }`
+
+export const AUTOFILL_DRAFTS_PROMPT = `You draft short answers for empty job-application form fields.
+
+RESUME CONTEXT:
+{resumeContext}
+
+KNOWN SENSITIVE FACTS (only use these for sensitive legal/EEOC/salary/work-auth fields — never invent):
+{knownSensitiveFacts}
+
+TARGET JOB:
+Title: {jobTitle}
+Company: {jobCompany}
+Description snippet:
+{jobDescription}
+
+FIELDS TO DRAFT (JSON):
+{fieldsJson}
+
+RULES:
+1. Return ONLY a JSON array (no markdown, no explanation). One object per field key.
+2. Each object: { "key": string, "answer": string, "lasting": boolean, "skip": boolean, "skipReason": string }
+3. Skip file upload fields (set skip:true, skipReason:"file field").
+4. For sensitive fields (race, ethnicity, gender, sex, veteran, disability, LGBT, religion, conviction/criminal, salary/compensation/wage, work authorization/visa/citizenship/sponsorship, SSN, DOB/age):
+   - If a matching fact appears in KNOWN SENSITIVE FACTS, answer from that fact only.
+   - Otherwise skip:true with skipReason explaining the fact is not in the profile (never invent).
+5. Ground non-sensitive answers in RESUME CONTEXT + job title/company/JD. Do not fabricate employers, degrees, or years.
+6. lasting:true only for career facts (skills, years experience, tools, languages, education, work auth). lasting:false for "why this company/role", cover letters, availability/start dates.
+7. Keep answers concise (1–3 sentences max; short phrases for skills/YOE).
+8. If you cannot ground an answer, skip:true with a short skipReason.`

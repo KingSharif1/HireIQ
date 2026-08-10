@@ -25,6 +25,7 @@ Files changed: `docs/**`, `README.md`, `package.json`, `.gitignore`, `.cursor/ru
 Status: DONE  
 Scope: `lib/ai/gap-analysis.ts`, `lib/ai/prompts.ts`, `app/api/tailor/questions/route.ts`, `components/tailor/GapAnalysisSummary.tsx`, tailor flow  
 Result: 3-tier gap analysis API + summary UI before Q&A; max 3 questions; real gaps blocked in tailor prompt.  
+Files changed: `lib/ai/gap-analysis.ts`, `lib/ai/prompts.ts`, `app/api/tailor/questions/route.ts`, `components/tailor/GapAnalysisSummary.tsx`, `store/index.ts`, `app/dashboard/tailor/page.tsx`, `lib/ai/tailor-pipeline.ts`
 
 ---
 
@@ -32,6 +33,7 @@ Result: 3-tier gap analysis API + summary UI before Q&A; max 3 questions; real g
 Status: DONE  
 Scope: `components/tailor/TailorDiff.tsx`, `components/jobs/JobHub.tsx`, `lib/tailor/change-decisions.ts`, `app/api/tailor/[id]/decisions/route.ts`, export routes, migration 006  
 Result: Per-change accept/decline/edit with reasons; Changes tab on Job Hub; export uses approved resume only; pending changes block export.  
+Files changed: `lib/tailor/change-decisions.ts`, `components/tailor/TailorDiff.tsx`, `components/jobs/JobHub.tsx`, `app/api/tailor/[id]/decisions/route.ts`, export routes, `docs/supabase/migrations/006_change_decisions.sql`
 
 ---
 
@@ -39,29 +41,24 @@ Result: Per-change accept/decline/edit with reasons; Changes tab on Job Hub; exp
 Status: DONE  
 Scope: `lib/jobs/url-detect.ts`, `lib/jobs/job-scraper.ts`, `app/api/jobs/fetch-url/route.ts`, `app/dashboard/jobs/page.tsx`  
 Result: Workday internal API fetch; LinkedIn blocked with paste prompt; aggregator low-confidence warning.  
+Files changed: `lib/jobs/url-detect.ts`, `lib/jobs/job-scraper.ts`, `app/dashboard/jobs/page.tsx`, tests
 
 ---
 
 ## Task 104 — Basic auth hardening
 Status: DONE  
-Scope: `middleware.ts`, auth pages, `lib/auth/*`, migration 007, `docs/AUTH.md`  
-Result: Middleware wired; forgot/reset password; profile names on signup/OAuth; clearer errors.  
+Scope: `proxy.ts`, auth pages, `lib/auth/*`, migration 007, `docs/AUTH.md`  
+Result: Proxy wired (session refresh + route guards); forgot/reset password; profile names on signup/OAuth; clearer errors. Removed `middleware.ts` for Next.js 16 proxy convention.  
+Files changed: `proxy.ts`, `app/(auth)/*`, `lib/auth/*`, `components/auth/AuthShell.tsx`, `docs/supabase/migrations/007_auth_profile_trigger.sql`, `docs/AUTH.md`
 
 ---
 
 ## Task 105 — GitHub OAuth + repo sync (spec §1.2)
-Status: PENDING  
+Status: DONE  
 Scope: new `app/api/github/*`, `lib/github/`, migration in `docs/supabase/migrations/`, profile UI  
-Goal: Connect GitHub, pull repo metadata, store in `profiles.github_data`, cross-ref projects.  
-Blocked by: GitHub OAuth app + Supabase provider setup (user action)
-
----
-
-## Task 105 — Applications schema migration (spec §4.1)
-Status: PENDING  
-Scope: `docs/supabase/migrations/`, `types/index.ts`, `lib/supabase/queries.ts`, jobs UI  
-Goal: Add `applications` + `application_events` tables; migrate existing `jobs` rows; keep reads working.  
-Note: Additive migration only. Do not drop `jobs` until app code switched.
+Result: Connect/sync/disconnect on Profile → Projects; repo metadata in `github_data`; cross-ref → pending project suggestions; migration 008.  
+Files changed: `lib/github/**`, `app/api/github/**`, `components/profile/GitHubConnectPanel.tsx`, `components/profile/sections.tsx`, `components/profile/ProfileWorkspace.tsx`, `app/auth/callback/route.ts`, `lib/profile/provenance.ts`, `types/index.ts`, `docs/supabase/migrations/008_github_integration.sql`, `docs/GITHUB.md`  
+**Remote (Supabase project `wsbbgznobxhjefaqbniv`):** Migration 008 (`github_data`, `github_connections`) applied via MCP 2026-06-29.
 
 ---
 
@@ -72,11 +69,265 @@ Goal: After tailor, run length + placeholder + section checks; surface flags in 
 
 ---
 
+## Task 107 — Applications schema migration (spec §4.1)
+Status: DONE  
+Scope: `docs/supabase/migrations/`, `types/index.ts`, `lib/supabase/queries.ts`, jobs UI  
+Goal: Add `applications` + `application_events` tables; migrate existing `jobs` rows; keep reads working.  
+Result: Migration 010 applied remotely. Tables + RLS + backfill (1:1 from jobs) + insert trigger. Types, queries, `setApplicationStatus` helper (mirrors `jobs.application_status` + writes events). Status APIs: `PATCH /api/applications/[id]/status`, `PATCH /api/jobs/[id]/status`. Job Hub uses job status API.  
+Files changed: `docs/supabase/migrations/010_applications.sql`, `types/index.ts`, `lib/supabase/queries.ts`, `lib/applications/status.ts`, `lib/applications/__tests__/status.test.ts`, `app/api/applications/[id]/status/route.ts`, `app/api/jobs/[id]/status/route.ts`, `components/jobs/JobHub.tsx`  
+Note: Additive only — `jobs` columns kept until full cutover.
+
+---
+
+## Task 108 — Docs sync to current state
+Status: DONE  
+Scope: `docs/**`, root `README.md`  
+Result: All active session docs reflect Tasks 100–104, `proxy.ts`, migration status, task queue 105–107; legacy docs bannered.  
+Files changed: `docs/ARCHITECTURE.md`, `docs/STATUS.md`, `docs/TASKS.md`, `docs/DECISIONS.md`, `docs/README.md`, `docs/AUTH.md`, `docs/CHANGELOG.md`, `docs/legacy/**`, `README.md`
+
+---
+
+## Task 109 — Teal UI recon via Playwright MCP
+Status: DONE  
+Scope: `docs/DESIGN-TEAL-PARITY.md`  
+Result: Logged into Teal; captured Content Editor, full Designer (Presentation/Sections/Settings/Advanced), Analyzer (65% overall + issue buckets), Job Matcher (match score + keyword groups), Job Tracker Table + Board. Design Mode is a major underspecified gap — awaiting scope decision before Task 110.  
+Files changed: `docs/DESIGN-TEAL-PARITY.md` (recon section)
+
+---
+
+## Task 110 — Job Hub workspace: non-linear panels + live preview
+Status: DONE  
+Scope: `components/jobs/JobHub.tsx`, new `components/jobs/workspace/*`, `app/dashboard/jobs/*`  
+Result: Teal-style split — left panels (Match Score / Keywords / Changes / Q&A / Job) + right sticky live `ResumePreview`. Score updates live via client `calculateATSScore` on accept/decline; persist via Task 111 on save. Responsive stack on mobile.  
+Files changed: `components/jobs/JobHub.tsx`, `components/jobs/workspace/WorkspaceShell.tsx`, `components/jobs/workspace/KeywordPanel.tsx`
+
+## Task 111 — Live re-score on change decisions
+Status: DONE  
+Scope: new `app/api/tailor/[id]/score/route.ts`, `lib/scoring/tailored-rescore.ts`, workspace score header  
+Goal: Recompute ATS score + matched/missing keywords after every accept/decline/edit; update score header live.  
+Result: `POST /api/tailor/[id]/score` — auth, loads tailored row + job `extracted_data`, merges decisions via `buildApprovedResume`, scores with `calculateATSScore`; optional `persist: true` writes `match_score`/`tailored_score`. Helper `scoreTailoredWithDecisions` in `lib/scoring/tailored-rescore.ts`.  
+Files changed: `app/api/tailor/[id]/score/route.ts`, `lib/scoring/tailored-rescore.ts`, `lib/scoring/__tests__/tailored-rescore.test.ts`
+
+---
+
+## Task 112 — Standalone resume builder (profile master + preview)
+Status: DONE (partial — split view + live preview; Content Editor checkboxes deferred)  
+Scope: `components/profile/*`, new builder route/view, `lib/export/pdf-generator.tsx` reuse  
+Goal: Profile editors (existing) + right-pane `PDFViewer` rendering `profile_data` as a resume. Profile = master resume. Per DESIGN-TEAL-PARITY.md §A1. Content Editor–style include checkboxes for sections/bullets.  
+Result: Teal-style split on Profile workspace — editors + sticky `ResumePreview` on lg+; collapsible preview on mobile. Reuses `profileDataToStructuredResume` from `lib/profile/data.ts`. `/dashboard/builder` redirects to profile. Save/provenance/GitHub unchanged.  
+Files changed: `components/profile/ProfileWorkspace.tsx`, `app/dashboard/builder/page.tsx`
+
+---
+
+## Task 112b — Full Design Mode (Teal Designer parity, responsive)
+Status: DONE  
+Scope: `components/builder/designer/*`, `lib/export/theme.ts`, `lib/export/pdf-generator.tsx`, `components/resume/ResumePreview.tsx`, `components/profile/ProfileWorkspace.tsx`, migration 009  
+Result: Full Designer UI (Presentation / Sections / Settings / Advanced) on Profile with Content Editor | Designer tabs. Live preview themed. Master theme saved to `profiles.resume_theme`. Migration 009 applied remotely. PDF + HTML preview honor section order, alignments, skills layout, experience/education settings, spacing. No template library — one HireIQ default + Reset. Responsive: stacked controls + collapsible preview on small screens.  
+Files changed: `components/builder/designer/*`, `components/profile/ProfileWorkspace.tsx`, `components/resume/ResumePreview.tsx`, `lib/export/theme.ts`, `lib/export/pdf-generator.tsx`, `docs/supabase/migrations/009_resume_theme.sql` (applied)
+
+---
+
+## Task 118 — Nav + Applications/Tailor UI refresh
+Status: DONE  
+Scope: `components/shared/Sidebar.tsx`, `MobileNav.tsx`, `app/dashboard/page.tsx`, `app/dashboard/tailor/page.tsx`, `app/dashboard/jobs/page.tsx`  
+Result: Primary nav now Applications · Documents · Tailor · Alerts (Documents = profile/resumes/designer, one click). Applications list restyled as clean tracker rows with status chips + Documents CTA. Tailor flow chrome aligned with Job Hub (clearer hierarchy, Documents shortcut, less purple card clutter).  
+Files changed: `Sidebar.tsx`, `MobileNav.tsx`, `app/dashboard/page.tsx`, `app/dashboard/tailor/page.tsx`, `app/dashboard/jobs/page.tsx`
+
+---
+
+## Task 113 — Tracker Kanban + list toggle
+Status: DONE  
+Scope: new `components/jobs/TrackerBoard.tsx`, jobs list view, status PATCH → `application_events`  
+Goal: Drag cards between status columns (counts per column); list/board toggle. Per DESIGN-TEAL-PARITY.md §B.  
+Result: Applications home reads from `applications` join jobs. Table (default) | Board toggle. Native HTML5 drag between status columns; optimistic update via status API + event row. Empty state + Documents CTA unchanged.  
+Files changed: `components/jobs/ApplicationsTracker.tsx`, `TrackerBoard.tsx`, `TrackerList.tsx`, `app/dashboard/page.tsx`
+
+---
+
+## Task 114 — Gmail read-only scan + status inference
+Status: PENDING (Phase 2; needs Edge Functions + pg_cron)  
+Scope: Gmail OAuth, new scan job, AI status inference, notifications  
+Goal: Daily scan matches recruiter emails to tracked jobs; high confidence auto-links, medium/low user-confirms. Per spec §4 + DESIGN-TEAL-PARITY.md §C1.
+
+---
+
+## Task 115 — Forward-to-save email address
+Status: PENDING (Phase 2)  
+Scope: inbound email webhook (Edge Function), per-user address token, jobs pipeline reuse  
+Goal: Forwarded posting → parsed → lands in tracker. Per DESIGN-TEAL-PARITY.md §C2.
+
+---
+
+## Task 116 — Chrome extension Phase 1: save-to-tracker
+Status: DONE  
+Scope: new `extension/` (MV3 + TS + CRXJS), token handshake from dashboard, `POST /api/jobs` token auth  
+Goal: One-click save from any job page into the tracker. Per DESIGN-TEAL-PARITY.md §D.  
+Result: `api_tokens` migration 012; hashed token handshake on Dashboard; `POST /api/jobs` Bearer auth + CORS; MV3 extension in `extension/` (scrape + save). Requires `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`.  
+Files changed: `docs/supabase/migrations/012_api_tokens.sql`, `lib/supabase/admin.ts`, `lib/extension/tokens.ts`, `app/api/extension/token`, `app/api/jobs/route.ts`, `ExtensionConnectPanel`, `HomeTiles`, `extension/*`, `docs/EXTENSION.md`, AUTH, active docs  
+
+---
+
+## Task 117 — Extension Phases 2–3: autofill + review-queue auto-apply
+Status: IN PROGRESS  
+Scope: `extension/` board adapters (GH/Lever/Ashby/Workday + generic fallback), review queue UI  
+Goal: Fill forms from profile + tailored PDF; user batch-reviews and submits while watching. Unknown fields ask the user every time (no answer bank). LinkedIn/Indeed excluded from automation. Per DESIGN-TEAL-PARITY.md §D.  
+Notes: Phase 2a connect/ATS done. Phase 2b UX — animated known fill + provisional AI drafts + review cards + PDF attach (extension v0.6.0). Batch-submit / board adapters still open.  
+Result (partial): Website connect + ATS email + autofill UX (provisional review queue) shipped 2026-08-09; **autofill backend** (drafts/accept/PDF + migration 014 + job dedupe) shipped 2026-08-09.  
+Files changed (UX slice): `extension/src/{autofill,content,api,background,file-attach}.ts`, `extension/{package.json,manifest.config.ts}`, `lib/extension/form-fill.ts`, `lib/extension/__tests__/form-fill.test.ts`, `docs/{EXTENSION,CHANGELOG,STATUS,TASKS}.md`  
+Files changed (auth/account slice): `013_extension_connect_and_ats_email.sql`, `lib/extension/connect.ts`, `lib/extension/detect-auth-wall.ts`, `app/api/extension/connect/*`, `app/extension/connect/*`, `app/api/extension/jobs/[id]/ats-account`, extension popup/background/content, `proxy.ts` next-aware redirect  
+Files changed (autofill API slice): `014_application_form_answers.sql`, `lib/extension/{sensitive-fields,draft-kind,autofill-context}.ts` + tests, `lib/ai/prompts.ts` (`AUTOFILL_DRAFTS_PROMPT`), `app/api/extension/autofill/{drafts,accept}`, `app/api/extension/jobs/[id]/pdf`, `app/api/jobs/route.ts` (dedupe), `types/index.ts`
+
+---
+
+## Task 119 — IA shell: Home tiles + nav + redirects
+Status: DONE  
+Scope: `Sidebar.tsx`, `MobileNav.tsx`, `app/dashboard/page.tsx`, new home component, route redirects for tailor/jobs  
+Result: Home tiles; nav Home · Resume Builder · Job Tracker; Alerts in account menu; tailor + jobs/[id] redirect to tracker/matcher; builder is primary Resume Builder route.  
+Files changed: `HomeTiles.tsx`, `Sidebar.tsx`, `MobileNav.tsx`, `app/dashboard/page.tsx`, `tracker/page.tsx`, `builder/page.tsx`, `profile/page.tsx`, `jobs/[id]/page.tsx`, `tailor/page.tsx`
+
+---
+
+## Task 120 — Status enum expansion (migration 011)
+Status: DONE  
+Result: Statuses expanded + backfill not_applied→bookmarked; inclusion + email_log + templates columns; jobs default bookmarked. Applied remotely.  
+Files changed: `011_tracker_statuses_inclusion.sql`, `lib/jobs/status.ts`, `types/index.ts`, status API routes
+
+---
+
+## Task 121 — Tracker Teal table + Board polish
+Status: DONE  
+Result: Columnar Table default + Board with new statuses; filter chips; HireIQ theme.  
+Files changed: `ApplicationsTracker.tsx`, `TrackerList.tsx`, `TrackerBoard.tsx`
+
+---
+
+## Task 122 — Job detail drawer
+Status: DONE  
+Result: Drawer with Job Info · Notes · Resumes · Email · Templates; Contacts/Check List disabled stubs; status radios.  
+Files changed: `JobDrawer.tsx`, `app/api/applications/[id]/route.ts`
+
+---
+
+## Task 123 — Builder 5-tab chrome + inclusion checkboxes
+Status: DONE  
+Result: Content · Designer · Analyzer · Job Matcher · Cover Letter tabs; Job Matcher inclusion checkboxes persist to tailored_resumes.inclusion.  
+Files changed: `ProfileWorkspace.tsx`, `AnalyzerPanel.tsx`, `JobMatcherPanel.tsx`, `CoverLetterPanel.tsx`
+
+---
+
+## Task 124 — Job Matcher replaces Tailor stepper
+Status: DONE  
+Result: Stepper routes redirect; Add Job CTAs open Job Matcher; drawer Resumes → Matcher.  
+Files changed: tailor redirects, `jobs/page.tsx` CTA
+
+---
+
+## Task 125 — Content Editor + Matcher inclusion finish
+Status: DONE  
+Scope: `ContentEditor.tsx`, `inclusion.ts`, `ProfileWorkspace.tsx`, `JobMatcherPanel.tsx`  
+Result: Teal Content Editor accordion + checkboxes wired as primary Content tab; session-only uncheck on master (preview only); Job Matcher split (left ContentEditor + right score/keywords/job preview) persists `tailored_resumes.inclusion`; `applyInclusion` filters preview/export shape.  
+Files changed: `components/builder/ContentEditor.tsx`, `JobMatcherPanel.tsx`, `lib/profile/inclusion.ts`, `lib/profile/__tests__/inclusion.test.ts`, `components/profile/ProfileWorkspace.tsx`
+
+---
+
+## Task 126 — Applications: Teal tracker + full-page job detail
+Status: DONE  
+Scope: `app/dashboard/tracker/*`, `components/jobs/*`, nav/shell as needed; kill drawer as primary job UX  
+Result: Click job → `/dashboard/tracker/[jobId]` full page with Overview · Job description · Documents · Questions · Notes · Email · Timeline; header status + score + actions. List/board unchanged. Drawer removed. Legacy `?jobId=` and `/jobs/[id]` redirect to full page.  
+Files changed: `JobDetailPage.tsx`, `tracker/[jobId]/page.tsx`, `ApplicationsTracker.tsx`, `tracker/page.tsx`, `jobs/[id]/page.tsx`, `tailor/[id]/page.tsx`, deleted `JobDrawer.tsx`, `JobMatcherPanel.tsx`, `DESIGN-IA-RESET.md`  
+Depends on: 2026-08-04 IA grill lock  
+
+---
+
+## Task 127 — Nav shell: Dashboard · Applications · Resume Builder; Profile via icon
+Status: DONE  
+Scope: `Sidebar`, `MobileNav`, `DashboardShell`, routes for profile vs builder  
+Goal: Align primary nav with IA reset; Profile only from account/profile icon  
+Result: Primary nav = Dashboard · Applications · Resume Builder; Profile only via account avatar (desktop + mobile). Shared `primary-nav.ts`. Profile hub at `/dashboard/profile` with Documents + Professional Profile stubs; `?section=` deep links still open Builder until Task 128.  
+Files changed: `components/shared/{primary-nav.ts,Sidebar,MobileNav,DashboardShell}`, `HomeTiles.tsx`, `ProfileLanding.tsx`, `app/dashboard/profile/**`, `docs/scripts/ui-shots.mjs`, active docs  
+
+---
+
+## Task 128 — Profile: Documents + Professional Profile (Sprout)
+Status: DONE  
+Scope: profile routes/components; documents vault shared with resume library  
+Goal: Master info + document storage; not Teal builder chrome  
+Result: Real Sprout Profile at `/dashboard/profile` — Documents vault + Professional Profile editors (no Teal tabs/preview). Shared `useProfileSave`, `ProfileSectionNav`, `ProfileSectionPanel`, `loadProfileWorkspaceData`. `?section=` deep links route to Documents or Professional. Builder keeps Teal chrome via shared extract. Attachments moved under DOCUMENTS group.  
+Files changed: `components/profile/{ProfessionalProfile,DocumentsVault,useProfileSave,ProfileSectionNav,ProfileSectionPanel,ProfileWorkspace,ProfileLanding}`, `lib/profile/{sections,load-workspace,resume-row}`, `app/dashboard/profile/**`, `app/dashboard/{builder,resume}/page.tsx`, ui-shots, active docs  
+
+---
+
+## Task 129 — Resume Builder library (Teal)
+Status: DONE  
+Scope: builder list/import/create; open resume to view/edit; Master → Profile  
+Goal: Separate from Profile; same document set as Profile → Documents  
+Result: `/dashboard/builder` is a Teal library (import, edit master, list resumes, past job versions). Master Teal workspace moved to `/dashboard/builder/master`. Legacy `?tab=` deep links redirect to master. Same `resumes` set as Profile Documents. Open resume → view + Open in editor → master.  
+Files changed: `components/builder/ResumeLibrary.tsx`, `app/dashboard/builder/{page,master/page}.tsx`, `ProfileWorkspace.tsx`, TrackerList/Board, CoverLetterPanel, tailor/jobs redirects, resume detail, DocumentsVault copy, ui-shots, active docs  
+
+---
+
+## Task 130 — Tracker detail completion
+Status: DONE  
+Scope: `components/jobs/JobDetailPage.tsx`, `components/jobs/detail/*`, tracker application APIs/view models, fixed-job resume editor/preview, related tests and docs  
+Goal: Complete the Sprout-style application detail UI with structured job content, documents editing, Activity, and a real-data manual inbox while preserving future email-provider boundaries.
+Result: Rebuilt job detail as six focused tabs; compact structured JD; collapsible facts/activity rail; fixed-job two-pane resume editor with full live preview and canonical skill inclusion; combined notes/events timeline; provider-neutral manual inbox; authenticated manual event writes and email-linked events. No Gmail OAuth/schema migration.
+Files changed: `components/jobs/JobDetailPage.tsx`, `components/jobs/detail/*`, `components/builder/ContentEditor.tsx`, `components/builder/JobMatcherPanel.tsx`, `components/resume/ResumePreview.tsx`, `lib/applications/{activity,email}.ts`, `lib/jobs/description.ts`, `lib/profile/{skills,inclusion}.ts`, `app/api/applications/[id]/*`, tracker routes, tests, `docs/scripts/ui-shots.mjs`, active docs
+
+---
+
+## Task 134 — Applications “All outreach” email list
+Status: DONE  
+Scope: `components/jobs/*`, `lib/applications/email.ts`, tracker page, docs  
+Goal: Under Applications, toggle All applications | All outreach — global list of logged emails across jobs.  
+Result: Surface tabs on Applications; `buildOutreachFeed` flattens `email_log`; OutreachList links to job Email tab; filters Sent/Received/Notes; `?view=outreach` deep link.  
+Files changed: `outreach.ts`, `OutreachList.tsx`, `ApplicationsTracker.tsx`, `tracker/page.tsx`, email-activity tests, docs  
+
+---
+
+## Task 132 — Job resume editor: full-bleed + zoom/pan preview
+Status: DONE  
+Scope: `components/jobs/detail/*`, `components/builder/JobMatcherPanel.tsx`, `components/resume/ResumePreview.tsx`, JobDetailPage, docs  
+Goal: Full-bleed Teal tabs on job Documents edit; preview zoom past 100% + pan/scroll left-right.  
+Result: `JobResumeEditor` full-screen overlay with Teal tabs; Job Matcher `fullBleed` layout; ResumePreview zoom 40–175% + drag pan + left-align when zoomed.  
+Files changed: `JobResumeEditor.tsx`, `DocumentsWorkspace.tsx`, `JobMatcherPanel.tsx`, `ResumePreview.tsx`, docs  
+
+---
+
+## Task 133 — Suggest for master + accept follow-up + provenance
+Status: DONE  
+Scope: `lib/profile/*`, `components/profile/*`, `app/api/profile/suggestions*`, tailor generate, QuestionsPanel, docs  
+Goal: Explicit Suggest for master from Q&A; accept thin proposals via follow-up sheet (name + 1 bullet); muted From… provenance.  
+Result: Tailor generate no longer auto-queues pending. Questions → Suggest for master queues section pending. Accept on thin items opens follow-up sheet; enrichment writes experience/project with provenance. Muted From… on bullets + entry cards.  
+Files changed: `suggestion-followup.ts`, `provenance.ts`, `AcceptFollowUpSheet.tsx`, `PendingSuggestionsPanel.tsx`, `suggestions/route.ts`, `suggestions/suggest/route.ts`, `tailor/generate/route.ts`, `QuestionsPanel.tsx`, `JobDetailPage.tsx`, `primitives.tsx`, `sections.tsx`, `ProvenanceBulletEditor.tsx`, tests, docs  
+
+---
+
+## Task 131 — Profile unify (master resume home)
+Status: DONE  
+Scope: `components/profile/*`, `app/dashboard/profile/**`, `app/dashboard/builder/**`, links from tracker/builder/resume, docs  
+Goal: One Profile page (docs + master + pending); retire `/builder/master` as master editor; redirects for legacy doors.  
+Result: Unified `ProfileHome` at `/dashboard/profile` (identity → Documents tabs → pending banner → master editors). Legacy documents/professional/builder-master redirect. Builder library + tracker Match links updated. Dead hub components removed.  
+Files changed: `ProfileHome.tsx`, `PendingSuggestionsPanel.tsx`, `ProfileSectionNav.tsx`, `sections.tsx`, `profile/**`, `builder/master`, `ResumeLibrary`, tracker/jobs/tailor/resume links, `JobDetailPage`, deleted ProfileLanding/DocumentsVault/ProfessionalProfile, docs  
+Depends on: 2026-08-09 Profile IA grill  
+
+---
+
+## Task 130b — Tracker detail polish
+Status: DONE  
+Scope: tracker detail header, overview actions, facts rail, Activity, Email, description density  
+Result: Reduced mobile header height with an inline status selector; made the full desktop facts rail hideable and restorable; combined the duplicate Notes/Activity action; capped formatted JD sections; changed Activity to newest-first; collapsed the manual email form by default.  
+Files changed: `components/jobs/JobDetailPage.tsx`, `components/jobs/detail/{JobSummary,ActivityPanel,EmailInbox}.tsx`, `lib/jobs/description.ts`, `lib/jobs/__tests__/description.test.ts`, active docs
+
+---
+
 ## Backlog (Phase 2+)
 
-- Gmail daily scan + status inference
+- Chrome: save-to-tracker → autofill+submit (multi-page); masked portal accounts later
+- Master update soft-keep (24h enrichments) + classify existing vs new
+- Contacts + Check List on job detail (real)
 - Fit score on application cards
-- Kanban pipeline view
 - Playwright fallback for generic job URLs
 - OCR for scanned PDFs
-- Deprecate or hide cover letter from primary nav
+- People / Companies tracker tabs
+- Resume parse: tiered skills + low-confidence flags
+- Gmail sync into same outreach store (Task 114)

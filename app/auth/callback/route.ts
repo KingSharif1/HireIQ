@@ -7,7 +7,8 @@ import { syncProfileFromAuthUser } from '@/lib/auth/profile-sync'
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/dashboard'
+  const nextRaw = searchParams.get('next') ?? '/dashboard'
+  const next = nextRaw.startsWith('/') && !nextRaw.startsWith('//') ? nextRaw : '/dashboard'
 
   if (code) {
     const cookieStore = await cookies()

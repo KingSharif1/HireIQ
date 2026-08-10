@@ -1,0 +1,17 @@
+{
+  "name": "hireiq-extension",
+  "version": "0.6.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch --mode development",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.287",
+    "typescript": "^5.9.2",
+    "vite": "^6.3.5",
+    "@crxjs/vite-plugin": "^2.0.0-beta.32"
+  }
+}

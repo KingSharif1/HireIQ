@@ -36,7 +36,8 @@ function LoginForm() {
       setError(mapSupabaseAuthError(signInError.message))
       setLoading(false)
     } else {
-      router.push('/dashboard')
+      const next = searchParams.get('next')
+      router.push(next && next.startsWith('/') ? next : '/dashboard')
       router.refresh()
     }
   }
@@ -44,10 +45,17 @@ function LoginForm() {
   async function handleGoogleLogin() {
     setLoading(true)
     setError(null)
+    const next = searchParams.get('next')
+    const redirectNext =
+      next && next.startsWith('/')
+        ? `?next=${encodeURIComponent(next)}`
+        : ''
     const supabase = createClient()
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback${redirectNext}`,
+      },
     })
     if (oauthError) {
       setError(oauthError.message)

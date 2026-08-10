@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HireIQ</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      }
+      body {
+        margin: 0;
+        width: 340px;
+        padding: 16px;
+        background: #0f1115;
+        color: #f3f4f6;
+      }
+      h1 {
+        font-size: 15px;
+        margin: 0 0 2px;
+        font-weight: 700;
+      }
+      p.sub {
+        margin: 0 0 14px;
+        font-size: 12px;
+        color: #9ca3af;
+        line-height: 1.4;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #1f2937;
+        color: #d1d5db;
+        margin-bottom: 12px;
+      }
+      .pill.on {
+        background: rgba(13, 148, 136, 0.25);
+        color: #99f6e4;
+      }
+      .pill.off {
+        background: #1f2937;
+        color: #9ca3af;
+      }
+      label {
+        display: block;
+        font-size: 10px;
+        font-weight: 700;
+        margin: 10px 0 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #9ca3af;
+      }
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 9px 10px;
+        border-radius: 8px;
+        border: 1px solid #374151;
+        font-size: 12px;
+        background: #111827;
+        color: inherit;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        margin-top: 14px;
+      }
+      button {
+        flex: 1;
+        border: 0;
+        border-radius: 8px;
+        padding: 10px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button.primary {
+        background: #0d9488;
+        color: #fff;
+      }
+      button.secondary {
+        background: transparent;
+        border: 1px solid #374151;
+        color: #e5e7eb;
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+      .status {
+        margin-top: 12px;
+        font-size: 12px;
+        line-height: 1.45;
+        color: #d1d5db;
+      }
+      .status.ok {
+        color: #4ade80;
+      }
+      .status.err {
+        color: #f87171;
+      }
+      a {
+        color: #5eead4;
+      }
+      .hint {
+        margin-top: 10px;
+        font-size: 11px;
+        color: #6b7280;
+        line-height: 1.4;
+      }
+      details {
+        margin-top: 12px;
+        font-size: 11px;
+        color: #9ca3af;
+      }
+      summary {
+        cursor: pointer;
+        color: #9ca3af;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>HireIQ</h1>
+    <p class="sub">Connect with your HireIQ account (Google or email) in a normal browser tab.</p>
+
+    <div class="pill off" id="pagePill">Checking page…</div>
+
+    <button type="button" class="primary" id="connectBtn">Connect HireIQ</button>
+    <div class="row">
+      <button type="button" class="secondary" id="signOut" hidden>Sign out</button>
+      <button type="button" class="primary" id="saveJob">Save this page</button>
+    </div>
+
+    <label for="apiBaseUrl">API base URL</label>
+    <input id="apiBaseUrl" type="url" placeholder="http://localhost:3000" />
+
+    <div class="status" id="status"></div>
+    <p class="hint">
+      Connect opens HireIQ in a tab — sign in there, then return here. No special redirects or popup blockers.
+    </p>
+
+    <details>
+      <summary>Advanced</summary>
+      <button type="button" class="secondary" id="googleSignIn" style="margin-top: 8px; width: 100%">
+        Sign in with Google (extension window)
+      </button>
+      <label for="token">Legacy token</label>
+      <input id="token" type="password" placeholder="hiq_…" autocomplete="off" />
+      <div class="row">
+        <button type="button" class="secondary" id="saveSettings">Save token</button>
+      </div>
+    </details>
+
+    <script type="module" src="./popup.ts"></script>
+  </body>
+</html>

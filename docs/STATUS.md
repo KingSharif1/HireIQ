@@ -1,55 +1,79 @@
 # HireIQ Status
 
-**As of:** 2026-06-29  
-**Branch:** `main` — application code only; all planning in `docs/`
+**As of:** 2026-08-09  
+**Branch:** `main` — application code only; all planning in `docs/`  
+**Tests:** 139 passing
 
 ## System snapshot
 
 | Area | State |
 |------|-------|
-| Auth | Email + Google via Supabase ✓ — middleware, reset password, profile names |
+| Auth | ✓ Email + Google via Supabase — `proxy.ts`, forgot/reset password, profile names (007) |
 | Resume upload (PDF/DOCX) | ✓ |
-| Resume parse (Claude) | ✓ — needs tiered skills + low-confidence flags |
-| Profile workspace | ✓ — JSONB `profile_data`, provenance, pending suggestions |
-| Job URL fetch | Partial — GH/Lever/Ashby/Workday; LinkedIn → paste |
+| Resume parse (Claude) | 🟡 — needs tiered skills + low-confidence flags + OCR |
+| Profile / Resume Builder | ✓ — Profile master (131/133); job editor full-bleed + zoom/pan (132); Builder library |
+| Job URL fetch | 🟡 — GH/Lever/Ashby/Workday ✓; LinkedIn → paste; aggregator warnings |
 | Job analyze | ✓ |
 | ATS score | ✓ — algorithmic |
-| Gap Q&A | ✓ — 3-tier gap analysis + max 3 targeted questions |
-| Tailor + diff | ✓ generate — diff is view-only |
-| Accept/decline changes | ✓ — Changes tab, export gated on review |
-| Cover letter | ✓ built — deprioritized per new spec |
-| Application tracker | Partial — status on `jobs`, no events/Gmail |
-| GitHub integration | ✗ |
-| Gmail integration | ✗ Phase 2 |
+| Gap analysis | ✓ — still available via APIs; stepper retired from nav |
+| Tailor stepper | ⛔ Redirected — Job Matcher + tracker replace primary flow |
+| Application tracker | ✓ — Teal list/board; full-page detail; All outreach (134) |
+| Chrome extension | 🟡 Phase 2b — website connect + animated autofill UX (v0.6.0) + drafts/accept/PDF APIs (014); live smoke + board adapters pending |
+| GitHub integration | ✓ Task 105 |
+| Gmail integration | 🔴 Phase 2 |
 
 ## Phase 1 MVP progress (spec order)
 
 | # | Item | Status | Notes |
 |---|------|--------|-------|
-| 1 | Resume upload + parse | 🟡 80% | Add tiered skills, parse confidence flags, OCR fallback |
-| 2 | GitHub connect | 🔴 0% | OAuth + repo sync + resume cross-ref |
-| 3 | Job URL ingestion | 🟡 70% | Workday + LinkedIn done; Playwright fallback still pending |
-| 4 | Gap analysis | 🟡 85% | 3-tier JSON + UI; refine prompts with real usage |
-| 5 | Tailored resume + tracked changes | 🟡 85% | Accept/decline/edit UI done; feedback loop for future runs pending |
-| 6 | ATS + visual check | 🟡 55% | PDF layout QA pass (length, orphans, placeholders) |
-| 7 | Application log | 🟡 45% | Migrate toward `applications` schema; Kanban optional |
+| 1 | Resume upload + parse | 🟡 80% | Tiered skills, parse confidence flags, OCR fallback |
+| 2 | GitHub connect | ✓ ~85% | OAuth link + repo sync; enable provider + migration 008 |
+| 3 | Job URL ingestion | 🟡 75% | Workday + LinkedIn handling done; Playwright fallback pending |
+| 4 | Gap analysis | ✓ ~90% | 3-tier JSON + UI; refine prompts with real usage |
+| 5 | Tailored resume + tracked changes | ✓ ~90% | Accept/decline/edit done; feedback loop for future runs pending |
+| 6 | ATS + visual check | 🟡 55% | PDF layout QA pass (Task 106) |
+| 7 | Application log | ✓ ~85% | Schema 010 + Kanban/list (113); Gmail Phase 2 |
 
 Legend: ✓ done · 🟡 in progress · 🔴 not started
 
+## Completed foundation (Tasks 100–104)
+
+| Task | What shipped |
+|------|----------------|
+| 100 | Repo docs layout; specs/migrations/scripts → `docs/` |
+| 101 | Structured 3-tier gap analysis + `GapAnalysisSummary` UI |
+| 102 | Tracked changes accept/decline/edit; export gating; migration 006 |
+| 103 | Workday fetch; LinkedIn blocked → paste; aggregator warnings |
+| 104 | Auth hardening: `proxy.ts`, reset password, profile trigger 007, `AUTH.md` |
+
+**Latest:** Task 117 — extension autofill UX + backend drafts/accept/PDF APIs; see `docs/EXTENSION.md`.
+
 ## What changed vs old vision
 
-The previous spec ([legacy/HIREIQ_SPEC-v0.md](./legacy/HIREIQ_SPEC-v0.md)) framed HireIQ as a broad "Job Search OS" (outreach, interview prep, discovery). **v1.0 spec narrows to tailor + track applications.** Existing cover-letter and notification code stays but is not Phase 1 priority.
+The previous spec ([legacy/HIREIQ_SPEC-v0.md](./legacy/HIREIQ_SPEC-v0.md)) framed HireIQ as a broad "Job Search OS" (outreach, interview prep, discovery). **SPEC v1.0 narrows to tailor + track applications.** Existing cover-letter and notification code stays but is not Phase 1 priority.
 
-## Workspace hygiene (2026-06-29)
+## Workspace hygiene
 
-- Moved `prototype/`, `scripts/`, `supabase/`, and `.md` specs → `docs/`
-- Root `README.md` is a thin entry point
-- Agent session docs: `ARCHITECTURE.md`, `STATUS.md`, `TASKS.md`, `DECISIONS.md`, `CHANGELOG.md`
+- Runtime code at repo root: `app/`, `components/`, `lib/`, `proxy.ts`, `store/`, `types/`
+- Planning & migrations: `docs/` (see [README.md](./README.md))
+- Agent session docs: `ARCHITECTURE.md`, `STATUS.md`, `TASKS.md`, `DECISIONS.md`, `CHANGELOG.md`, `AUTH.md`
 
 ## Blockers
 
-None for continuing Phase 1 item #1 polish. GitHub OAuth needs Supabase provider config + GitHub app credentials.
+| Blocker | Owner | Notes |
+|---------|-------|-------|
+| Google OAuth provider | User | Enable in Supabase Dashboard + Google Cloud Console; redirect `http://localhost:3000/auth/callback` |
+| GitHub OAuth app | User | Enable provider + OAuth app per [GITHUB.md](./GITHUB.md); run migration 008 |
+| Chrome extension | User | Add `SUPABASE_SERVICE_ROLE_KEY` to `.env.local` then smoke-test save (see [EXTENSION.md](./EXTENSION.md)) |
 
-## Next recommended task
+Email/password auth works. Migrations 001–014 documented; 006–014 applied remotely via MCP (014 = `applications.form_answers`).
 
-See [TASKS.md](./TASKS.md) — Task 101 (align gap analysis output to spec §3.1) or Task 102 (tracked-changes accept/decline UI).
+## Next recommended tasks
+
+**IA reset locked 2026-08-04** — see [DESIGN-IA-RESET.md](./DESIGN-IA-RESET.md).
+
+1. Add `SUPABASE_SERVICE_ROLE_KEY` to `.env.local` (see [EXTENSION.md](./EXTENSION.md)) and smoke-test save-to-tracker
+2. **Task 117** — Extension autofill + review-queue auto-apply
+3. Remaining Phase 2 backlog (Gmail, OCR, etc.)
+
+**Done:** Task 116 — Chrome extension save-to-tracker. Task 129 — Resume Builder library. Task 128 — Sprout Profile. Task 127 — Nav shell.

@@ -1,3 +1,6 @@
+import type { GitHubProfileData } from '@/lib/github/types'
+import type { ResumeTheme, ResumeThemeOverride } from '@/lib/export/theme'
+
 export interface ResumeContact {
   name: string
   email: string
@@ -248,7 +251,7 @@ export interface ProvenanceEvent {
 }
 
 export interface ProvenanceEntry {
-  origin: 'base' | 'tailor'
+  origin: 'base' | 'tailor' | 'github'
   sourceTailoredResumeId?: string
   jobLabel?: string
   history: ProvenanceEvent[]
@@ -263,6 +266,15 @@ export interface PendingSuggestion {
   sourceTailoredResumeId: string
   jobLabel: string
   createdAt: string
+  source?: 'tailor' | 'github'
+  /** When set, accepting creates a new profile project (GitHub sync). */
+  newProject?: {
+    name: string
+    description: string
+    github: string
+    technologies: string[]
+    bullets: string[]
+  }
 }
 
 export interface ProfileData {
@@ -293,6 +305,9 @@ export interface Profile {
   target_role: string | null
   years_experience: number | null
   profile_data: ProfileData | null
+  github_data: GitHubProfileData | null
+  /** Master visual theme for PDF/export (Design Mode). */
+  resume_theme?: ResumeTheme | null
   created_at: string
   updated_at: string
 }
@@ -312,12 +327,23 @@ export interface Resume {
 }
 
 export type ApplicationStatus =
-  | 'not_applied'
+  | 'bookmarked'
+  | 'applying'
   | 'applied'
   | 'interviewing'
+  | 'negotiating'
   | 'offer'
   | 'rejected'
   | 'accepted'
+  /** @deprecated Migrated to bookmarked — kept for reading old clients only */
+  | 'not_applied'
+
+export type ApplicationEventType =
+  | 'created'
+  | 'status_change'
+  | 'note'
+  | 'email_linked'
+  | 'manual'
 
 export type TailoringStatus = 'not_started' | 'in_progress' | 'tailored'
 
@@ -338,6 +364,102 @@ export interface Job {
   updated_at: string
 }
 
+/** One tracked application form answer (extension autofill write-back). */
+export interface ApplicationFormAnswer {
+  key: string
+  question: string
+  answer: string
+  updatedAt: string
+}
+
+/** One tracked application per job (Task 107). Status is source of truth; jobs.application_status mirrored for compat. */
+export interface Application {
+  id: string
+  user_id: string
+  job_id: string
+  tailored_resume_id: string | null
+  status: ApplicationStatus
+  applied_at: string | null
+  notes: string | null
+  follow_up_at: string | null
+  source: string
+  email_log?: ApplicationEmailLogEntry[]
+  templates?: ApplicationTemplate[]
+  /** Extension autofill answers keyed by field. */
+  form_answers?: ApplicationFormAnswer[]
+  /** Email the user used on the employer ATS (extension). */
+  ats_account_email?: string | null
+  ats_account_note?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ApplicationEmailLogEntry {
+  id: string
+  subject: string
+  body?: string
+  direction: 'sent' | 'received' | 'note'
+  at: string
+  /** Optional metadata used by the inbox UI and future provider adapters. */
+  sender?: string
+  recipients?: string[]
+  cc?: string[]
+  snippet?: string
+  threadId?: string
+  messageId?: string
+  source?: 'manual' | 'gmail' | 'forwarded'
+  isRead?: boolean
+}
+
+export interface ApplicationTemplate {
+  id: string
+  name: string
+  subject: string
+  body: string
+}
+
+export interface ResumeInclusion {
+  /** When present, only these ids are included. Absent key = all included. */
+  bulletIds?: string[]
+  sectionIds?: string[]
+  skillIds?: string[]
+  experienceIds?: string[]
+  projectIds?: string[]
+  educationIds?: string[]
+}
+
+export interface ApplicationEvent {
+  id: string
+  application_id: string
+  user_id: string
+  event_type: ApplicationEventType
+  from_status: ApplicationStatus | null
+  to_status: ApplicationStatus | null
+  meta: Record<string, unknown>
+  created_at: string
+}
+
+/** Tracker list/board row: application + denormalized job fields. */
+export interface ApplicationTrackerItem extends Application {
+  job: Pick<
+    Job,
+    | 'id'
+    | 'company'
+    | 'title'
+    | 'location'
+    | 'created_at'
+    | 'updated_at'
+    | 'tailoring_status'
+    | 'apply_url'
+    | 'description'
+    | 'remote_type'
+    | 'extracted_data'
+  >
+  score: number | null
+  tailored: boolean
+  tailoredResumeId?: string | null
+}
+
 export interface TailoredResume {
   id: string
   user_id: string
@@ -355,6 +477,10 @@ export interface TailoredResume {
   version: number
   gap_answers: TailorGapAnswer[]
   user_edited: boolean
+  /** Sparse per-job visual overrides merged over profile master theme. */
+  theme_override?: ResumeThemeOverride | null
+  /** Per-job include/exclude map for Job Matcher checkboxes. */
+  inclusion?: ResumeInclusion | null
   created_at: string
 }
 
