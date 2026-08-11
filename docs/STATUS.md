@@ -17,7 +17,7 @@
 | ATS score | ✓ — algorithmic |
 | Gap analysis | ✓ — still available via APIs; stepper retired from nav |
 | Tailor stepper | ⛔ Redirected — Job Matcher + tracker replace primary flow |
-| Application tracker | ✓ — Teal list/board; full-page detail; All outreach (134); masked inbound code (139, needs migration + Resend env) |
+| Application tracker | ✓ — Teal list/board; All outreach (134); masked inbound (139) — migration 015 applied |
 | Chrome extension | 🟡 **v0.9.0** choice review + Documents merge + focus resume refresh; board adapters optional |
 | GitHub integration | ✓ Task 105 |
 | Gmail integration | 🔴 Phase 2 — prefer masked inbound (Task 139) over Gmail read |
