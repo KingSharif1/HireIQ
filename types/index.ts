@@ -302,6 +302,10 @@ export interface Profile {
   last_name: string
   username: string | null
   email: string | null
+  /** HireIQ apply address (Resend inbound), e.g. name.abc123@mail.example.com */
+  masked_email?: string | null
+  email_forward_to?: string | null
+  email_forward_enabled?: boolean | null
   target_role: string | null
   years_experience: number | null
   profile_data: ProfileData | null
@@ -407,7 +411,7 @@ export interface ApplicationEmailLogEntry {
   snippet?: string
   threadId?: string
   messageId?: string
-  source?: 'manual' | 'gmail' | 'forwarded'
+  source?: 'manual' | 'gmail' | 'forwarded' | 'masked'
   isRead?: boolean
 }
 

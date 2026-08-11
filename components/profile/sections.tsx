@@ -31,9 +31,12 @@ import {
   MonthRange,
 } from './primitives'
 import { ProvenanceBulletEditor } from './ProvenanceBulletEditor'
+import { GitHubConnectPanel } from './GitHubConnectPanel'
 import { PendingSuggestionsPanel } from './PendingSuggestionsPanel'
+import { MaskedEmailCard } from './MaskedEmailCard'
+import { Suspense } from 'react'
 import { bulletsWithIds } from '@/lib/profile/bullets'
-import { recordBulletEdit, pendingCountForSection } from '@/lib/profile/provenance'
+import { recordBulletEdit, entrySourceLabel } from '@/lib/profile/provenance'
 
 type Update = (patch: Partial<ProfileData>) => void
 type ResumeRow = Pick<Resume, 'id' | 'title' | 'ats_format_score' | 'is_primary' | 'created_at' | 'original_file_url'>
@@ -78,6 +81,7 @@ export function PersonalSection({ data, update }: { data: ProfileData; update: U
           </Field>
         </div>
       </div>
+      <MaskedEmailCard />
     </div>
   )
 }
@@ -86,9 +90,23 @@ export function PersonalSection({ data, update }: { data: ProfileData; update: U
 // Summary
 // ---------------------------------------------------------------------------
 
-export function SummarySection({ data, update }: { data: ProfileData; update: Update }) {
+export function SummarySection({
+  data,
+  update,
+  onSuggestionResolved,
+}: {
+  data: ProfileData
+  update: Update
+  onSuggestionResolved?: (id: string, action: 'accept' | 'decline') => Promise<void>
+}) {
+  const pending = (data.pendingSuggestions ?? []).filter(s => s.section === 'summary')
   return (
     <div>
+      {pending.length > 0 && onSuggestionResolved && (
+        <div className="mb-4">
+          <PendingSuggestionsPanel suggestions={pending} onResolved={onSuggestionResolved} />
+        </div>
+      )}
       <SectionHeader title="Summary" description="A 2–4 sentence professional overview. This anchors your tailored resumes." />
       <Textarea
         value={data.summary}
@@ -178,7 +196,9 @@ export function ExperienceSection({
   return (
     <div>
       {pending.length > 0 && onSuggestionResolved && (
-        <PendingSuggestionsPanel suggestions={pending} onResolved={onSuggestionResolved} />
+        <div className="mb-4">
+          <PendingSuggestionsPanel suggestions={pending} onResolved={onSuggestionResolved} />
+        </div>
       )}
       <SectionHeader
         title="Experience"
@@ -194,6 +214,7 @@ export function ExperienceSection({
               key={exp.id}
               title={exp.title || 'New role'}
               subtitle={[exp.company, exp.location].filter(Boolean).join(' · ')}
+              sourceLine={entrySourceLabel(data.provenance, exp.bulletIds)}
               onRemove={() => remove(exp.id)}
               defaultOpen={!exp.title}
             >
@@ -297,8 +318,21 @@ export function VolunteeringSection({ data, update }: { data: ProfileData; updat
 // Projects
 // ---------------------------------------------------------------------------
 
-export function ProjectsSection({ data, update }: { data: ProfileData; update: Update }) {
+export function ProjectsSection({
+  data,
+  update,
+  githubData,
+  onSuggestionResolved,
+  onGitHubSynced,
+}: {
+  data: ProfileData
+  update: Update
+  githubData?: import('@/lib/github/types').GitHubProfileData | null
+  onSuggestionResolved?: (id: string, action: 'accept' | 'decline') => Promise<void>
+  onGitHubSynced?: () => void
+}) {
   const items = data.projects
+  const pending = (data.pendingSuggestions ?? []).filter(s => s.section === 'projects')
   const add = () =>
     update({
       projects: [
@@ -312,6 +346,14 @@ export function ProjectsSection({ data, update }: { data: ProfileData; update: U
 
   return (
     <div>
+      <Suspense fallback={null}>
+        <GitHubConnectPanel initialGithubData={githubData ?? null} onSynced={onGitHubSynced} />
+      </Suspense>
+      {pending.length > 0 && onSuggestionResolved && (
+        <div className="mb-4">
+          <PendingSuggestionsPanel suggestions={pending} onResolved={onSuggestionResolved} />
+        </div>
+      )}
       <SectionHeader
         title="Projects"
         description="Side projects, open source, or notable work products."
@@ -322,7 +364,18 @@ export function ProjectsSection({ data, update }: { data: ProfileData; update: U
       ) : (
         <div className="space-y-3">
           {items.map(proj => (
-            <EntryCard key={proj.id} title={proj.name || 'New project'} subtitle={proj.technologies?.join(', ')} onRemove={() => remove(proj.id)} defaultOpen={!proj.name}>
+            <EntryCard
+              key={proj.id}
+              title={proj.name || 'New project'}
+              subtitle={proj.technologies?.join(', ')}
+              sourceLine={
+                entrySourceLabel(data.provenance, proj.bulletIds) ??
+                (proj.github ? 'From GitHub' : null)
+              }
+              sourceHref={proj.github || null}
+              onRemove={() => remove(proj.id)}
+              defaultOpen={!proj.name}
+            >
               <Field label="Name"><Input value={proj.name} onChange={e => setItem(proj.id, { name: e.target.value })} placeholder="Project name" /></Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Live URL"><Input value={proj.url} onChange={e => setItem(proj.id, { url: e.target.value })} placeholder="https://…" /></Field>
@@ -394,8 +447,17 @@ export function EducationSection({ data, update }: { data: ProfileData; update: 
 // Skills & Certs
 // ---------------------------------------------------------------------------
 
-export function SkillsSection({ data, update }: { data: ProfileData; update: Update }) {
+export function SkillsSection({
+  data,
+  update,
+  onSuggestionResolved,
+}: {
+  data: ProfileData
+  update: Update
+  onSuggestionResolved?: (id: string, action: 'accept' | 'decline') => Promise<void>
+}) {
   const s = data.skills
+  const pending = (data.pendingSuggestions ?? []).filter(s => s.section === 'skills')
   const setSkills = (patch: Partial<typeof s>) => update({ skills: { ...s, ...patch } })
   const certs = data.certifications
   const addCert = () =>
@@ -406,6 +468,11 @@ export function SkillsSection({ data, update }: { data: ProfileData; update: Upd
 
   return (
     <div>
+      {pending.length > 0 && onSuggestionResolved && (
+        <div className="mb-4">
+          <PendingSuggestionsPanel suggestions={pending} onResolved={onSuggestionResolved} />
+        </div>
+      )}
       <SectionHeader title="Skills & Certifications" description="Technical skills, tools, languages, and credentials." />
       <div className="space-y-5">
         <Field label="Technical skills"><TagInput tags={s.technical} onChange={technical => setSkills({ technical })} placeholder="TypeScript, Python…" /></Field>

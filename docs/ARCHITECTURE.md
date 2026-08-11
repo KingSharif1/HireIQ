@@ -94,6 +94,8 @@ Application tracking
     → Full-page detail: Overview | Job description | Documents | Questions | Activity | Email
     → Activity adapter merges status/manual/email-linked events with legacy email log entries
     → Manual inbox reads bounded applications.email_log JSONB through a provider-neutral view model
+    → Masked inbound (Resend): employer → mail.* domain → POST /api/webhooks/resend/inbound
+      → inbound_email_events + matched email_log entry → All outreach / job Email tab
     → Future Gmail sync uses dedicated message storage, then adapts into the same inbox view model
     → Fixed-job Documents editor: profile_data → inclusion filter → live preview/score → tailored_resumes
     → Gmail scan / forward-to-save (Phase 2)
@@ -180,7 +182,7 @@ Migrations in `docs/supabase/migrations/` (001 → 010):
 | `notifications` | In-app alerts |
 | `github_connections` | GitHub OAuth tokens (008) |
 
-**Remote (Supabase project `wsbbgznobxhjefaqbniv`):** Core schema + RLS applied. Migrations 006–010 applied via MCP.
+**Remote (Supabase project `wsbbgznobxhjefaqbniv`):** Core schema + RLS applied. Migrations 006–015 applied via MCP (015 = masked inbound).
 
 Spec target still pending: normalized `experiences`/`projects`/`skills`, Gmail columns on `profiles`.
 

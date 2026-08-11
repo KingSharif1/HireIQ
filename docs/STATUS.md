@@ -1,8 +1,8 @@
 # HireIQ Status
 
-**As of:** 2026-08-09  
+**As of:** 2026-08-10  
 **Branch:** `main` — application code only; all planning in `docs/`  
-**Tests:** 139 passing
+**Tests:** description + extension unit suites green; extension **v0.8.0** built
 
 ## System snapshot
 
@@ -17,10 +17,10 @@
 | ATS score | ✓ — algorithmic |
 | Gap analysis | ✓ — still available via APIs; stepper retired from nav |
 | Tailor stepper | ⛔ Redirected — Job Matcher + tracker replace primary flow |
-| Application tracker | ✓ — Teal list/board; full-page detail; All outreach (134) |
-| Chrome extension | 🟡 Phase 3 Submit CTA shipped (v0.7); board-specific adapters optional |
+| Application tracker | ✓ — Teal list/board; full-page detail; All outreach (134); masked inbound code (139, needs migration + Resend env) |
+| Chrome extension | 🟡 **v0.9.0** choice review + Documents merge + focus resume refresh; board adapters optional |
 | GitHub integration | ✓ Task 105 |
-| Gmail integration | 🔴 Phase 2 |
+| Gmail integration | 🔴 Phase 2 — prefer masked inbound (Task 139) over Gmail read |
 
 ## Phase 1 MVP progress (spec order)
 
@@ -28,7 +28,7 @@
 |---|------|--------|-------|
 | 1 | Resume upload + parse | 🟡 80% | Tiered skills, parse confidence flags, OCR fallback |
 | 2 | GitHub connect | ✓ ~85% | OAuth link + repo sync; enable provider + migration 008 |
-| 3 | Job URL ingestion | 🟡 75% | Workday + LinkedIn handling done; Playwright fallback pending |
+| 3 | Job URL ingestion | 🟡 80% | Workday + LinkedIn handling; extension save enriches ATS via scraper (135); Playwright fallback pending |
 | 4 | Gap analysis | ✓ ~90% | 3-tier JSON + UI; refine prompts with real usage |
 | 5 | Tailored resume + tracked changes | ✓ ~90% | Accept/decline/edit done; feedback loop for future runs pending |
 | 6 | ATS + visual check | 🟡 55% | PDF layout QA pass (Task 106) |
@@ -46,7 +46,7 @@ Legend: ✓ done · 🟡 in progress · 🔴 not started
 | 103 | Workday fetch; LinkedIn blocked → paste; aggregator warnings |
 | 104 | Auth hardening: `proxy.ts`, reset password, profile trigger 007, `AUTH.md` |
 
-**Latest:** Task 117 — extension autofill UX + backend drafts/accept/PDF APIs; see `docs/EXTENSION.md`.
+**Latest:** Tasks 135–137 verified — save-first panel (v0.8), clean JD At-a-glance (no Greenhouse chrome blob), resume pick + job-scoped Q&A; see `docs/EXTENSION.md`.
 
 ## What changed vs old vision
 
@@ -66,14 +66,14 @@ The previous spec ([legacy/HIREIQ_SPEC-v0.md](./legacy/HIREIQ_SPEC-v0.md)) frame
 | GitHub OAuth app | User | Enable provider + OAuth app per [GITHUB.md](./GITHUB.md); run migration 008 |
 | Chrome extension | User | Add `SUPABASE_SERVICE_ROLE_KEY` to `.env.local` then smoke-test save (see [EXTENSION.md](./EXTENSION.md)) |
 
-Email/password auth works. Migrations 001–014 documented; 006–014 applied remotely via MCP (014 = `applications.form_answers`).
+Email/password auth works. Migrations 001–015 documented; 006–015 applied remotely via MCP (015 = masked inbound email).
 
 ## Next recommended tasks
 
 **IA reset locked 2026-08-04** — see [DESIGN-IA-RESET.md](./DESIGN-IA-RESET.md).
 
-1. Add `SUPABASE_SERVICE_ROLE_KEY` to `.env.local` (see [EXTENSION.md](./EXTENSION.md)) and smoke-test save-to-tracker
-2. **Task 117** — Extension autofill + review-queue auto-apply
-3. Remaining Phase 2 backlog (Gmail, OCR, etc.)
+1. Set `RESEND_API_KEY` + `RESEND_WEBHOOK_SECRET` and point Resend webhook at `/api/webhooks/resend/inbound` (see [EMAIL.md](./EMAIL.md))
+2. **Task 117** — Extension autofill + review-queue auto-apply (masked email autofill later)
+3. Remaining Phase 2 backlog (Gmail optional; OCR, etc.)
 
 **Done:** Task 116 — Chrome extension save-to-tracker. Task 129 — Resume Builder library. Task 128 — Sprout Profile. Task 127 — Nav shell.

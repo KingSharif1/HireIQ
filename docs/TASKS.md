@@ -171,9 +171,31 @@ Files changed: `docs/supabase/migrations/012_api_tokens.sql`, `lib/supabase/admi
 Status: IN PROGRESS  
 Scope: `extension/` board adapters (GH/Lever/Ashby/Workday + generic fallback), review queue UI  
 Goal: Fill forms from profile + tailored PDF; user batch-reviews and submits while watching. Unknown fields ask the user every time (no answer bank). LinkedIn/Indeed excluded from automation. Per DESIGN-TEAL-PARITY.md §D.  
-Notes: Phase 2 connect/ATS + autofill UX done. Phase 3 **user-watched Submit** shipped (v0.7.0). Board-specific adapters still optional polish.  
-Result (partial): Website connect + ATS email + autofill UX + **Submit on this site** (confirm if pending, mark Applied). LinkedIn/Indeed submit click blocked.  
-Files changed (Phase 3): `lib/extension/submit-button.ts`, `extension/src/submit.ts`, `extension/src/content.ts`, `app/api/extension/jobs/[id]/status/route.ts`, tests, `docs/EXTENSION.md`
+Notes: Phase 2 connect/ATS + autofill UX done. Phase 3 **user-watched Submit** shipped (v0.7.0). **v0.8.0** save-first panel + compact UX + resume pick. Board-specific adapters still optional polish.  
+Result (partial): Website connect + ATS email + autofill UX + Submit + save-first gate + accordion review + resume select. LinkedIn/Indeed submit click blocked.  
+Files changed (v0.8): `extension/src/content.ts`, `extension/package.json`, `extension/manifest.config.ts`, `docs/EXTENSION.md`
+
+---
+
+## Task 138 — Extension v0.9: choice review + Documents + resume focus
+Status: DONE  
+Scope: extension review UX, documents merge, focus refresh  
+Result: Select/radio/Yes-No pick buttons; No→N/A follow-ups; After save merged into Documents (Generate opens website); visibility/focus refreshes resumes + auto-selects newest. v0.9.0 CDP smoke pass.  
+Files changed: `extension/src/{content,autofill}.ts`, `lib/extension/review-choices.ts`, tests, docs  
+
+---
+
+## Task 137 — Extension panel UX: save-first + compact + resume pick
+Status: DONE  
+Scope: `extension/src/content.ts`, version bump, related docs  
+Result: Save-first gate via `by-url` lookup; Autofill/Submit disabled until saved; compact `<details>` profile + progress; accordion review; resume `<select>` + `tailoredResumeId` on PDF attach; scrape from `./scrape`; pageKind hint; v0.8.0. Verified CDP smoke (reload → 0.8 panel markers) + description unit tests.  
+Files changed: `extension/src/content.ts`, `extension/package.json`, `extension/manifest.config.ts`, `lib/jobs/description.ts`, `docs/scripts/ext-v08-smoke.mjs`, `docs/EXTENSION.md`, `docs/CHANGELOG.md`, `docs/STATUS.md`  
+
+## Task 136 — Extension resume list + PDF pick + form answers UI
+Status: DONE  
+Scope: extension job resumes/pdf APIs; applications answers API; JobDetailPage Activity  
+Result: Bearer `GET /api/extension/jobs/[id]/resumes` lists tailored resumes; PDF route accepts `?tailoredResumeId=` and returns it in availability JSON; session `PATCH/DELETE /api/applications/[id]/answers`; `ApplicationAnswers` on Activity tab. `form_answers` loaded via applications `select('*')` on tracker detail.  
+Files changed: `app/api/extension/jobs/[id]/{resumes,pdf}/route.ts`, `app/api/applications/[id]/answers/route.ts`, `lib/applications/form-answers.ts`, `components/jobs/detail/ApplicationAnswers.tsx`, `JobDetailPage.tsx`, `tracker/[jobId]/page.tsx`, accept route shared helper, tests, docs
 
 ---
 
@@ -315,6 +337,24 @@ Status: DONE
 Scope: tracker detail header, overview actions, facts rail, Activity, Email, description density  
 Result: Reduced mobile header height with an inline status selector; made the full desktop facts rail hideable and restorable; combined the duplicate Notes/Activity action; capped formatted JD sections; changed Activity to newest-first; collapsed the manual email form by default.  
 Files changed: `components/jobs/JobDetailPage.tsx`, `components/jobs/detail/{JobSummary,ActivityPanel,EmailInbox}.tsx`, `lib/jobs/description.ts`, `lib/jobs/__tests__/description.test.ts`, active docs
+
+---
+
+## Task 139 — Masked inbound email (Resend)
+Status: DONE  
+Scope: migration 015, `lib/email/*`, webhook + masked-email APIs, Profile Personal UI, env/docs  
+Goal: Per-user `@mail.…` apply address; Resend `email.received` → `inbound_email_events` + matched job `email_log` / All outreach; optional forward.  
+Result: Code shipped. Migration **015** applied remotely via Supabase MCP 2026-08-11 (`masked_inbound_email`). Profile Personal has Application email create/copy/forward. Webhook at `/api/webhooks/resend/inbound`. Unit tests for address + match heuristics green. Ops: set `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, webhook URL (tunnel for local), optional `RESEND_FORWARD_FROM` — see [EMAIL.md](./EMAIL.md).  
+Files changed: `docs/supabase/migrations/015_masked_inbound_email.sql`, `lib/email/*`, `app/api/webhooks/resend/inbound/route.ts`, `app/api/profile/masked-email/route.ts`, `MaskedEmailCard.tsx`, `sections.tsx`, `EmailInbox.tsx`, `types/index.ts`, `.env.example`, `docs/EMAIL.md`, docs  
+
+---
+
+## Task 135 — Job description quality (extension save + UI)
+Status: DONE  
+Scope: `app/api/jobs/route.ts`, `lib/jobs/description.ts`, `components/jobs/detail/JobSummary.tsx`, description tests, docs  
+Goal: Stop saving glued ATS chrome as JD; enrich Greenhouse/Lever/Ashby/Workday saves via scraper; readable summary + paragraph full posting.  
+Result: POST `/api/jobs` normalizes `apply_url`, scrapes ATS hosts when body text is weak, rebuilds `extracted_data.summary`/responsibilities from cleaned paragraphs; existing glued “Back to jobs” rows can be improved once. `stripAtsChrome` + paragraph-preserving normalize; JobSummary hides empty Requirements/Keywords and renders full posting as `\n\n` paragraphs.  
+Files changed: `app/api/jobs/route.ts`, `lib/jobs/description.ts`, `lib/jobs/__tests__/description.test.ts`, `components/jobs/detail/JobSummary.tsx`, active docs
 
 ---
 

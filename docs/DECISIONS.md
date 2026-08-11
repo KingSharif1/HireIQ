@@ -58,6 +58,18 @@
 
 ---
 
+## 2026-08-10 — Masked inbound email (Resend), not Gmail read
+
+**Context:** Application tracking needs employer replies without requesting `gmail.readonly` (CASA). User verified receiving on `mail.kingsharif.com` via Resend.
+
+**Choice:** One masked address per user (`profiles.masked_email`); Relayed through Resend inbound webhook → `inbound_email_events` (canonical) + matched rows into bounded `applications.email_log` for existing All outreach / Email UI. Optional forward to real inbox via Resend Send (`RESEND_FORWARD_FROM`).
+
+**Tradeoff:** Attribution to a job is heuristic (company in subject/from); unmatched mail still notifies and stores relationally. JSONB log stays a view adapter, not the primary store for provider mail.
+
+**Revisit if:** Need per-job aliases (`+jobid`) or LLM status classification.
+
+---
+
 ## 2026-08-05 — Tracker Activity + inbox data boundary
 
 **Context:** The full-page application detail needed a Sprout-style timeline and inbox before Gmail ingestion exists. Current storage provides bounded `applications.email_log` JSONB plus relational `application_events`.

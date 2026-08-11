@@ -10,6 +10,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 # Server-only — Chrome extension APIs (token + JWT verify; never expose)
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# Masked application email — see EMAIL.md
+MASKED_EMAIL_DOMAIN=mail.kingsharif.com
+RESEND_API_KEY=
+RESEND_WEBHOOK_SECRET=
+# RESEND_FORWARD_FROM=HireIQ <noreply@mail.kingsharif.com>
 ```
 
 ## Supabase Dashboard

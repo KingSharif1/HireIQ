@@ -1,5 +1,109 @@
 # Changelog
 
+## 2026-08-10 — Extension v0.9.4: country from location + entry resume gate
+
+**What:** Infer country from profile location (e.g. Fort Worth, TX → United States) and fill/match Country comboboxes with typeahead filter; entry-level/intern/new-grad jobs with a resume upload block Submit until a tailored resume is attached.
+
+**Files:** `lib/extension/{location-country,entry-level}.ts`, `app/api/extension/profile/route.ts`, `extension/src/{autofill,content}.ts`, tests
+
+**Why:** Required fields need the right option format; early-career apps need a real resume attached.
+
+---
+
+## 2026-08-10 — Task 139: Masked inbound via Resend
+
+**What:** Per-user application email on `MASKED_EMAIL_DOMAIN` (e.g. `mail.kingsharif.com`). Resend `email.received` webhook verifies Svix, stores `inbound_email_events`, matches open applications by company signal, appends to `email_log` (All outreach / job Email), notifies, optional forward via Resend Send. Profile → Personal → Application email (create/copy/forward). Migration **015** applied remotely via Supabase MCP.
+
+**Files:** `015_masked_inbound_email.sql`, `lib/email/*`, `app/api/webhooks/resend/inbound`, `app/api/profile/masked-email`, `MaskedEmailCard.tsx`, types, `.env.example`, `docs/EMAIL.md`, docs
+
+**Why:** Sprout-style tracking without Gmail read / CASA.
+
+**Next:** Set Resend API key + webhook secret + tunnel/prod URL; extension can autofill masked email later.
+
+---
+
+## 2026-08-10 — Extension v0.9.3: ask for missing profile fields
+
+**What:** If Autofill finds phone/email/LinkedIn/etc. empty on master profile, review shows “(missing from profile)” with Add & use; after accept asks **Save to your HireIQ profile?**
+
+**Files:** `extension/src/content.ts`, `lib/extension/{form-fill,draft-kind}.ts`, tests
+
+**Why:** Don’t silently skip contact gaps or invent them with AI.
+
+---
+
+## 2026-08-10 — Extension v0.9.1: Greenhouse combobox (react-select) choices
+
+**What:** Detect `role=combobox` / `.select__input`, open menu, read `.select__option`s; if 2–8 options show pick buttons (Yes/No); >8 → text fallback. Apply choice by clicking the option.
+
+**Files:** `extension/src/autofill.ts`, `extension/src/content.ts`, docs
+
+**Why:** Greenhouse “Select…” is not a native `<select>`; sponsorship/felony were stuck as textareas.
+
+**Next:** Other ATS custom dropdowns as we hit them.
+
+---
+
+## 2026-08-10 — Extension v0.9: choice review + Documents merge + resume focus refresh
+
+**What:** Yes/No/select/radio → pick buttons in review; No → auto N/A on follow-up text fields; After save merged into Documents (Generate opens HireIQ site); tab focus refreshes tailored resumes and auto-selects newest.
+
+**Files:** `extension/src/{content,autofill}.ts`, `lib/extension/review-choices.ts`, tests, `docs/EXTENSION.md`
+
+**Why:** Faster closed-field answers; one Documents home; generate/edit stays on website (B); resume pickup via focus (A).
+
+**Next:** v2 in-panel editor; website→extension resume-ready message (C).
+
+---
+
+## 2026-08-10 — Verify: Extension panel + JD quality (v0.8)
+
+**What:** Confirmed unit tests (description chrome strip + polluted `extracted.summary`), `tsc`, extension build **0.8.0**, CDP smoke (`docs/scripts/ext-v08-smoke.mjs`: runtime reload 0.7→0.8, Save-first markers, Apply page kind, collapsed profile + Show fields). Tracker At-a-glance prefers company prose over glued Greenhouse chrome.
+
+**Files:** `lib/jobs/description.ts`, `lib/jobs/__tests__/description.test.ts`, `docs/scripts/ext-v08-smoke.mjs`, docs
+
+**Why:** Close the plan verify rung; old unpacked builds left content scripts dead until `chrome.runtime.reload()`.
+
+**Next:** Optional board adapters; optional analyze-on-save.
+
+---
+
+## 2026-08-10 — Task 137: Extension panel save-first + compact UX (v0.8.0)
+
+**What:** Panel boots with `GET /api/extension/jobs/by-url`; Autofill/Submit gated until Save; no auto-save on Autofill; compact profile `<details>`, progress bar without checklist in main view, accordion review; resume picker + `tailoredResumeId` on PDF attach; scrape via `./scrape`; pageKind hint.
+
+**Files:** `extension/src/content.ts`, `extension/package.json`, `extension/manifest.config.ts`, `docs/EXTENSION.md`
+
+**Why:** Save-first prevents orphan autofill; denser panel keeps apply flow scannable; resume pick wires Task 136 APIs into the UI.
+
+**Next:** Board-specific adapters if needed; live UI verify on Greenhouse/Lever apply pages.
+
+---
+
+## 2026-08-10 — Task 136: Extension resume list + form answers on job detail
+
+**What:** Bearer list of tailored resumes per job; PDF export can target `?tailoredResumeId=` (ownership-checked) and echoes that id in availability JSON; dashboard Activity tab shows editable `form_answers` via session-authed answers API.
+
+**Files:** `app/api/extension/jobs/[id]/{resumes,pdf}/route.ts`, `app/api/applications/[id]/answers/route.ts`, `lib/applications/form-answers.ts`, `ApplicationAnswers.tsx`, `JobDetailPage.tsx`, `tracker/[jobId]/page.tsx`, tests
+
+**Why:** Extension needs to pick which tailored PDF to attach; users need to review/edit/delete autofill answers on the website.
+
+**Next:** Wire extension panel to resume list + chosen PDF id (light touch).
+
+---
+
+## 2026-08-10 — Task 135: Job description quality
+
+**What:** Extension job save normalizes apply URLs, scrapes Greenhouse/Lever/Ashby/Workday when body text is weak/chrome-junk, and stores a cleaned description with paragraph-based summary/responsibilities. Detail UI strips ATS chrome, hides empty Requirements/Keywords, and shows full posting as real paragraphs.
+
+**Files:** `app/api/jobs/route.ts`, `lib/jobs/description.ts`, `lib/jobs/__tests__/description.test.ts`, `components/jobs/detail/JobSummary.tsx`, docs
+
+**Why:** Extension DOM scrape was gluing “Back to jobs…TexasApplyCompany” into one blob; users need readable JD text without fake empty-state sections.
+
+**Next:** Extension content scrape improvements (separate agent); optional backfill for older junk rows.
+
+---
+
 ## 2026-08-10 — Task 117 Phase 3: user-watched Submit
 
 **What:** Panel **Submit on this site** finds Submit/Apply (Greenhouse-style scoring), confirms if review answers are pending, clicks while you watch, then marks the job **Applied** via Bearer `PATCH /api/extension/jobs/[id]/status`. LinkedIn/Indeed blocked. Extension **v0.7.0**.
