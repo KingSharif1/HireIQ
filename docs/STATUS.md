@@ -18,7 +18,7 @@
 | Gap analysis | ✓ — still available via APIs; stepper retired from nav |
 | Tailor stepper | ⛔ Redirected — Job Matcher + tracker replace primary flow |
 | Application tracker | ✓ — Teal list/board; full-page detail; All outreach (134) |
-| Chrome extension | 🟡 Phase 2b — website connect + animated autofill UX (v0.6.0) + drafts/accept/PDF APIs (014); live smoke + board adapters pending |
+| Chrome extension | 🟡 Phase 3 Submit CTA shipped (v0.7); board-specific adapters optional |
 | GitHub integration | ✓ Task 105 |
 | Gmail integration | 🔴 Phase 2 |
 

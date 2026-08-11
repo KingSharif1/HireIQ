@@ -245,12 +245,8 @@ export function collectDraftCandidates(): FieldDescriptor[] {
     if (d.value) return false
     const type = d.inputType.toLowerCase()
     if (type === 'file' || type === 'password' || type === 'hidden') return false
-    // Known kinds with a profile value are filled by autofillKnownAnimated — if still empty, no profile value
-    if (d.kind !== 'unknown' && d.kind !== 'skip') {
-      // still include so AI/user can fill country etc. when profile blank
-      return true
-    }
-    return d.kind === 'unknown'
+    // Include known empty fields (no profile value) and unknowns
+    return true
   })
 }
 

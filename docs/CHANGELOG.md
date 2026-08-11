@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-10 — Task 117 Phase 3: user-watched Submit
+
+**What:** Panel **Submit on this site** finds Submit/Apply (Greenhouse-style scoring), confirms if review answers are pending, clicks while you watch, then marks the job **Applied** via Bearer `PATCH /api/extension/jobs/[id]/status`. LinkedIn/Indeed blocked. Extension **v0.7.0**.
+
+**Files:** `lib/extension/submit-button.ts`, `extension/src/submit.ts`, `extension/src/content.ts`, `app/api/extension/jobs/[id]/status`, tests, docs
+
+**Why:** Hybrid queue — fill + review, then user-triggered submit on the visible tab (no silent bot).
+
+**Next:** Board-specific adapters (Lever/Ashby/Workday) if generic finder misses; optional multi-step “Continue” flow polish.
+
+---
+
 ## 2026-08-09 — Task 117: Extension autofill AI drafts + accept + PDF APIs
 
 **What:** Backend for extension autofill — AI drafts (sensitive-safe), accept write-back to `applications.form_answers` with optional master pendingSuggestions, Bearer PDF export, and idempotent job save by `apply_url`. Migration 014 applied remotely.

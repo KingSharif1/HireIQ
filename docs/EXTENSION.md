@@ -23,7 +23,7 @@ NEXT_PUBLIC_SUPABASE_URL=…
 NEXT_PUBLIC_SUPABASE_ANON_KEY=…
 ```
 
-Migrations through **`014_application_form_answers`** (plus earlier connect/ATS). Extension package **v0.6.0**.
+Migrations through **`014_application_form_answers`**. Extension package **v0.7.0**.
 
 ## Build
 
@@ -33,7 +33,7 @@ cd extension && npm run build
 
 Chrome → Extensions → Load unpacked → `extension/dist` (or Reload after rebuild).
 
-## Autofill (v0.6)
+## Autofill (v0.6+)
 
 1. **Autofill** auto-saves the job, fills known profile fields with scroll + green highlight.
 2. AI drafts unanswered questions in **muted gray** (dashed amber) — Accept / Edit / Skip in the panel.
@@ -41,13 +41,23 @@ Chrome → Extensions → Load unpacked → `extension/dist` (or Reload after re
 4. If a tailored resume/cover PDF exists for the job, it attaches to file inputs; otherwise **Generate & attach**.
 5. Accept lasting facts → optional **Also save to master?**
 
+## Submit (v0.7 — Phase 3)
+
+- Panel **Submit on this site** finds Submit/Apply on the page, scrolls, highlights, and clicks **only when you press it**.
+- Pending review answers → confirm dialog (“Submit anyway?”).
+- After click → marks the application **Applied** in HireIQ.
+- **LinkedIn / Indeed:** blocked from automated click — you submit yourself.
+
 If the panel doesn’t appear on a job page: open the HireIQ popup once (injects the content script), or set Site access → **On all sites** on `chrome://extensions`.
+
+## Panel behavior
 
 | Action | Behavior |
 |--------|----------|
 | **Your Autofill Information** | Master profile contact + skills |
 | **Autofill** | Auto-saves job → animated known-field fill → AI provisional drafts (gray) → review cards → attach resume/cover PDF if available |
 | **Review AI answers** | Accept / Edit (save) / Skip per draft; lasting facts can promote to master |
+| **Submit on this site** | User-watched click of Submit/Apply; marks Applied in HireIQ |
 | **Save to HireIQ** | Creates job/application + post-save links |
 | **Generate resume / cover** | Opens tracker Documents; panel also offers **Generate & attach** when PDF missing |
 | **Employer account needed** | If login/signup wall detected — you create the account; paste the email for tracking |

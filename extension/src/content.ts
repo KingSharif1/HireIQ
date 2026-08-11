@@ -17,6 +17,11 @@ import {
 import { extensionFetch, getExtensionBearer, base64ToFile } from './api'
 import { detectAuthWall } from './detect-auth-wall'
 import { isSensitiveFieldLabel, type AutofillProfile } from '@hireiq/form-fill'
+import {
+  clickSubmitButton,
+  findSubmitButton,
+  isSubmitAutomationBlocked,
+} from './submit'
 
 const ROOT_ID = 'hireiq-panel-root'
 
@@ -345,6 +350,9 @@ function ensureUi() {
       }
       .review { display: none; flex-direction: column; gap: 10px; }
       .review.show { display: flex; }
+      .submit { display: none; flex-direction: column; gap: 8px; }
+      .submit.show { display: flex; }
+      .btn.warn { background: #f59e0b; color: #111827; }
       .review-card {
         border: 1px dashed #fbbf24;
         border-radius: 10px;
@@ -445,6 +453,13 @@ function ensureUi() {
             <h3>Review AI answers</h3>
             <div id="hiq-review-list"></div>
           </div>
+          <div class="section submit" id="hiq-submit-wrap">
+            <h3>Submit</h3>
+            <p class="muted" id="hiq-submit-hint" style="margin:0 0 8px;font-size:11px;line-height:1.4">
+              You watch the click — HireIQ never submits silently.
+            </p>
+            <button type="button" class="btn primary" id="hiq-submit" disabled>Submit on this site</button>
+          </div>
           <div class="section files" id="hiq-files">
             <h3>Documents</h3>
             <div id="hiq-files-body"></div>
@@ -497,6 +512,9 @@ function ensureUi() {
   const reviewEl = shadow.getElementById('hiq-review')!
   const reviewList = shadow.getElementById('hiq-review-list')!
   const filesEl = shadow.getElementById('hiq-files')!
+  const submitWrap = shadow.getElementById('hiq-submit-wrap')!
+  const submitBtn = shadow.getElementById('hiq-submit') as HTMLButtonElement
+  const submitHint = shadow.getElementById('hiq-submit-hint')!
   const filesBody = shadow.getElementById('hiq-files-body')!
 
   let trackerUrl = ''
@@ -616,6 +634,7 @@ function ensureUi() {
   }
 
   function renderReview() {
+    refreshSubmitUi()
     if (!reviewItems.length) {
       reviewEl.classList.remove('show')
       reviewList.innerHTML = ''
@@ -650,6 +669,61 @@ function ensureUi() {
         </div>`
       })
       .join('')
+  }
+
+  function pendingReviewCount() {
+    return reviewItems.filter(i => i.status === 'pending').length
+  }
+
+  function refreshSubmitUi() {
+    submitWrap.classList.add('show')
+    if (isSubmitAutomationBlocked(location.href)) {
+      submitBtn.disabled = true
+      submitBtn.textContent = 'Submit yourself on this site'
+      submitHint.textContent =
+        'LinkedIn / Indeed: HireIQ won’t click Submit — finish the application yourself.'
+      return
+    }
+    const found = findSubmitButton(document)
+    const pending = pendingReviewCount()
+    if (!found) {
+      submitBtn.disabled = true
+      submitBtn.textContent = 'No submit button found'
+      submitHint.textContent = 'Scroll the form — when a Submit / Apply button appears, it shows here.'
+      return
+    }
+    submitBtn.disabled = false
+    submitBtn.className = pending ? 'btn warn' : 'btn primary'
+    submitBtn.textContent = pending
+      ? `Submit anyway (${pending} unanswered)`
+      : `Submit: ${found.label.slice(0, 40)}`
+    submitHint.textContent = pending
+      ? 'Gray drafts still need Accept / Skip. You can submit anyway if you prefer.'
+      : `Ready — clicks “${found.label.slice(0, 48)}” on the page while you watch.`
+  }
+
+  async function markAppliedOnHireIQ() {
+    if (!savedJobId) return
+    try {
+      const settings = await getSettings()
+      const bearer = await getExtensionBearer()
+      await extensionFetch(
+        `${settings.apiBaseUrl.replace(/\/$/, '')}/api/extension/jobs/${savedJobId}/status`,
+        {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${bearer}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            status: 'applied',
+            meta: { source: 'extension_submit', url: location.href },
+          }),
+        },
+      )
+    } catch {
+      /* non-fatal */
+    }
   }
 
   async function postAccept(
@@ -884,6 +958,42 @@ function ensureUi() {
   genCoverBtn.addEventListener('click', () => openHireIQ(coverUrl || trackerUrl))
   editProfileBtn.addEventListener('click', () => openHireIQ(profileUrl))
 
+  submitBtn.addEventListener('click', async () => {
+    if (isSubmitAutomationBlocked(location.href)) {
+      setStatus('Submit this application yourself on LinkedIn / Indeed.', 'err')
+      return
+    }
+    const found = findSubmitButton(document)
+    if (!found) {
+      setStatus('No Submit / Apply button found on this page.', 'err')
+      refreshSubmitUi()
+      return
+    }
+    const pending = pendingReviewCount()
+    if (pending > 0) {
+      const ok = window.confirm(
+        `${pending} answer(s) still need Accept or Skip. Submit the employer form anyway?`,
+      )
+      if (!ok) return
+    }
+    submitBtn.disabled = true
+    setStatus(`Clicking “${found.label}” on the page…`)
+    try {
+      if (!savedJobId) {
+        await ensureJobSaved()
+      }
+      highlightEl(found.el)
+      clickSubmitButton(found)
+      await markAppliedOnHireIQ()
+      setStatus(`Submitted via “${found.label}”. Marked Applied in HireIQ.`, 'ok')
+      submitBtn.textContent = 'Submitted'
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : 'Submit failed', 'err')
+      submitBtn.disabled = false
+      refreshSubmitUi()
+    }
+  })
+
   saveBtn.addEventListener('click', async () => {
     saveBtn.disabled = true
     setStatus('Saving to HireIQ…')
@@ -1045,6 +1155,7 @@ function ensureUi() {
           : 'No matching fields found on this page.',
         parts.length ? 'ok' : 'err',
       )
+      refreshSubmitUi()
     } catch (err) {
       setStatus(err instanceof Error ? err.message : 'Autofill failed', 'err')
     } finally {
@@ -1053,6 +1164,7 @@ function ensureUi() {
   })
 
   refreshAuthWall()
+  refreshSubmitUi()
   void (async () => {
     try {
       const p = await loadProfile()

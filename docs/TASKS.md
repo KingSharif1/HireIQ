@@ -171,11 +171,9 @@ Files changed: `docs/supabase/migrations/012_api_tokens.sql`, `lib/supabase/admi
 Status: IN PROGRESS  
 Scope: `extension/` board adapters (GH/Lever/Ashby/Workday + generic fallback), review queue UI  
 Goal: Fill forms from profile + tailored PDF; user batch-reviews and submits while watching. Unknown fields ask the user every time (no answer bank). LinkedIn/Indeed excluded from automation. Per DESIGN-TEAL-PARITY.md §D.  
-Notes: Phase 2a connect/ATS done. Phase 2b UX — animated known fill + provisional AI drafts + review cards + PDF attach (extension v0.6.0). Batch-submit / board adapters still open.  
-Result (partial): Website connect + ATS email + autofill UX (provisional review queue) shipped 2026-08-09; **autofill backend** (drafts/accept/PDF + migration 014 + job dedupe) shipped 2026-08-09.  
-Files changed (UX slice): `extension/src/{autofill,content,api,background,file-attach}.ts`, `extension/{package.json,manifest.config.ts}`, `lib/extension/form-fill.ts`, `lib/extension/__tests__/form-fill.test.ts`, `docs/{EXTENSION,CHANGELOG,STATUS,TASKS}.md`  
-Files changed (auth/account slice): `013_extension_connect_and_ats_email.sql`, `lib/extension/connect.ts`, `lib/extension/detect-auth-wall.ts`, `app/api/extension/connect/*`, `app/extension/connect/*`, `app/api/extension/jobs/[id]/ats-account`, extension popup/background/content, `proxy.ts` next-aware redirect  
-Files changed (autofill API slice): `014_application_form_answers.sql`, `lib/extension/{sensitive-fields,draft-kind,autofill-context}.ts` + tests, `lib/ai/prompts.ts` (`AUTOFILL_DRAFTS_PROMPT`), `app/api/extension/autofill/{drafts,accept}`, `app/api/extension/jobs/[id]/pdf`, `app/api/jobs/route.ts` (dedupe), `types/index.ts`
+Notes: Phase 2 connect/ATS + autofill UX done. Phase 3 **user-watched Submit** shipped (v0.7.0). Board-specific adapters still optional polish.  
+Result (partial): Website connect + ATS email + autofill UX + **Submit on this site** (confirm if pending, mark Applied). LinkedIn/Indeed submit click blocked.  
+Files changed (Phase 3): `lib/extension/submit-button.ts`, `extension/src/submit.ts`, `extension/src/content.ts`, `app/api/extension/jobs/[id]/status/route.ts`, tests, `docs/EXTENSION.md`
 
 ---
 
