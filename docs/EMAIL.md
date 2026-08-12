@@ -39,14 +39,18 @@ SUPABASE_SERVICE_ROLE_KEY=...     # required for webhook DB writes
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-## Resend webhook setup
+## Production (deployed)
 
-1. Tunnel local app (ngrok / Cloudflare) or use production URL  
-2. Resend → **Webhooks** → Add  
-   - URL: `https://<host>/api/webhooks/resend/inbound`  
-   - Event: **`email.received`**  
-3. Copy signing secret → `RESEND_WEBHOOK_SECRET`  
-4. Restart `npm run dev`
+- App: https://hireiq.kingsharif.com  
+- Alias: https://hireiq-nu.vercel.app  
+- Webhook endpoint (paste in Resend):  
+  `https://hireiq.kingsharif.com/api/webhooks/resend/inbound`  
+- After creating the webhook, set `RESEND_WEBHOOK_SECRET` in Vercel → Project → Settings → Environment Variables (Production + Preview), then redeploy.
+
+Also add Supabase Auth redirect URLs:
+
+- Site URL: `https://hireiq.kingsharif.com`  
+- Redirect: `https://hireiq.kingsharif.com/auth/callback`
 
 ## App surfaces
 
