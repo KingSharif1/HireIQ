@@ -1,14 +1,15 @@
 # HireIQ Status
 
-**As of:** 2026-08-10  
-**Branch:** `main` — application code only; all planning in `docs/`  
-**Tests:** description + extension unit suites green; extension **v0.8.0** built
+**As of:** 2026-08-12  
+**Branch:** `main` (pushed) · **Production:** https://hireiq.kingsharif.com  
+**Tests:** masked-inbound unit suite green; extension **v0.9.x** local builds  
 
 ## System snapshot
 
 | Area | State |
 |------|-------|
-| Auth | ✓ Email + Google via Supabase — `proxy.ts`, forgot/reset password, profile names (007) |
+| Auth | ✓ Email + Google via Supabase — `proxy.ts`, forgot/reset; prod + localhost redirects |
+| Deploy | ✓ Vercel project `hireiq` · domain `hireiq.kingsharif.com` · GitHub connected |
 | Resume upload (PDF/DOCX) | ✓ |
 | Resume parse (Claude) | 🟡 — needs tiered skills + low-confidence flags + OCR |
 | Profile / Resume Builder | ✓ — Profile master (131/133); job editor full-bleed + zoom/pan (132); Builder library |
@@ -17,10 +18,12 @@
 | ATS score | ✓ — algorithmic |
 | Gap analysis | ✓ — still available via APIs; stepper retired from nav |
 | Tailor stepper | ⛔ Redirected — Job Matcher + tracker replace primary flow |
-| Application tracker | ✓ — Teal list/board; All outreach (134); masked inbound (139) — migration 015 applied |
-| Chrome extension | 🟡 **v0.9.0** choice review + Documents merge + focus resume refresh; board adapters optional |
+| Application tracker | ✓ — Teal list/board; All outreach (134); masked inbound code + DB (139) |
+| Masked apply email (Resend) | ✓ Infra live — `mail.kingsharif.com` receiving; webhook URL prod; needs smoke + `RESEND_FORWARD_FROM` optional |
+| Chrome extension | 🟡 **v0.9.x** choice review + Documents merge; panel IA lock (Autofill+progress + Questions) pending implement |
 | GitHub integration | ✓ Task 105 |
-| Gmail integration | 🔴 Phase 2 — prefer masked inbound (Task 139) over Gmail read |
+| Gmail sync | 🔴 **MVP next — Task 114** (default on / opt-out when Google connected) |
+| Mask reply-relay | 🔭 **v2 — Task 140** (deepen 139: reply path, prefs UX) |
 
 ## Phase 1 MVP progress (spec order)
 
@@ -28,52 +31,45 @@
 |---|------|--------|-------|
 | 1 | Resume upload + parse | 🟡 80% | Tiered skills, parse confidence flags, OCR fallback |
 | 2 | GitHub connect | ✓ ~85% | OAuth link + repo sync; enable provider + migration 008 |
-| 3 | Job URL ingestion | 🟡 80% | Workday + LinkedIn handling; extension save enriches ATS via scraper (135); Playwright fallback pending |
-| 4 | Gap analysis | ✓ ~90% | 3-tier JSON + UI; refine prompts with real usage |
-| 5 | Tailored resume + tracked changes | ✓ ~90% | Accept/decline/edit done; feedback loop for future runs pending |
+| 3 | Job URL ingestion | 🟡 80% | Workday + LinkedIn handling; extension save enriches ATS via scraper (135) |
+| 4 | Gap analysis | ✓ ~90% | 3-tier JSON + UI |
+| 5 | Tailored resume + tracked changes | ✓ ~90% | Accept/decline/edit done |
 | 6 | ATS + visual check | 🟡 55% | PDF layout QA pass (Task 106) |
-| 7 | Application log | ✓ ~85% | Schema 010 + Kanban/list (113); Gmail Phase 2 |
+| 7 | Application log | ✓ ~90% | Schema + Kanban; masked inbound shipped; Gmail sync next (114) |
 
-Legend: ✓ done · 🟡 in progress · 🔴 not started
+Legend: ✓ done · 🟡 in progress · 🔴 not started · 🔭 planned
 
-## Completed foundation (Tasks 100–104)
+## Session snapshot (2026-08-11 → 12) — Resend + deploy
 
-| Task | What shipped |
-|------|----------------|
-| 100 | Repo docs layout; specs/migrations/scripts → `docs/` |
-| 101 | Structured 3-tier gap analysis + `GapAnalysisSummary` UI |
-| 102 | Tracked changes accept/decline/edit; export gating; migration 006 |
-| 103 | Workday fetch; LinkedIn blocked → paste; aggregator warnings |
-| 104 | Auth hardening: `proxy.ts`, reset password, profile trigger 007, `AUTH.md` |
+**Done this stretch:**
+1. Chose **masked inbound (Resend)** over Gmail for apply-address path (Task 139)  
+2. DNS: `mail.kingsharif.com` on Vercel → Resend receiving **verified**; smoke mail lands in Resend Receiving  
+3. Migration **015** applied via Supabase MCP (`masked_email`, `inbound_email_events`)  
+4. App: Profile Application email UI, webhook `/api/webhooks/resend/inbound`, outreach wiring  
+5. Deployed HireIQ to Vercel + `hireiq.kingsharif.com`; env secrets cleaned (no TEST_USER / OIDC on Vercel)  
+6. Product lock with extension agent: **MVP tracking = Gmail sync (114)**; **v2 = full mask reply-relay (140)** — see DECISIONS  
 
-**Latest:** Tasks 135–137 verified — save-first panel (v0.8), clean JD At-a-glance (no Greenhouse chrome blob), resume pick + job-scoped Q&A; see `docs/EXTENSION.md`.
-
-## What changed vs old vision
-
-The previous spec ([legacy/HIREIQ_SPEC-v0.md](./legacy/HIREIQ_SPEC-v0.md)) framed HireIQ as a broad "Job Search OS" (outreach, interview prep, discovery). **SPEC v1.0 narrows to tailor + track applications.** Existing cover-letter and notification code stays but is not Phase 1 priority.
-
-## Workspace hygiene
-
-- Runtime code at repo root: `app/`, `components/`, `lib/`, `proxy.ts`, `store/`, `types/`
-- Planning & migrations: `docs/` (see [README.md](./README.md))
-- Agent session docs: `ARCHITECTURE.md`, `STATUS.md`, `TASKS.md`, `DECISIONS.md`, `CHANGELOG.md`, `AUTH.md`
+**Ops still on human:**
+- Confirm Resend webhook → `https://hireiq.kingsharif.com/api/webhooks/resend/inbound` + secret on Vercel (redeploy after secret)  
+- Supabase Auth redirects include localhost **and** prod  
+- End-to-end smoke: create masked address on prod → email it → see HireIQ log  
 
 ## Blockers
 
 | Blocker | Owner | Notes |
 |---------|-------|-------|
-| Google OAuth provider | User | Enable in Supabase Dashboard + Google Cloud Console; redirect `http://localhost:3000/auth/callback` |
-| GitHub OAuth app | User | Enable provider + OAuth app per [GITHUB.md](./GITHUB.md); run migration 008 |
-| Chrome extension | User | Add `SUPABASE_SERVICE_ROLE_KEY` to `.env.local` then smoke-test save (see [EXTENSION.md](./EXTENSION.md)) |
+| Google `gmail.readonly` for Task 114 | User / eng | Restricted scope; CASA later at scale — start with test users |
+| Resend webhook smoke | User | Secret set; redeploy + send test to masked address |
+| Extension panel IA | Eng | Autofill+progress + Questions (DECISIONS 2026-08-12) |
 
-Email/password auth works. Migrations 001–015 documented; 006–015 applied remotely via MCP (015 = masked inbound email).
+Migrations 001–015 documented; 006–015 applied remotely via MCP.
 
 ## Next recommended tasks
 
-**IA reset locked 2026-08-04** — see [DESIGN-IA-RESET.md](./DESIGN-IA-RESET.md).
+1. **Smoke Task 139 on prod** — create address → inbound → All outreach (redeploy if webhook secret just added)  
+2. **Task 114** — Gmail read-only sync (MVP email tracking, default on / opt-out)  
+3. **Extension panel IA** — Autofill Information + progress + Questions; resume as progress item  
+4. **Task 140 (v2)** — mask reply-relay + prefs when user opts out of Gmail / email-password only  
+5. Task 106 — visual PDF QA; OCR / parse polish as capacity allows  
 
-1. Set `RESEND_API_KEY` + `RESEND_WEBHOOK_SECRET` and point Resend webhook at `/api/webhooks/resend/inbound` (see [EMAIL.md](./EMAIL.md))
-2. **Task 117** — Extension autofill + review-queue auto-apply (masked email autofill later)
-3. Remaining Phase 2 backlog (Gmail optional; OCR, etc.)
-
-**Done:** Task 116 — Chrome extension save-to-tracker. Task 129 — Resume Builder library. Task 128 — Sprout Profile. Task 127 — Nav shell.
+Docs: [EMAIL.md](./EMAIL.md) · [DECISIONS.md](./DECISIONS.md) · [AUTH.md](./AUTH.md) · [EXTENSION.md](./EXTENSION.md)

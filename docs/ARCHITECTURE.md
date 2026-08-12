@@ -1,14 +1,15 @@
 # HireIQ Architecture
 
-**Last updated:** 2026-08-09  
-**Spec:** [SPEC.md](./SPEC.md) v1.0
+**Last updated:** 2026-08-12  
+**Spec:** [SPEC.md](./SPEC.md) v1.0  
+**Production:** https://hireiq.kingsharif.com (Vercel · GitHub `KingSharif1/HireIQ`)
 
 ## Product focus (v1.0 spec)
 
 Two pillars only:
 
 1. **Tailor a resume** — JD + profile → tailored resume with tracked accept/decline changes
-2. **Track applications** — job log, Gmail scan (Phase 2), single clean view
+2. **Track applications** — job log + email activity (Gmail sync MVP Task 114; masked apply Task 139 live; mask reply-relay Task 140 v2)
 
 Cover letter, outreach, and interview prep exist in the codebase but are **out of Phase 1 scope** per the new spec.
 
@@ -94,8 +95,9 @@ Application tracking
     → Full-page detail: Overview | Job description | Documents | Questions | Activity | Email
     → Activity adapter merges status/manual/email-linked events with legacy email log entries
     → Manual inbox reads bounded applications.email_log JSONB through a provider-neutral view model
-    → Masked inbound (Resend): employer → mail.* domain → POST /api/webhooks/resend/inbound
-      → inbound_email_events + matched email_log entry → All outreach / job Email tab
+    → Masked inbound (Resend, live): employer → mail.kingsharif.com → POST /api/webhooks/resend/inbound
+      → inbound_email_events + matched email_log → All outreach / job Email (see EMAIL.md)
+    → Gmail sync (Task 114, next): Google-connected users, default on / opt-out → same email_log adapters
     → Future Gmail sync uses dedicated message storage, then adapts into the same inbox view model
     → Fixed-job Documents editor: profile_data → inclusion filter → live preview/score → tailored_resumes
     → Gmail scan / forward-to-save (Phase 2)

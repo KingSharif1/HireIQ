@@ -1,14 +1,23 @@
 # Masked inbound email (Resend)
 
-**Status:** Task 139 shipped · migration **015** applied remotely (`wsbbgznobxhjefaqbniv`) 2026-08-11  
-**Domain:** `mail.kingsharif.com` (Resend receiving verified)
+**Status:** Task 139 shipped + production domain live · migration **015** applied  
+**Production app:** https://hireiq.kingsharif.com  
+**Receiving domain:** `mail.kingsharif.com` (Resend Receiving verified)
+
+## Product role (aligned with DECISIONS 2026-08-12)
+
+| Path | Role |
+|------|------|
+| **Task 114 — Gmail sync** | **MVP** employer-status tracking for Google-connected users (default on / opt-out) |
+| **Task 139 — Masked apply** | Apply address + inbound log + optional forward — live now; paste-on-apply, email/password users, Gmail opted out |
+| **Task 140 — Mask reply-relay** | **v2** deepen 139: clearer prefs + reply path (user ↔ HireIQ ↔ employer) |
+
+Agents: do not delete 139 while building 114 — both feed `email_log` / All outreach.
 
 ## What it does
 
 HireIQ gives each user one **application email** (e.g. `sharif.abc123@mail.kingsharif.com`).  
-They paste it on job applications. Employer mail hits Resend → our webhook → tracker **All outreach** / job **Email** (when company can be matched). Optional forward to their real inbox.
-
-This is **not** Gmail read — same pattern as Sprout whisperpost.
+They paste it (or extension autofills later) on applications. Employer mail → Resend → webhook → **All outreach** / job **Email** (when company matched). Optional forward to their real inbox via `RESEND_FORWARD_FROM`.
 
 ## Data flow
 
@@ -27,63 +36,75 @@ Employer sends mail to masked address
   → optional Resend Send forward (RESEND_FORWARD_FROM)
 ```
 
-## Env (`.env.local`)
+## Env
+
+**Local (`.env.local`)** — keep `NEXT_PUBLIC_APP_URL=http://localhost:3000`
 
 ```env
-MASKED_EMAIL_DOMAIN=mail.kingsharif.com
+MASKED_EMAIL_DOMAIN=mail.kingsharif.com   # server-only; needed to mint addresses
 RESEND_API_KEY=re_...
-RESEND_WEBHOOK_SECRET=whsec_...   # from Resend → Webhooks
-# Optional copy-to-inbox:
-RESEND_FORWARD_FROM=HireIQ <noreply@mail.kingsharif.com>
-SUPABASE_SERVICE_ROLE_KEY=...     # required for webhook DB writes
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+RESEND_WEBHOOK_SECRET=whsec_...
+# Optional forward:
+# RESEND_FORWARD_FROM=HireIQ <noreply@mail.kingsharif.com>
+SUPABASE_SERVICE_ROLE_KEY=...
 ```
 
-## Production (deployed)
+**Vercel (production + preview)** — secrets only; no TEST_USER / OIDC copies:
 
-- App: https://hireiq.kingsharif.com  
-- Alias: https://hireiq-nu.vercel.app  
-- Webhook endpoint (paste in Resend):  
-  `https://hireiq.kingsharif.com/api/webhooks/resend/inbound`  
-- After creating the webhook, set `RESEND_WEBHOOK_SECRET` in Vercel → Project → Settings → Environment Variables (Production + Preview), then redeploy.
+| Var | Notes |
+|-----|--------|
+| `MASKED_EMAIL_DOMAIN` | Sensitive server env (not `NEXT_PUBLIC_`) |
+| `RESEND_API_KEY` | Sensitive |
+| `RESEND_WEBHOOK_SECRET` | Sensitive |
+| `NEXT_PUBLIC_APP_URL` | `https://hireiq.kingsharif.com` |
+| + Supabase / Anthropic / GitHub | Same as app |
 
-Also add Supabase Auth redirect URLs:
+## Production webhook
 
-- Site URL: `https://hireiq.kingsharif.com`  
-- Redirect: `https://hireiq.kingsharif.com/auth/callback`
+```text
+https://hireiq.kingsharif.com/api/webhooks/resend/inbound
+```
+
+Event: `email.received`. After changing the secret on Vercel → **redeploy**.
+
+## Supabase Auth URLs (both)
+
+- `http://localhost:3000/auth/callback`
+- `https://hireiq.kingsharif.com/auth/callback`  
+Site URL: prefer prod `https://hireiq.kingsharif.com` (localhost still listed in redirects).
 
 ## App surfaces
 
 | Place | Behavior |
 |-------|----------|
 | Profile → Personal → Application email | Create / copy / forward toggle |
-| Applications → All outreach | Matched inbound shows as received (source HireIQ) |
-| Job → Email tab | Same entry when matched |
-| Alerts | `email_status` notification |
+| Applications → All outreach | Matched inbound (source HireIQ) |
+| Job → Email tab | Same when matched |
+| Alerts | `email_status` |
 
 ## Schema (migration 015)
 
 - `profiles.masked_email`, `email_forward_to`, `email_forward_enabled`
-- `inbound_email_events` + RLS SELECT for owner; inserts via service role only
+- `inbound_email_events` + RLS SELECT for owner; webhook inserts via service role  
 
 File: `docs/supabase/migrations/015_masked_inbound_email.sql`
 
-## Smoke checklist
+## Smoke checklist (prod)
 
-1. Profile → Create application email → copy  
+1. https://hireiq.kingsharif.com → Profile → Create application email → copy  
 2. Send test from Gmail to that address  
-3. Resend → Emails → Receiving shows it  
-4. With webhook + tunnel: HireIQ notification + outreach/email log  
-5. Forward (optional): real inbox gets `[HireIQ] …` copy  
+3. Resend → Receiving shows it  
+4. HireIQ notification + All outreach / job Email (if company match)  
+5. Optional: set `RESEND_FORWARD_FROM` and confirm forward copy  
 
-## Security notes
+## Security
 
-- Webhook must verify Svix signatures (`RESEND_WEBHOOK_SECRET`)  
-- Never expose service role or Resend keys to the client  
-- One masked address per user (v1); per-job `+alias` later if needed  
+- Verify Svix signatures  
+- Never expose service role / Resend keys to the browser  
+- `MASKED_EMAIL_DOMAIN` is server-only; the domain still appears in the user’s copied address  
 
 ## Related
 
-- Decision: [DECISIONS.md](./DECISIONS.md) — Masked inbound (Resend), not Gmail read  
-- Spec background: [legacy/planning/11-email-tracking.md](./legacy/planning/11-email-tracking.md)  
-- Task 114 (Gmail scan) remains Phase 2 / lower priority vs this path  
+- [DECISIONS.md](./DECISIONS.md) — Gmail MVP + mask v2 (2026-08-12); masked inbound (2026-08-10)  
+- [AUTH.md](./AUTH.md) · Task 114 · Task 140  
+- Legacy research: [legacy/planning/11-email-tracking.md](./legacy/planning/11-email-tracking.md)

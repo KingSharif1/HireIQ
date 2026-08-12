@@ -145,9 +145,19 @@ Files changed: `components/jobs/ApplicationsTracker.tsx`, `TrackerBoard.tsx`, `T
 ---
 
 ## Task 114 — Gmail read-only scan + status inference
-Status: PENDING (Phase 2; needs Edge Functions + pg_cron)  
-Scope: Gmail OAuth, new scan job, AI status inference, notifications  
-Goal: Daily scan matches recruiter emails to tracked jobs; high confidence auto-links, medium/low user-confirms. Per spec §4 + DESIGN-TEAL-PARITY.md §C1.
+Status: PENDING (MVP email tracking — elevate)  
+Scope: Gmail OAuth readonly, scan job, match to tracked applications, notifications, **opt-out pref (default on)**  
+Goal: When Google is connected, scan/match employer emails to saved/applied jobs; high confidence auto-link, medium/low confirm. Extension Submit timestamps improve matching. Per 2026-08-12 DECISIONS lock.  
+Notes: Not 100% accurate by design. Email/password users nudged to connect Google. Full mask/reply relay = v2 (see Task 139 + EMAIL.md).  
+Blocked by: Google OAuth verification path for `gmail.readonly` in production; Edge/cron or app-side poller.
+
+---
+
+## Task 140 — v2 email mask reply-relay (document now)
+Status: PENDING (v2)  
+Scope: deepen Task 139 — apply with HireIQ address, inbound log, auto-forward, reply path (user → HireIQ → employer, HireIQ visible)  
+Goal: Sprout-like tracking without Gmail read; optional for users who opt out of Gmail or use email/password only.  
+Notes: Masked inbound create/forward already shipped (139). v2 = reliable reply routing + clearer prefs UX alongside Gmail opt-out.
 
 ---
 
@@ -344,8 +354,16 @@ Files changed: `components/jobs/JobDetailPage.tsx`, `components/jobs/detail/{Job
 Status: DONE  
 Scope: migration 015, `lib/email/*`, webhook + masked-email APIs, Profile Personal UI, env/docs  
 Goal: Per-user `@mail.…` apply address; Resend `email.received` → `inbound_email_events` + matched job `email_log` / All outreach; optional forward.  
-Result: Code shipped. Migration **015** applied remotely via Supabase MCP 2026-08-11 (`masked_inbound_email`). Profile Personal has Application email create/copy/forward. Webhook at `/api/webhooks/resend/inbound`. Unit tests for address + match heuristics green. Ops: set `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, webhook URL (tunnel for local), optional `RESEND_FORWARD_FROM` — see [EMAIL.md](./EMAIL.md).  
-Files changed: `docs/supabase/migrations/015_masked_inbound_email.sql`, `lib/email/*`, `app/api/webhooks/resend/inbound/route.ts`, `app/api/profile/masked-email/route.ts`, `MaskedEmailCard.tsx`, `sections.tsx`, `EmailInbox.tsx`, `types/index.ts`, `.env.example`, `docs/EMAIL.md`, docs  
+Result: Code + migration 015 applied (MCP). Domain `mail.kingsharif.com` receiving verified. Prod webhook `https://hireiq.kingsharif.com/api/webhooks/resend/inbound`. Vercel secrets set (no local TEST_USER). See [EMAIL.md](./EMAIL.md). Remaining: human smoke + optional `RESEND_FORWARD_FROM`; extension autofill of masked email; v2 reply-relay = Task 140.  
+Files changed: `015_masked_inbound_email.sql`, `lib/email/*`, webhook + masked-email routes, `MaskedEmailCard.tsx`, docs  
+
+---
+
+## Task 141 — Production deploy (hireiq.kingsharif.com)
+Status: DONE  
+Scope: GitHub push, Vercel project `hireiq`, domain, env, docs  
+Result: https://hireiq.kingsharif.com live (also hireiq-nu.vercel.app). Linked to `KingSharif1/HireIQ`. Production env: Supabase, Anthropic, GitHub OAuth, Resend, `MASKED_EMAIL_DOMAIN`, `NEXT_PUBLIC_APP_URL`. Removed TEST_USER_* and VERCEL_OIDC from Vercel.  
+Files changed: `.vercelignore`, docs STATUS/EMAIL/CHANGELOG  
 
 ---
 
@@ -360,7 +378,8 @@ Files changed: `app/api/jobs/route.ts`, `lib/jobs/description.ts`, `lib/jobs/__t
 
 ## Backlog (Phase 2+)
 
-- Chrome: save-to-tracker → autofill+submit (multi-page); masked portal accounts later
+- Extension: panel IA (Autofill+progress + Questions); masked email autofill on apply forms
+- Task 140 — mask reply-relay prefs + reply path
 - Master update soft-keep (24h enrichments) + classify existing vs new
 - Contacts + Check List on job detail (real)
 - Fit score on application cards
@@ -368,4 +387,3 @@ Files changed: `app/api/jobs/route.ts`, `lib/jobs/description.ts`, `lib/jobs/__t
 - OCR for scanned PDFs
 - People / Companies tracker tabs
 - Resume parse: tiered skills + low-confidence flags
-- Gmail sync into same outreach store (Task 114)

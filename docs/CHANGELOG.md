@@ -1,6 +1,28 @@
 # Changelog
 
-## 2026-08-10 — Extension v0.9.4: country from location + entry resume gate
+## 2026-08-12 — Docs sync: Resend prod + deploy + next queue
+
+**What:** STATUS/EMAIL/TASKS updated for production HireIQ (`hireiq.kingsharif.com`), Resend receiving on `mail.kingsharif.com`, migration 015, Vercel env hygiene, and the dual-path email plan (114 Gmail MVP / 139 live mask / 140 v2 reply-relay). Task 141 deploy marked DONE.
+
+**Files:** `docs/STATUS.md`, `docs/EMAIL.md`, `docs/TASKS.md`, `docs/CHANGELOG.md`, `docs/ARCHITECTURE.md`, `docs/AUTH.md`
+
+**Why:** Keep agents aligned after deploy + product lock from extension chat.
+
+**Next:** Prod smoke for 139 → Task 114 → extension panel IA → Task 140.
+
+---
+
+## 2026-08-12 — Lock: Gmail MVP tracking (default on), mask reply-relay v2
+
+**What:** Documented product lock — MVP tracks employer mail via Gmail readonly (opt-out); Task 114 elevated; Task 140 added for v2 mask/reply relay. Extension panel IA: Autofill+progress + Questions; resume gate when upload present as progress item.
+
+**Files:** `docs/DECISIONS.md`, `docs/TASKS.md`, `docs/STATUS.md`, `docs/EMAIL.md`, `docs/CHANGELOG.md`
+
+**Why:** Clear MVP vs v2 so we don’t block on forwarding infra; Google users get tracking without a second identity.
+
+**Next:** Implement Task 114 (OAuth + scan + opt-out pref); panel IA refactor when scheduled.
+
+---
 
 **What:** Infer country from profile location (e.g. Fort Worth, TX → United States) and fill/match Country comboboxes with typeahead filter; entry-level/intern/new-grad jobs with a resume upload block Submit until a tailored resume is attached.
 

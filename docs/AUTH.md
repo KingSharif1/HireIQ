@@ -26,8 +26,8 @@ RESEND_WEBHOOK_SECRET=
 
 | Setting | Local dev | Production |
 |---------|-----------|------------|
-| Site URL | `http://localhost:3000` | `https://your-domain.com` |
-| Redirect URLs | `http://localhost:3000/auth/callback` | `https://your-domain.com/auth/callback` |
+| Site URL | `http://localhost:3000` | `https://hireiq.kingsharif.com` (preferred when live) |
+| Redirect URLs | `http://localhost:3000/auth/callback` | `https://hireiq.kingsharif.com/auth/callback` |
 
 Also add the Chrome extension redirect **only if** you use Advanced → “Sign in with Google (extension window)”:
 
@@ -38,11 +38,12 @@ https://<EXTENSION_ID>.chromiumapp.org/
 **Preferred:** Connect HireIQ opens `/extension/connect` in a normal tab (Google or email on the website) — no chromiumapp URL required. See [EXTENSION.md](./EXTENSION.md).
 
 
-Add both if you use local + prod:
+Add **both** for local + prod testing:
 
 ```
 http://localhost:3000/auth/callback
-https://your-domain.com/auth/callback
+https://hireiq.kingsharif.com/auth/callback
+https://hireiq-nu.vercel.app/auth/callback
 ```
 
 Password reset and email confirm links use the same callback with `?next=/reset-password` when needed.
