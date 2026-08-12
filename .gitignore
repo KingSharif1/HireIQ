@@ -41,3 +41,6 @@ next-env.d.ts
 
 # Playwright UI audit screenshots
 /.ui-audit/
+
+.vercel
+.env*

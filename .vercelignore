@@ -1,0 +1,6 @@
+.playwright-chrome-ext-research
+.ui-audit
+.next
+node_modules
+extension/node_modules
+.git
