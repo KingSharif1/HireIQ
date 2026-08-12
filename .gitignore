@@ -1,7 +1,8 @@
 # dependencies
 /node_modules
 /extension/node_modules
-/.playwright-chrome-ext-research/\n.pnp
+/.playwright-chrome-ext-research/
+.pnp
 .pnp.js
 
 # testing

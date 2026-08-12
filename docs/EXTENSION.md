@@ -23,7 +23,7 @@ NEXT_PUBLIC_SUPABASE_URL=…
 NEXT_PUBLIC_SUPABASE_ANON_KEY=…
 ```
 
-Migrations through **`014_application_form_answers`**. Extension package **v0.7.0**.
+Migrations through **`014_application_form_answers`**. Extension package **v0.9.1**.
 
 ## Build
 
@@ -33,17 +33,24 @@ cd extension && npm run build
 
 Chrome → Extensions → Load unpacked → `extension/dist` (or Reload after rebuild).
 
-## Autofill (v0.6+)
+## Autofill (v0.9)
 
-1. **Autofill** auto-saves the job, fills known profile fields with scroll + green highlight.
-2. AI drafts unanswered questions in **muted gray** (dashed amber) — Accept / Edit / Skip in the panel.
-3. Sensitive fields (EEOC, salary, conviction, sponsorship…) are never invent-filled — panel asks you to answer.
-4. If a tailored resume/cover PDF exists for the job, it attaches to file inputs; otherwise **Generate & attach**.
-5. Accept lasting facts → optional **Also save to master?**
+1. **Autofill** fills known profile fields with scroll + green highlight (job must already be saved).
+2. Closed fields (Yes/No, select, radio, **Greenhouse react-select combobox**) → pick buttons when ≤8 options; larger lists (Country…) stay typeahead/text.
+3. Free-text / sensitive without readable options → type or Accept AI draft; lasting facts can **Also save to master?**
+4. Answering **No** auto-fills later “If yes / please explain” follow-ups with **N/A**.
+5. **Documents** (merged): Generate tailored resume/cover opens HireIQ website (full Q&A + edit). On tab focus, resume list refreshes and selects the newest PDF to attach.
 
+## Save-first (v0.8+)
+
+1. On panel boot, `GET /api/extension/jobs/by-url` checks if this URL is already saved.
+2. If saved → **Saved** chip, Autofill enabled, resume list loaded.
+3. If not → Save button; Autofill + Submit disabled with “Save this job first”.
+4. Autofill never auto-saves — you must Save first.
 ## Submit (v0.7 — Phase 3)
 
 - Panel **Submit on this site** finds Submit/Apply on the page, scrolls, highlights, and clicks **only when you press it**.
+- Requires the job to be saved first.
 - Pending review answers → confirm dialog (“Submit anyway?”).
 - After click → marks the application **Applied** in HireIQ.
 - **LinkedIn / Indeed:** blocked from automated click — you submit yourself.
@@ -54,12 +61,14 @@ If the panel doesn’t appear on a job page: open the HireIQ popup once (injects
 
 | Action | Behavior |
 |--------|----------|
-| **Your Autofill Information** | Master profile contact + skills |
-| **Autofill** | Auto-saves job → animated known-field fill → AI provisional drafts (gray) → review cards → attach resume/cover PDF if available |
-| **Review AI answers** | Accept / Edit (save) / Skip per draft; lasting facts can promote to master |
-| **Submit on this site** | User-watched click of Submit/Apply; marks Applied in HireIQ |
-| **Save to HireIQ** | Creates job/application + post-save links |
-| **Generate resume / cover** | Opens tracker Documents; panel also offers **Generate & attach** when PDF missing |
+| **Your Autofill Information** | Collapsed `<details>`; summary shows Name · email · location |
+| **Autofill** | Requires saved job → animated known-field fill → AI provisional drafts → accordion review → attach selected resume/cover PDF |
+| **Review AI answers** | One expanded card at a time; Accept / Edit / Skip; lasting facts can promote to master |
+| **Submit on this site** | Disabled until saved; user-watched click; marks Applied in HireIQ |
+| **Save to HireIQ** | Creates job/application; then enables Autofill + shows Saved chip |
+| **Documents** | Resume `<select>` after save; Generate & attach when PDF missing |
+| **Progress** | Bar + N/M ready + %; field checklist behind “Show fields” |
+| **Generate resume / cover** | Opens tracker Documents |
 | **Employer account needed** | If login/signup wall detected — you create the account; paste the email for tracking |
 
 We do **not** create ATS accounts or mask emails for you. Sensitive EEOC/salary/conviction fields are skipped client-side and by the drafts API.
@@ -68,3 +77,14 @@ We do **not** create ATS accounts or mask emails for you. Sensitive EEOC/salary/
 
 - Website connect → one-time `hiqc_` code → extension stores Supabase access/refresh tokens.
 - APIs accept `Bearer <supabase_jwt>` or legacy `Bearer hiq_…`.
+
+## Relevant APIs (Bearer)
+
+| Method | Path | Notes |
+|--------|------|--------|
+| `GET` | `/api/extension/jobs/by-url?url=` | `{ saved: false }` or `{ saved: true, jobId, trackerUrl, resumeUrl, coverUrl }` |
+| `GET` | `/api/extension/jobs/[id]/resumes` | `{ resumes: [{ id, label, updatedAt, hasCoverLetter }] }` |
+| `GET` | `/api/extension/jobs/[id]/pdf?type=resume\|cover&tailoredResumeId=` | Optional resume id (must belong to user+job); JSON availability includes `tailoredResumeId` |
+| `POST` | `/api/extension/autofill/accept` | Writes `applications.form_answers` |
+
+Dashboard (session cookie): `PATCH` / `DELETE` `/api/applications/[id]/answers` for edit/remove on Activity.

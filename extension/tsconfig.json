@@ -9,7 +9,10 @@
     "types": ["chrome", "vite/client"],
     "noEmit": true,
     "paths": {
-      "@hireiq/form-fill": ["../lib/extension/form-fill.ts"]
+      "@hireiq/form-fill": ["../lib/extension/form-fill.ts"],
+      "@hireiq/review-choices": ["../lib/extension/review-choices.ts"],
+      "@hireiq/location-country": ["../lib/extension/location-country.ts"],
+      "@hireiq/entry-level": ["../lib/extension/entry-level.ts"]
     }
   },
   "include": ["src/**/*.ts", "manifest.config.ts", "vite.config.ts"]

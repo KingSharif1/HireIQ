@@ -48,11 +48,11 @@ export function ProvenanceBulletEditor({ bullets, bulletIds, provenance, onChang
         {bullets.map((b, i) => {
           const entry = provenance[ids[i]]
           const label = getProvenanceLabel(entry)
-          const fromTailor = entry?.origin === 'tailor'
+          const fromExternal = entry?.origin === 'tailor' || entry?.origin === 'github'
 
           return (
             <div key={ids[i]} className="flex items-start gap-2">
-              <span className="text-brand-purple mt-2.5 text-xs">•</span>
+              <span className="text-muted-foreground mt-2.5 text-xs">•</span>
               <div className="flex-1 space-y-1">
                 <textarea
                   value={b}
@@ -61,15 +61,15 @@ export function ProvenanceBulletEditor({ bullets, bulletIds, provenance, onChang
                   placeholder="Describe an accomplishment, impact, or responsibility…"
                   className={cn(
                     'w-full rounded-lg border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none transition-colors',
-                    fromTailor
-                      ? 'border-brand-purple/40 bg-brand-purple/5'
+                    fromExternal
+                      ? 'border-border bg-secondary/40'
                       : 'border-input bg-input'
                   )}
                 />
                 {label && entry && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span className="inline-flex items-center gap-1 text-[10px] text-brand-purple cursor-help">
+                      <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground cursor-help">
                         <Info className="w-3 h-3" />
                         {label}
                       </span>

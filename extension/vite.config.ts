@@ -34,6 +34,9 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@hireiq/form-fill': path.resolve(rootDir, '../lib/extension/form-fill.ts'),
+        '@hireiq/review-choices': path.resolve(rootDir, '../lib/extension/review-choices.ts'),
+        '@hireiq/location-country': path.resolve(rootDir, '../lib/extension/location-country.ts'),
+        '@hireiq/entry-level': path.resolve(rootDir, '../lib/extension/entry-level.ts'),
       },
     },
     server: {

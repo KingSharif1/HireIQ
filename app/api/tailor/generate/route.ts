@@ -8,17 +8,11 @@ import { getMasterResumeContext } from '@/lib/profile/master'
 import { runTailorPipeline } from '@/lib/ai/tailor-pipeline'
 import type { GenerateFn } from '@/lib/ai/tailor-types'
 import {
-  mergePendingSuggestions,
-  normalizeProfileData,
-  writeBackToPending,
-} from '@/lib/profile/provenance'
-import {
-  buildSuggestionNotification,
   buildTailorCompleteNotification,
 } from '@/lib/notifications'
 import { insertNotifications } from '@/lib/supabase/queries'
 import { withChangeIds, initialDecisions } from '@/lib/tailor/change-decisions'
-import type { Profile, ProfileData, GapAnalysis } from '@/types'
+import type { GapAnalysis } from '@/types'
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
@@ -150,47 +144,10 @@ export async function POST(request: Request) {
     .eq('user_id', user.id)
 
   const jobLabel = `${job.title || 'Role'} @ ${job.company || 'Company'}`
-  const pendingFromRun = writeBackToPending(
-    writeBackSuggestions,
-    tailoredRow.id,
-    jobLabel,
-    resume.experience[0]?.id
-  )
-
-  const notificationRows = [
+  // Explicit Suggest for master only — do not auto-queue pending on generate
+  await insertNotifications(supabase, [
     buildTailorCompleteNotification(user.id, jobLabel, tailoredRow.id),
-  ]
-  if (pendingFromRun.length > 0) {
-    notificationRows.push(
-      buildSuggestionNotification(
-        user.id,
-        jobLabel,
-        tailoredRow.id,
-        pendingFromRun.length,
-        pendingFromRun[0]?.section ?? 'experience'
-      )
-    )
-  }
-  await insertNotifications(supabase, notificationRows)
-
-  if (pendingFromRun.length > 0) {
-    const { data: profileRow } = await supabase
-      .from('profiles')
-      .select('profile_data')
-      .eq('id', user.id)
-      .single<Pick<Profile, 'profile_data'>>()
-
-    const profileData = normalizeProfileData(profileRow?.profile_data ?? {} as ProfileData)
-    const merged = mergePendingSuggestions(profileData.pendingSuggestions ?? [], pendingFromRun)
-
-    await supabase
-      .from('profiles')
-      .update({
-        profile_data: { ...profileData, pendingSuggestions: merged },
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', user.id)
-  }
+  ])
 
   return NextResponse.json({
     tailoredResumeId: tailoredRow.id,

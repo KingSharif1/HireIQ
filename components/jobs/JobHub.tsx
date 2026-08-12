@@ -2,17 +2,15 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
 import { useCompletion } from '@ai-sdk/react'
 import { motion } from 'framer-motion'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import { ResumePreview } from '@/components/resume/ResumePreview'
 import { MatchScore } from '@/components/tailor/MatchScore'
 import { TailorDiff } from '@/components/tailor/TailorDiff'
+import { WorkspaceShell } from '@/components/jobs/workspace/WorkspaceShell'
+import { KeywordPanel } from '@/components/jobs/workspace/KeywordPanel'
 import { cn } from '@/lib/utils'
 import { buildApprovedResume, countPendingDecisions } from '@/lib/tailor/change-decisions'
 import {
@@ -22,6 +20,7 @@ import {
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import {
   APPLICATION_STATUSES, applicationStatusClasses, tailoringStatusLabel,
+  normalizeApplicationStatus,
 } from '@/lib/jobs/status'
 import type { ApplicationStatus, ChangeDecision, Job, TailoredResume } from '@/types'
 
@@ -45,7 +44,9 @@ const fadeUp = {
 }
 
 export function JobHub({ job, versions }: JobHubProps) {
-  const [appStatus, setAppStatus] = useState<ApplicationStatus>(job.application_status)
+  const [appStatus, setAppStatus] = useState<ApplicationStatus>(
+    normalizeApplicationStatus(job.application_status)
+  )
   const [savingStatus, setSavingStatus] = useState(false)
   const [selectedId, setSelectedId] = useState(versions[0]?.id ?? '')
   const [docTab, setDocTab] = useState<'resume' | 'cover'>('resume')
@@ -59,7 +60,6 @@ export function JobHub({ job, versions }: JobHubProps) {
 
   const selected = versions.find(v => v.id === selectedId) ?? versions[0] ?? null
 
-  // Sync decisions when selected tailored version changes
   if (selected && decisionsForId !== selected.id) {
     setDecisionsForId(selected.id)
     setDecisions(selected.change_decisions ?? {})
@@ -69,15 +69,12 @@ export function JobHub({ job, versions }: JobHubProps) {
     api: '/api/tailor/cover-letter',
   })
 
-  // Reset the editable cover text when the selected version changes (render-time
-  // adjustment — the React-recommended alternative to a syncing effect).
   if (selected && coverForId !== selected.id) {
     setCoverForId(selected.id)
     setCoverText(selected.cover_letter || '')
   }
 
   const recommendedPages = recommendedPagesFor(job.extracted_data?.seniority)
-
   const originalResume = selected?.original_structured_data ?? selected?.structured_data ?? null
 
   const approvedResume = useMemo(() => {
@@ -101,14 +98,23 @@ export function JobHub({ job, versions }: JobHubProps) {
   }, [selected, decisions])
 
   async function handleStatusChange(value: ApplicationStatus) {
+    const previous = appStatus
     setAppStatus(value)
     setSavingStatus(true)
-    const supabase = createClient()
-    await supabase
-      .from('jobs')
-      .update({ application_status: value, updated_at: new Date().toISOString() })
-      .eq('id', job.id)
-    setSavingStatus(false)
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: value, meta: { via: 'job_hub' } }),
+      })
+      if (!res.ok) {
+        setAppStatus(previous)
+      }
+    } catch {
+      setAppStatus(previous)
+    } finally {
+      setSavingStatus(false)
+    }
   }
 
   async function handleExport(format: 'pdf' | 'docx', type: 'resume' | 'cover' = 'resume') {
@@ -166,6 +172,13 @@ export function JobHub({ job, versions }: JobHubProps) {
         body: JSON.stringify({ change_decisions: decisions }),
       })
       if (!res.ok) throw new Error('Failed to save')
+
+      // Persist live tailored score (Task 111)
+      await fetch(`/api/tailor/${selected.id}/score`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ change_decisions: decisions, persist: true }),
+      }).catch(() => null)
     } catch {
       alert('Could not save your review. Try again.')
     } finally {
@@ -181,12 +194,261 @@ export function JobHub({ job, versions }: JobHubProps) {
 
   const displayedCover = generatingCover ? completion : coverText
 
+  const scorePanel = fitScore ? (
+    <MatchScore score={fitScore} />
+  ) : (
+    <div className="text-center py-6 space-y-3">
+      <p className="text-sm text-muted-foreground">Tailor this job to see a live match score.</p>
+      <Button asChild size="sm">
+        <Link href={`/dashboard/tailor?jobId=${job.id}`}>
+          <Sparkles className="w-4 h-4" />
+          Tailor now
+        </Link>
+      </Button>
+    </div>
+  )
+
+  const changesPanel = selected && originalResume && (selected.changes?.length ?? 0) > 0 ? (
+    <div className="p-4 sm:p-5">
+      <TailorDiff
+        original={originalResume}
+        tailored={selected.structured_data}
+        changes={selected.changes}
+        decisions={decisions}
+        onDecisionsChange={setDecisions}
+        onSave={handleSaveDecisions}
+        saving={savingDecisions}
+      />
+    </div>
+  ) : (
+    <div className="text-center py-8 space-y-2 p-4">
+      <FileText className="w-8 h-8 text-muted-foreground mx-auto opacity-50" />
+      <p className="text-sm text-muted-foreground">
+        {selected ? 'No tracked changes for this version.' : 'Tailor this job to review AI changes.'}
+      </p>
+    </div>
+  )
+
+  const questionsPanel = selected?.gap_answers?.length ? (
+    <div className="space-y-5">
+      <p className="text-xs text-muted-foreground">
+        Answers that shaped this tailored resume.
+      </p>
+      <ul className="space-y-3">
+        {selected.gap_answers.map((qa, i) => (
+          <li key={i} className="rounded-xl border border-border bg-card/40 p-4 space-y-2.5">
+            <div className="flex items-start gap-2.5">
+              <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-brand-purple/15 text-[10px] font-semibold text-brand-purple">
+                Q
+              </span>
+              <p className="text-sm font-medium text-foreground leading-snug">{qa.question}</p>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-brand-green/15 text-[10px] font-semibold text-brand-green">
+                A
+              </span>
+              <p className="text-sm text-muted-foreground leading-relaxed">{qa.answer}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  ) : (
+    <div className="text-center py-8 space-y-2">
+      <HelpCircle className="w-8 h-8 text-muted-foreground mx-auto opacity-50" />
+      <p className="text-sm text-muted-foreground">No gap questions for this version.</p>
+    </div>
+  )
+
+  const detailsPanel = (
+    <div className="space-y-4">
+      <div>
+        <label className="text-xs text-muted-foreground">Application status</label>
+        <select
+          value={appStatus}
+          onChange={e => handleStatusChange(e.target.value as ApplicationStatus)}
+          className={cn(
+            'mt-1 w-full h-9 rounded-lg border px-2 text-sm font-medium',
+            applicationStatusClasses(appStatus)
+          )}
+        >
+          {APPLICATION_STATUSES.map(s => (
+            <option key={s.value} value={s.value} className="bg-card text-foreground">
+              {s.label}
+            </option>
+          ))}
+        </select>
+        {savingStatus && <p className="text-[10px] text-muted-foreground mt-1">Saving…</p>}
+      </div>
+
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-muted-foreground">Tailoring</span>
+        <span className="flex items-center gap-1 text-foreground">
+          {versions.length > 0 ? <CheckCircle2 className="w-3.5 h-3.5 text-brand-green" /> : null}
+          {versions.length > 0 ? tailoringStatusLabel('tailored') : tailoringStatusLabel('not_started')}
+        </span>
+      </div>
+
+      <div className="space-y-2 pt-2 border-t border-border">
+        <DetailRow icon={Building2} text={job.company || '—'} />
+        {job.location && <DetailRow icon={MapPin} text={job.location} />}
+        {job.extracted_data?.seniority && <DetailRow icon={FileText} text={job.extracted_data.seniority} />}
+        {job.apply_url && (
+          <a
+            href={job.apply_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-xs text-brand-purple hover:underline mt-2"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            View original posting
+          </a>
+        )}
+      </div>
+
+      <div className="pt-2 border-t border-border space-y-3">
+        <p className="text-xs font-medium text-foreground">Timeline</p>
+        <ol className="space-y-3">
+          <TimelineRow icon={Building2} label="Job added" date={job.created_at} />
+          {[...versions].reverse().map(v => (
+            <TimelineRow
+              key={v.id}
+              icon={Sparkles}
+              label={`Resume tailored (v${v.version})${v.tailored_score != null ? ` · ${v.tailored_score}% fit` : ''}`}
+              date={v.created_at}
+            />
+          ))}
+        </ol>
+      </div>
+    </div>
+  )
+
+  const preview = !selected ? (
+    <Card>
+      <CardContent className="py-12 text-center space-y-3">
+        <FileText className="w-10 h-10 text-muted-foreground mx-auto opacity-50" />
+        <p className="text-sm text-muted-foreground">No tailored resume yet for this job.</p>
+        <Button asChild>
+          <Link href={`/dashboard/tailor?jobId=${job.id}`}>Tailor now</Link>
+        </Button>
+      </CardContent>
+    </Card>
+  ) : docTab === 'cover' ? (
+    <Card>
+      <CardContent className="p-6">
+        {displayedCover ? (
+          <div className="space-y-3">
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={handleCopyCover}>
+                {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? 'Copied' : 'Copy'}
+              </Button>
+              <Button variant="outline" size="sm" disabled={generatingCover} onClick={handleGenerateCover}>
+                {generatingCover ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                Regenerate
+              </Button>
+            </div>
+            <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+              {displayedCover}
+            </p>
+          </div>
+        ) : (
+          <div className="text-center py-8 space-y-3">
+            <Mail className="w-8 h-8 text-muted-foreground mx-auto opacity-50" />
+            <p className="text-sm text-muted-foreground">No cover letter yet for this version.</p>
+            <Button size="sm" disabled={generatingCover} onClick={handleGenerateCover}>
+              {generatingCover ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              Generate cover letter
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  ) : approvedResume ? (
+    <ResumePreview
+      data={approvedResume}
+      recommendedPages={recommendedPages}
+      showHealth
+    />
+  ) : null
+
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-2 justify-between">
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="inline-flex rounded-lg border border-border p-0.5">
+          <button
+            type="button"
+            onClick={() => setDocTab('resume')}
+            className={cn(
+              'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
+              docTab === 'resume' ? 'bg-brand-purple/15 text-brand-purple' : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            Resume
+          </button>
+          <button
+            type="button"
+            onClick={() => setDocTab('cover')}
+            className={cn(
+              'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
+              docTab === 'cover' ? 'bg-brand-purple/15 text-brand-purple' : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            Cover Letter
+          </button>
+        </div>
+
+        {versions.length > 1 && (
+          <select
+            value={selectedId}
+            onChange={e => setSelectedId(e.target.value)}
+            className="h-8 rounded-md border border-border bg-input px-2 text-xs text-foreground"
+          >
+            {versions.map(v => (
+              <option key={v.id} value={v.id}>
+                v{v.version} · {new Date(v.created_at).toLocaleDateString()}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {selected && docTab === 'resume' && (
+        <div className="flex gap-2 items-center">
+          {pendingChanges > 0 && (
+            <span className="text-[10px] text-brand-amber">{pendingChanges} pending</span>
+          )}
+          <Button variant="outline" size="sm" disabled={exporting !== null || pendingChanges > 0} onClick={() => handleExport('pdf')}>
+            {exporting === 'resume-pdf' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+            PDF
+          </Button>
+          <Button variant="outline" size="sm" disabled={exporting !== null || pendingChanges > 0} onClick={() => handleExport('docx')}>
+            {exporting === 'resume-docx' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+            DOCX
+          </Button>
+        </div>
+      )}
+
+      {selected && docTab === 'cover' && displayedCover && !generatingCover && (
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" disabled={exporting !== null} onClick={() => handleExport('pdf', 'cover')}>
+            {exporting === 'cover-pdf' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+            PDF
+          </Button>
+          <Button variant="outline" size="sm" disabled={exporting !== null} onClick={() => handleExport('docx', 'cover')}>
+            {exporting === 'cover-docx' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+            DOCX
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
-      {/* Header */}
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
       <motion.div
         {...fadeUp}
-        className="flex items-center gap-3 mb-6 rounded-2xl border border-border bg-gradient-to-r from-brand-purple/10 via-card to-card p-4"
+        className="flex items-center gap-3 mb-4 sm:mb-6 rounded-2xl border border-border bg-gradient-to-r from-brand-purple/10 via-card to-card p-3 sm:p-4"
       >
         <Link
           href="/dashboard"
@@ -195,328 +457,38 @@ export function JobHub({ job, versions }: JobHubProps) {
         >
           <ChevronLeft className="w-5 h-5" />
         </Link>
-        <div className="w-11 h-11 rounded-xl bg-brand-purple/15 flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-brand-purple/15 flex items-center justify-center flex-shrink-0">
           <Building2 className="w-5 h-5 text-brand-purple" />
         </div>
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-bold text-foreground truncate">{job.title || 'Job'}</h1>
+          <h1 className="text-lg sm:text-xl font-bold text-foreground truncate">{job.title || 'Job'}</h1>
           <p className="text-sm text-muted-foreground truncate">
             {job.company}{job.location ? ` · ${job.location}` : ''}
           </p>
         </div>
-        <Button asChild size="sm">
+        <Button asChild size="sm" className="flex-shrink-0">
           <Link href={`/dashboard/tailor?jobId=${job.id}`}>
             <Sparkles className="w-4 h-4" />
-            {versions.length > 0 ? 'Tailor again' : 'Tailor'}
+            <span className="hidden sm:inline">{versions.length > 0 ? 'Tailor again' : 'Tailor'}</span>
           </Link>
         </Button>
       </motion.div>
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Center: tabbed content */}
-        <motion.div {...fadeUp} className="flex-1 min-w-0">
-          <Tabs defaultValue="documents">
-            <TabsList>
-              <TabsTrigger value="documents">Documents</TabsTrigger>
-              <TabsTrigger value="changes">
-                Changes
-                {pendingChanges > 0 ? (
-                  <Badge variant="muted" className="ml-1.5 px-1.5 py-0 text-[10px]">
-                    {pendingChanges}
-                  </Badge>
-                ) : null}
-              </TabsTrigger>
-              <TabsTrigger value="questions">
-                Questions
-                {selected?.gap_answers?.length ? (
-                  <Badge variant="muted" className="ml-1.5 px-1.5 py-0 text-[10px]">
-                    {selected.gap_answers.length}
-                  </Badge>
-                ) : null}
-              </TabsTrigger>
-            </TabsList>
-
-            {/* DOCUMENTS */}
-            <TabsContent value="documents">
-              {!selected ? (
-                <Card>
-                  <CardContent className="py-12 text-center space-y-3">
-                    <FileText className="w-10 h-10 text-muted-foreground mx-auto opacity-50" />
-                    <p className="text-sm text-muted-foreground">No tailored resume yet for this job.</p>
-                    <Button asChild>
-                      <Link href={`/dashboard/tailor?jobId=${job.id}`}>Tailor now</Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {/* Toolbar */}
-                  <div className="flex flex-wrap items-center gap-2 justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="inline-flex rounded-lg border border-border p-0.5">
-                        <button
-                          onClick={() => setDocTab('resume')}
-                          className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
-                            docTab === 'resume' ? 'bg-brand-purple/15 text-brand-purple' : 'text-muted-foreground hover:text-foreground')}
-                        >
-                          Resume
-                        </button>
-                        <button
-                          onClick={() => setDocTab('cover')}
-                          className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
-                            docTab === 'cover' ? 'bg-brand-purple/15 text-brand-purple' : 'text-muted-foreground hover:text-foreground')}
-                        >
-                          Cover Letter
-                        </button>
-                      </div>
-
-                      {versions.length > 1 && (
-                        <select
-                          value={selectedId}
-                          onChange={e => setSelectedId(e.target.value)}
-                          className="h-8 rounded-md border border-border bg-input px-2 text-xs text-foreground"
-                        >
-                          {versions.map(v => (
-                            <option key={v.id} value={v.id}>
-                              v{v.version} · {new Date(v.created_at).toLocaleDateString()}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-
-                  {docTab === 'resume' && (
-                    <div className="flex gap-2 items-center">
-                      {pendingChanges > 0 && (
-                        <span className="text-[10px] text-brand-amber">{pendingChanges} pending</span>
-                      )}
-                      <Button variant="outline" size="sm" disabled={exporting !== null || pendingChanges > 0} onClick={() => handleExport('pdf')}>
-                          {exporting === 'resume-pdf' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                          PDF
-                        </Button>
-                        <Button variant="outline" size="sm" disabled={exporting !== null || pendingChanges > 0} onClick={() => handleExport('docx')}>
-                          {exporting === 'resume-docx' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                          DOCX
-                        </Button>
-                      </div>
-                    )}
-
-                    {docTab === 'cover' && displayedCover && !generatingCover && (
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" disabled={exporting !== null} onClick={() => handleExport('pdf', 'cover')}>
-                          {exporting === 'cover-pdf' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                          PDF
-                        </Button>
-                        <Button variant="outline" size="sm" disabled={exporting !== null} onClick={() => handleExport('docx', 'cover')}>
-                          {exporting === 'cover-docx' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                          DOCX
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Resume preview / Cover letter */}
-                  {docTab === 'resume' ? (
-                    approvedResume ? (
-                      <ResumePreview
-                        data={approvedResume}
-                        recommendedPages={recommendedPages}
-                        showHealth
-                      />
-                    ) : null
-                  ) : (
-                    <Card>
-                      <CardContent className="p-6">
-                        {displayedCover ? (
-                          <div className="space-y-3">
-                            <div className="flex justify-end gap-2">
-                              <Button variant="ghost" size="sm" onClick={handleCopyCover}>
-                                {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                                {copied ? 'Copied' : 'Copy'}
-                              </Button>
-                              <Button variant="outline" size="sm" disabled={generatingCover} onClick={handleGenerateCover}>
-                                {generatingCover ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                                Regenerate
-                              </Button>
-                            </div>
-                            <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-                              {displayedCover}
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="text-center py-8 space-y-3">
-                            <Mail className="w-8 h-8 text-muted-foreground mx-auto opacity-50" />
-                            <p className="text-sm text-muted-foreground">No cover letter yet for this version.</p>
-                            <Button size="sm" disabled={generatingCover} onClick={handleGenerateCover}>
-                              {generatingCover ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                              Generate cover letter
-                            </Button>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              )}
-            </TabsContent>
-
-            {/* CHANGES — accept / decline / edit */}
-            <TabsContent value="changes">
-              <Card>
-                <CardContent className="p-6">
-                  {selected && originalResume && (selected.changes?.length ?? 0) > 0 ? (
-                    <TailorDiff
-                      original={originalResume}
-                      tailored={selected.structured_data}
-                      changes={selected.changes}
-                      decisions={decisions}
-                      onDecisionsChange={setDecisions}
-                      onSave={handleSaveDecisions}
-                      saving={savingDecisions}
-                    />
-                  ) : (
-                    <div className="text-center py-8 space-y-2">
-                      <FileText className="w-8 h-8 text-muted-foreground mx-auto opacity-50" />
-                      <p className="text-sm text-muted-foreground">
-                        {selected ? 'No tracked changes for this version.' : 'Tailor this job to review AI changes.'}
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* QUESTIONS */}
-            <TabsContent value="questions">
-              <Card>
-                <CardContent className="p-6">
-                  {selected?.gap_answers?.length ? (
-                    <div className="space-y-5">
-                      <p className="text-xs text-muted-foreground">
-                        The AI asked these to fill gaps for this role. Your answers shaped the tailored resume below.
-                      </p>
-                      <ul className="space-y-3">
-                        {selected.gap_answers.map((qa, i) => (
-                          <li
-                            key={i}
-                            className="rounded-xl border border-border bg-card/40 p-4 space-y-2.5"
-                          >
-                            <div className="flex items-start gap-2.5">
-                              <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-brand-purple/15 text-[10px] font-semibold text-brand-purple">
-                                Q
-                              </span>
-                              <p className="text-sm font-medium text-foreground leading-snug">{qa.question}</p>
-                            </div>
-                            <div className="flex items-start gap-2.5">
-                              <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-brand-green/15 text-[10px] font-semibold text-brand-green">
-                                A
-                              </span>
-                              <p className="text-sm text-muted-foreground leading-relaxed">{qa.answer}</p>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 space-y-2">
-                      <HelpCircle className="w-8 h-8 text-muted-foreground mx-auto opacity-50" />
-                      <p className="text-sm text-muted-foreground">
-                        No gap questions were answered for this version.
-                      </p>
-                      <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                        When you tailor, the AI may ask a few questions to fill gaps in your profile.
-                        Your answers are saved here for next time.
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </motion.div>
-
-        {/* Right sidebar — collapsible sections */}
-        <motion.aside
-          {...fadeUp}
-          transition={{ ...fadeUp.transition, delay: 0.05 }}
-          className="lg:w-72 flex-shrink-0 space-y-3"
-        >
-          <CollapsibleSection title="Job Fit Score">
-            {fitScore ? (
-              <MatchScore score={fitScore} compact />
-            ) : (
-              <p className="text-sm text-muted-foreground">Tailor this job to see a fit score.</p>
-            )}
-          </CollapsibleSection>
-
-          <CollapsibleSection title="Application">
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs text-muted-foreground">Status</label>
-                <select
-                  value={appStatus}
-                  onChange={e => handleStatusChange(e.target.value as ApplicationStatus)}
-                  className={cn(
-                    'mt-1 w-full h-9 rounded-lg border px-2 text-sm font-medium',
-                    applicationStatusClasses(appStatus)
-                  )}
-                >
-                  {APPLICATION_STATUSES.map(s => (
-                    <option key={s.value} value={s.value} className="bg-card text-foreground">
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-                {savingStatus && <p className="text-[10px] text-muted-foreground mt-1">Saving…</p>}
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Tailoring</span>
-                <span className="flex items-center gap-1 text-foreground">
-                  {versions.length > 0 ? <CheckCircle2 className="w-3.5 h-3.5 text-brand-green" /> : null}
-                  {versions.length > 0 ? tailoringStatusLabel('tailored') : tailoringStatusLabel('not_started')}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Versions</span>
-                <span className="text-foreground">{versions.length}</span>
-              </div>
-            </div>
-          </CollapsibleSection>
-
-          <CollapsibleSection title="Timeline">
-            <ol className="space-y-4">
-              <TimelineRow icon={Building2} label="Job added" date={job.created_at} />
-              {[...versions].reverse().map(v => (
-                <TimelineRow
-                  key={v.id}
-                  icon={Sparkles}
-                  label={`Resume tailored (v${v.version})${v.tailored_score != null ? ` · ${v.tailored_score}% fit` : ''}`}
-                  date={v.created_at}
-                />
-              ))}
-            </ol>
-          </CollapsibleSection>
-
-          <CollapsibleSection title="Job details" defaultOpen={false}>
-            <div className="space-y-2">
-              <DetailRow icon={Building2} text={job.company || '—'} />
-              {job.location && <DetailRow icon={MapPin} text={job.location} />}
-              {job.extracted_data?.seniority && <DetailRow icon={FileText} text={job.extracted_data.seniority} />}
-              {job.apply_url && (
-                <a
-                  href={job.apply_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-xs text-brand-purple hover:underline mt-2"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  View original posting
-                </a>
-              )}
-            </div>
-          </CollapsibleSection>
-        </motion.aside>
-      </div>
+      <motion.div {...fadeUp}>
+        <WorkspaceShell
+          scoreLabel={fitScore ? `${Math.round(fitScore.total)}%` : undefined}
+          pendingChanges={pendingChanges}
+          questionCount={selected?.gap_answers?.length ?? 0}
+          defaultPanel={pendingChanges > 0 ? 'changes' : 'score'}
+          scorePanel={scorePanel}
+          keywordsPanel={<KeywordPanel score={fitScore} />}
+          changesPanel={changesPanel}
+          questionsPanel={questionsPanel}
+          detailsPanel={detailsPanel}
+          preview={preview}
+          toolbar={toolbar}
+        />
+      </motion.div>
     </div>
   )
 }

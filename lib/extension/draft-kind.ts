@@ -27,6 +27,13 @@ const LASTING_PATTERNS: RegExp[] = [
   /\bvisa\b/i,
   /citizenship/i,
   /sponsorship/i,
+  // Contact / identity — safe to offer “save to master”
+  /\be-?mail\b/i,
+  /\bphone\b|\bmobile\b|\bcell\b|\btel\b/i,
+  /\blinkedin\b/i,
+  /\bwebsite\b|\bportfolio\b|\bgithub\b/i,
+  /\bfirst\s*name\b|\blast\s*name\b|\bpreferred\s*name\b/i,
+  /\bcountry\b/i,
 ]
 
 /**

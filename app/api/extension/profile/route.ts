@@ -6,6 +6,7 @@ import {
   emptyAutofillProfile,
   type AutofillProfile,
 } from '@/lib/extension/form-fill'
+import { inferCountryFromLocation } from '@/lib/extension/location-country'
 import type { Profile, ProfileData } from '@/types'
 
 export const runtime = 'nodejs'
@@ -49,7 +50,7 @@ function buildAutofillProfile(
     website: pickUrl(data.urls, /portfolio|website|personal|github\.com|^site$/i) ||
       data.urls.find(u => !/linkedin/i.test(u.label) && !/linkedin/i.test(u.url))?.url?.trim() ||
       '',
-    country: '',
+    country: inferCountryFromLocation(personal.location),
     howHeard: 'LinkedIn',
   }
 }

@@ -7,6 +7,8 @@ import type {
 import { uid, emptyProfileData } from './data'
 import { bulletsWithIds, isHeavyEdit } from './bullets'
 import type { WriteBackSuggestion } from '@/lib/ai/tailor-types'
+import type { SuggestionEnrichment } from '@/lib/profile/suggestion-followup'
+import { validateEnrichment } from '@/lib/profile/suggestion-followup'
 
 export function normalizeProfileData(data: ProfileData): ProfileData {
   const base = emptyProfileData()
@@ -70,7 +72,8 @@ export function writeBackToPending(
 
 export function acceptSuggestion(
   data: ProfileData,
-  suggestionId: string
+  suggestionId: string,
+  enrichment?: SuggestionEnrichment
 ): ProfileData {
   const pending = data.pendingSuggestions ?? []
   const suggestion = pending.find(s => s.id === suggestionId)
@@ -78,15 +81,88 @@ export function acceptSuggestion(
 
   let next = { ...data }
 
-  if (suggestion.section === 'experience') {
+  if (enrichment) {
+    const err = validateEnrichment(enrichment)
+    if (err) return data
+    next = applyEnrichment(next, suggestion, enrichment)
+  } else if (suggestion.section === 'experience') {
     next = applyExperienceBullet(next, suggestion)
   } else if (suggestion.section === 'summary') {
     next = { ...next, summary: suggestion.proposedText }
+  } else if (suggestion.section === 'skills') {
+    const technical = [...next.skills.technical]
+    const text = suggestion.proposedText.trim()
+    if (text && !technical.some(t => t.toLowerCase() === text.toLowerCase())) {
+      technical.push(text)
+    }
+    next = { ...next, skills: { ...next.skills, technical } }
   } else if (suggestion.section === 'projects') {
-    next = applyProjectBullet(next, suggestion)
+    if (suggestion.newProject) {
+      next = applyNewProject(next, suggestion)
+    } else {
+      next = applyProjectBullet(next, suggestion)
+    }
   }
 
   next.pendingSuggestions = pending.filter(s => s.id !== suggestionId)
+  return next
+}
+
+function applyEnrichment(
+  data: ProfileData,
+  suggestion: PendingSuggestion,
+  enrichment: SuggestionEnrichment
+): ProfileData {
+  const bullets = enrichment.bullets.map(b => b.trim()).filter(Boolean)
+  const { bullets: normalized, bulletIds } = bulletsWithIds(bullets, undefined, 'bul')
+  const provenance = seedBulletsProvenance(data.provenance ?? {}, bulletIds, suggestion)
+
+  if (enrichment.entryKind === 'project') {
+    const project = {
+      id: uid('proj'),
+      name: enrichment.title.trim(),
+      description: suggestion.newProject?.description ?? '',
+      bullets: normalized,
+      bulletIds,
+      technologies: enrichment.technologies ?? suggestion.newProject?.technologies ?? [],
+      url: enrichment.url?.trim() ?? '',
+      github: enrichment.github?.trim() || suggestion.newProject?.github || '',
+    }
+    return {
+      ...data,
+      projects: [...data.projects, project],
+      provenance,
+    }
+  }
+
+  const newExp: ResumeExperience = {
+    id: uid('exp'),
+    company: enrichment.company?.trim() ?? '',
+    title: enrichment.title.trim(),
+    location: '',
+    startDate: enrichment.startDate?.trim() ?? '',
+    endDate: enrichment.endDate?.trim() ?? '',
+    current: Boolean(enrichment.current),
+    bullets: normalized,
+    bulletIds,
+    skills_used: [],
+  }
+  return {
+    ...data,
+    experience: [...data.experience, newExp],
+    provenance,
+  }
+}
+
+function seedBulletsProvenance(
+  provenance: Record<string, ProvenanceEntry>,
+  bulletIds: string[],
+  suggestion: PendingSuggestion
+): Record<string, ProvenanceEntry> {
+  let next = provenance
+  for (const bulletId of bulletIds) {
+    next = seedTailorProvenance(next, bulletId, suggestion)
+  }
   return next
 }
 
@@ -128,7 +204,7 @@ function applyProjectBullet(data: ProfileData, suggestion: PendingSuggestion): P
   const projects = [...data.projects]
   const idx = suggestion.targetEntryId
     ? projects.findIndex(p => p.id === suggestion.targetEntryId)
-    : projects.length > 0 ? 0 : -1
+    : -1
   if (idx < 0) return data
 
   const proj = { ...projects[idx] }
@@ -141,6 +217,44 @@ function applyProjectBullet(data: ProfileData, suggestion: PendingSuggestion): P
   return { ...data, projects, provenance }
 }
 
+function applyNewProject(data: ProfileData, suggestion: PendingSuggestion): ProfileData {
+  const np = suggestion.newProject
+  if (!np) return data
+
+  const { bullets, bulletIds } = bulletsWithIds(np.bullets, undefined, 'pbul')
+  const project = {
+    id: uid('proj'),
+    name: np.name,
+    description: np.description,
+    bullets,
+    bulletIds,
+    technologies: np.technologies,
+    url: '',
+    github: np.github,
+  }
+
+  const provenance = { ...(data.provenance ?? {}) }
+  const now = new Date().toISOString()
+  const origin = suggestion.source === 'github' ? 'github' : 'tailor'
+  for (const bulletId of bulletIds) {
+    provenance[bulletId] = {
+      origin,
+      sourceTailoredResumeId: suggestion.sourceTailoredResumeId,
+      jobLabel: suggestion.jobLabel,
+      history: [
+        { type: 'accepted', date: now, tailoredResumeId: suggestion.sourceTailoredResumeId, jobLabel: suggestion.jobLabel },
+        { type: 'added_from_tailor', date: now, tailoredResumeId: suggestion.sourceTailoredResumeId, jobLabel: suggestion.jobLabel },
+      ],
+    }
+  }
+
+  return {
+    ...data,
+    projects: [...data.projects, project],
+    provenance,
+  }
+}
+
 function syncIds(bullets: string[], ids?: string[]): string[] {
   return bulletsWithIds(bullets, ids).bulletIds
 }
@@ -151,10 +265,11 @@ function seedTailorProvenance(
   suggestion: PendingSuggestion
 ): Record<string, ProvenanceEntry> {
   const now = new Date().toISOString()
+  const origin = suggestion.source === 'github' ? 'github' : 'tailor'
   return {
     ...provenance,
     [bulletId]: {
-      origin: 'tailor',
+      origin,
       sourceTailoredResumeId: suggestion.sourceTailoredResumeId,
       jobLabel: suggestion.jobLabel,
       history: [
@@ -211,10 +326,27 @@ export function recordBulletEdit(
 }
 
 export function getProvenanceLabel(entry: ProvenanceEntry | undefined): string | null {
-  if (!entry || entry.origin !== 'tailor') return null
+  if (!entry || entry.origin === 'base') return null
+  if (entry.origin === 'github') {
+    return entry.jobLabel ? `From GitHub · ${entry.jobLabel}` : 'From GitHub'
+  }
   const added = entry.history.find(h => h.type === 'added_from_tailor' || h.type === 'accepted')
-  if (added?.jobLabel) return `Added from tailor · ${added.jobLabel}`
-  return 'Added from tailor'
+  if (added?.jobLabel) return `From ${added.jobLabel}`
+  if (entry.jobLabel) return `From ${entry.jobLabel}`
+  return 'From gap answer'
+}
+
+/** First tailor/GitHub source label across bullet ids (for entry cards). */
+export function entrySourceLabel(
+  provenance: Record<string, ProvenanceEntry> | undefined,
+  bulletIds: string[] | undefined
+): string | null {
+  if (!provenance || !bulletIds?.length) return null
+  for (const id of bulletIds) {
+    const label = getProvenanceLabel(provenance[id])
+    if (label) return label
+  }
+  return null
 }
 
 export function formatProvenanceTimeline(entry: ProvenanceEntry): string[] {

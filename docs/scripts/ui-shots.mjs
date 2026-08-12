@@ -29,8 +29,10 @@ if (!EMAIL || !PASSWORD) {
 }
 
 const ROUTES = [
-  ['applications', '/dashboard'],
-  ['tailor', '/dashboard/tailor'],
+  ['dashboard', '/dashboard'],
+  ['applications', '/dashboard/tracker'],
+  ['tracker-detail', `/dashboard/tracker/${JOB_ID}`],
+  ['builder', '/dashboard/builder'],
   ['add-job', '/dashboard/jobs'],
   ['job-hub', `/dashboard/jobs/${JOB_ID}`],
   ['profile', '/dashboard/profile'],
@@ -100,7 +102,7 @@ async function run() {
     await setTheme(page, theme)
     for (const [name, route] of ROUTES) {
       try {
-        await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle' })
+        await page.goto(`${BASE}${route}`, { waitUntil: 'load', timeout: 60000 })
         await page.waitForTimeout(1200)
         await page.screenshot({ path: `${OUT}/${name}-${theme}.png`, fullPage: true })
         console.log(`shot: ${name}-${theme}`)

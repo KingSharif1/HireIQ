@@ -22,8 +22,11 @@ describe('isLastingCareerFact', () => {
     expect(isLastingCareerFact('When can you start?')).toBe(false)
   })
 
-  it('returns false for empty / unrelated labels', () => {
-    expect(isLastingCareerFact('')).toBe(false)
-    expect(isLastingCareerFact('How did you hear about us?')).toBe(false)
+  it('returns true for contact / identity fields', () => {
+    expect(isLastingCareerFact('Email*')).toBe(true)
+    expect(isLastingCareerFact('Phone')).toBe(true)
+    expect(isLastingCareerFact('LinkedIn Profile')).toBe(true)
+    expect(isLastingCareerFact('Website')).toBe(true)
+    expect(isLastingCareerFact('First Name')).toBe(true)
   })
 })

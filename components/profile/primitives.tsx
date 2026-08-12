@@ -74,12 +74,17 @@ export function EmptyState({
 export function EntryCard({
   title,
   subtitle,
+  sourceLine,
+  sourceHref,
   onRemove,
   children,
   defaultOpen = true,
 }: {
   title: string
   subtitle?: string
+  /** Muted provenance, e.g. "From Role @ Company" */
+  sourceLine?: string | null
+  sourceHref?: string | null
   onRemove: () => void
   children: React.ReactNode
   defaultOpen?: boolean
@@ -101,6 +106,21 @@ export function EntryCard({
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground truncate">{title || 'Untitled'}</p>
             {subtitle && <p className="text-xs text-muted-foreground truncate">{subtitle}</p>}
+            {sourceLine ? (
+              sourceHref ? (
+                <a
+                  href={sourceHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline truncate block mt-0.5"
+                  onClick={e => e.stopPropagation()}
+                >
+                  {sourceLine}
+                </a>
+              ) : (
+                <p className="text-[11px] text-muted-foreground truncate mt-0.5">{sourceLine}</p>
+              )
+            ) : null}
           </div>
         </button>
         <button

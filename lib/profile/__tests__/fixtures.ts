@@ -47,6 +47,7 @@ export function sampleProfile(overrides: Partial<Profile> = {}): Profile {
     target_role: null,
     years_experience: null,
     profile_data: null,
+    github_data: null,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
     ...overrides,

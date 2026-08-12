@@ -4,9 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-import {
-  Sparkles, LogOut, Zap, Home, Bell, PanelLeftClose, PanelLeftOpen, User, Sun, Moon,
-} from 'lucide-react'
+import { LogOut, Zap, Bell, User, Sun, Moon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -17,27 +15,15 @@ import { UnreadBadge } from '@/components/notifications/UnreadBadge'
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { PRIMARY_NAV } from '@/components/shared/primary-nav'
 import type { Profile } from '@/types'
-
-const NAV_ITEMS: {
-  href: string
-  icon: typeof Home
-  label: string
-  badge?: boolean
-}[] = [
-  { href: '/dashboard', icon: Home, label: 'Applications' },
-  { href: '/dashboard/notifications', icon: Bell, label: 'Alerts', badge: true },
-  { href: '/dashboard/tailor', icon: Sparkles, label: 'Tailor' },
-]
 
 interface SidebarProps {
   profile: Profile | null
   unreadCount?: number
-  collapsed?: boolean
-  onToggle?: () => void
 }
 
-export function Sidebar({ profile, unreadCount = 0, collapsed = false, onToggle }: SidebarProps) {
+export function Sidebar({ profile, unreadCount = 0 }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { theme, setTheme } = useTheme()
@@ -52,111 +38,83 @@ export function Sidebar({ profile, unreadCount = 0, collapsed = false, onToggle 
   const initials = profile
     ? `${profile.first_name?.[0] ?? ''}${profile.last_name?.[0] ?? ''}`.toUpperCase() || '?'
     : '?'
-  const displayName = profile
-    ? `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim() || profile.email || 'User'
-    : 'User'
+
+  const profileActive = pathname.startsWith('/dashboard/profile')
 
   return (
     <TooltipProvider delayDuration={0}>
-      <aside
-        className={cn(
-          'hidden md:flex flex-col min-h-screen bg-card border-r border-border py-4 fixed left-0 top-0 z-40',
-          'transition-[width] duration-200 ease-in-out',
-          collapsed ? 'w-[4.5rem] px-2 items-center' : 'w-60 px-3'
-        )}
-      >
-        {/* Logo + collapse toggle */}
-        <div className={cn('flex items-center mb-6', collapsed ? 'justify-center' : 'justify-between px-1')}>
-          <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-brand-purple flex items-center justify-center flex-shrink-0">
-              <Zap className="w-4 h-4 text-white" fill="white" />
-            </div>
-            {!collapsed && <span className="font-bold text-lg text-foreground">HireIQ</span>}
-          </Link>
-          {!collapsed && onToggle && (
-            <button
-              onClick={onToggle}
-              className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-secondary"
-              aria-label="Collapse sidebar"
-            >
-              <PanelLeftClose className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+      <aside className="hidden md:flex flex-col items-center w-[60px] min-h-screen bg-[#1a1d24] text-white/70 py-3 fixed left-0 top-0 z-40 border-r border-black/20">
+        <Link
+          href="/dashboard"
+          className="mb-4 w-9 h-9 rounded-md bg-white flex items-center justify-center flex-shrink-0"
+          aria-label="HireIQ Home"
+        >
+          <Zap className="w-4 h-4 text-[#1a1d24]" fill="currentColor" />
+        </Link>
 
-        {collapsed && onToggle && (
-          <button
-            onClick={onToggle}
-            className="mb-3 text-muted-foreground hover:text-foreground transition-colors p-2 rounded-lg hover:bg-secondary"
-            aria-label="Expand sidebar"
-          >
-            <PanelLeftOpen className="w-4 h-4" />
-          </button>
-        )}
-
-        {/* Nav */}
-        <nav className={cn('flex-1 w-full space-y-1', collapsed && 'flex flex-col items-center')}>
-          {NAV_ITEMS.map(({ href, icon: Icon, label, badge }) => {
-            const active = href === '/dashboard' ? pathname === href : pathname.startsWith(href)
-            const link = (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  'flex items-center rounded-lg text-sm font-medium transition-all duration-150',
-                  collapsed ? 'justify-center w-11 h-11' : 'gap-3 px-3 py-2.5',
-                  active
-                    ? 'bg-brand-purple/15 text-brand-purple'
-                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                )}
-              >
-                <span className="relative flex-shrink-0">
-                  <Icon className="w-4 h-4" />
-                  {badge && (
-                    <span className="absolute -top-1.5 -right-2">
-                      <UnreadBadge initialCount={unreadCount} />
-                    </span>
-                  )}
-                </span>
-                {!collapsed && label}
-              </Link>
-            )
-            return collapsed ? (
+        <nav className="flex-1 flex flex-col items-center gap-1 w-full px-1.5">
+          {PRIMARY_NAV.map(({ href, icon: Icon, label, match }) => {
+            const active = match(pathname)
+            return (
               <Tooltip key={href}>
-                <TooltipTrigger asChild>{link}</TooltipTrigger>
+                <TooltipTrigger asChild>
+                  <Link
+                    href={href}
+                    className={cn(
+                      'flex items-center justify-center w-11 h-11 rounded-md transition-colors',
+                      active
+                        ? 'bg-white/15 text-white'
+                        : 'text-white/55 hover:bg-white/10 hover:text-white'
+                    )}
+                    aria-label={label}
+                    aria-current={active ? 'page' : undefined}
+                  >
+                    <Icon className="w-[18px] h-[18px]" />
+                  </Link>
+                </TooltipTrigger>
                 <TooltipContent side="right">{label}</TooltipContent>
               </Tooltip>
-            ) : (
-              link
             )
           })}
         </nav>
 
-        {/* Profile menu (theme + sign out live in here now) */}
-        <div className={cn('w-full pt-2 border-t border-border mt-2', collapsed && 'flex justify-center')}>
+        <div className="flex flex-col items-center gap-1 w-full px-1.5 pb-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                href="/dashboard/notifications"
+                className="relative flex items-center justify-center w-11 h-11 rounded-md text-white/55 hover:bg-white/10 hover:text-white"
+                aria-label="Alerts"
+              >
+                <Bell className="w-[18px] h-[18px]" />
+                <span className="absolute top-1.5 right-1.5">
+                  <UnreadBadge initialCount={unreadCount} className="scale-75" />
+                </span>
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right">Alerts</TooltipContent>
+          </Tooltip>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 className={cn(
-                  'flex items-center rounded-lg transition-colors hover:bg-secondary outline-none',
-                  collapsed ? 'justify-center w-11 h-11' : 'gap-3 px-2 py-2 w-full text-left'
+                  'flex items-center justify-center w-11 h-11 rounded-md hover:bg-white/10 outline-none',
+                  profileActive && 'bg-white/15'
                 )}
-                aria-label="Open profile menu"
+                aria-label="Open account menu"
+                aria-current={profileActive ? 'page' : undefined}
               >
-                <Avatar className={collapsed ? 'h-8 w-8' : 'h-8 w-8'}>
-                  <AvatarFallback className="text-[11px]">{initials}</AvatarFallback>
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="text-[10px] bg-white/20 text-white">{initials}</AvatarFallback>
                 </Avatar>
-                {!collapsed && (
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate text-xs font-semibold text-foreground">{displayName}</p>
-                    <p className="truncate text-[10px] text-muted-foreground">{profile?.email ?? ''}</p>
-                  </div>
-                )}
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent side="top" align="start" className="w-56">
+            <DropdownMenuContent side="right" align="end" className="w-56">
               <DropdownMenuLabel className="flex flex-col">
-                <span className="truncate">{displayName}</span>
+                <span className="truncate">
+                  {`${profile?.first_name ?? ''} ${profile?.last_name ?? ''}`.trim() || 'Account'}
+                </span>
                 <span className="truncate text-xs font-normal text-muted-foreground">
                   {profile?.email ?? ''}
                 </span>
@@ -165,7 +123,7 @@ export function Sidebar({ profile, unreadCount = 0, collapsed = false, onToggle 
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/profile">
                   <User className="w-4 h-4" />
-                  Profile &amp; documents
+                  Profile
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem

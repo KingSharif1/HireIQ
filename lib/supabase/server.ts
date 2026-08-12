@@ -18,7 +18,7 @@ export async function createClient() {
               cookieStore.set(name, value, options)
             )
           } catch {
-            // Server Component — cookie writes are no-ops, handled by middleware
+            // Server Component — cookie writes are no-ops, handled by proxy
           }
         },
       },

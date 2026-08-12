@@ -11,6 +11,29 @@ export type ProxyResult = {
   contentType?: string
 }
 
+export function isExtensionContextDead(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err || '')
+  return /extension context invalidated/i.test(msg) || /context invalidated/i.test(msg)
+}
+
+export function friendlyExtensionError(err: unknown): string {
+  if (isExtensionContextDead(err)) {
+    return 'HireIQ was updated — refresh this tab, then try again.'
+  }
+  return err instanceof Error ? err.message : String(err || 'Something went wrong')
+}
+
+async function sendRuntimeMessage<T>(payload: unknown): Promise<T> {
+  try {
+    return (await chrome.runtime.sendMessage(payload)) as T
+  } catch (err) {
+    if (isExtensionContextDead(err)) {
+      throw new Error('HireIQ was updated — refresh this tab, then try again.')
+    }
+    throw err
+  }
+}
+
 export async function extensionFetch(
   url: string,
   init?: {
@@ -21,19 +44,19 @@ export async function extensionFetch(
     responseType?: 'json' | 'base64'
   },
 ): Promise<ProxyResult> {
-  return chrome.runtime.sendMessage({
+  return sendRuntimeMessage<ProxyResult>({
     type: 'HIREIQ_FETCH',
     url,
     init,
-  }) as Promise<ProxyResult>
+  })
 }
 
 export async function getExtensionBearer(): Promise<string> {
-  const res = (await chrome.runtime.sendMessage({ type: 'HIREIQ_GET_BEARER' })) as {
+  const res = await sendRuntimeMessage<{
     ok: boolean
     token?: string
     error?: string
-  }
+  }>({ type: 'HIREIQ_GET_BEARER' })
   if (!res?.ok || !res.token) {
     throw new Error(res?.error || 'Sign in with Google in the HireIQ popup first')
   }

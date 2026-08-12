@@ -44,8 +44,8 @@ async function resolveUser(request: Request): Promise<
 
 /**
  * Extension PDF export for a saved job's tailored resume/cover letter.
- * GET ?type=resume|cover
- * Accept: application/json → { available, filename? }
+ * GET ?type=resume|cover&tailoredResumeId=<optional>
+ * Accept: application/json → { available, filename?, tailoredResumeId? }
  */
 export async function GET(
   request: Request,
@@ -66,22 +66,49 @@ export async function GET(
 
   const url = new URL(request.url)
   const type = url.searchParams.get('type') === 'cover' ? 'cover' : 'resume'
+  const requestedResumeId = url.searchParams.get('tailoredResumeId')?.trim() || null
   const wantsJson =
     (request.headers.get('accept') || '').includes('application/json') &&
     !(request.headers.get('accept') || '').includes('application/pdf')
 
   const admin = createAdminClient()
-  const { data: app, error: appError } = await admin
-    .from('applications')
-    .select('id, tailored_resume_id')
-    .eq('job_id', jobId)
-    .eq('user_id', userId)
-    .maybeSingle()
 
-  if (appError) {
-    return NextResponse.json({ error: appError.message }, { status: 500, headers })
+  let tailoredResumeId: string | null = null
+
+  if (requestedResumeId) {
+    const { data: owned, error: ownedError } = await admin
+      .from('tailored_resumes')
+      .select('id')
+      .eq('id', requestedResumeId)
+      .eq('job_id', jobId)
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (ownedError) {
+      return NextResponse.json({ error: ownedError.message }, { status: 500, headers })
+    }
+    if (!owned) {
+      return NextResponse.json(
+        { error: 'Tailored resume not found for this job' },
+        { status: 404, headers },
+      )
+    }
+    tailoredResumeId = owned.id
+  } else {
+    const { data: app, error: appError } = await admin
+      .from('applications')
+      .select('id, tailored_resume_id')
+      .eq('job_id', jobId)
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (appError) {
+      return NextResponse.json({ error: appError.message }, { status: 500, headers })
+    }
+    tailoredResumeId = app?.tailored_resume_id ?? null
   }
-  if (!app?.tailored_resume_id) {
+
+  if (!tailoredResumeId) {
     return NextResponse.json({ available: false }, { status: 200, headers })
   }
 
@@ -89,7 +116,7 @@ export async function GET(
 
   if (wantsJson) {
     return NextResponse.json(
-      { available: true, filename, tailoredResumeId: app.tailored_resume_id },
+      { available: true, filename, tailoredResumeId },
       { status: 200, headers },
     )
   }
@@ -97,7 +124,7 @@ export async function GET(
   const { data: tailored, error: tailoredError } = await admin
     .from('tailored_resumes')
     .select('structured_data, original_structured_data, changes, change_decisions, cover_letter')
-    .eq('id', app.tailored_resume_id)
+    .eq('id', tailoredResumeId)
     .eq('user_id', userId)
     .maybeSingle()
 
@@ -105,7 +132,7 @@ export async function GET(
     return NextResponse.json({ error: tailoredError.message }, { status: 500, headers })
   }
   if (!tailored) {
-    return NextResponse.json({ available: false }, { status: 200, headers })
+    return NextResponse.json({ available: false, tailoredResumeId }, { status: 200, headers })
   }
 
   const changes = tailored.changes ?? []

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveExtensionUserId } from '@/lib/extension/tokens'
 import { isLastingCareerFact } from '@/lib/extension/draft-kind'
+import { normalizeFormAnswers, upsertFormAnswer } from '@/lib/applications/form-answers'
 import { mergePendingSuggestions, normalizeProfileData } from '@/lib/profile/provenance'
 import { uid } from '@/lib/profile/data'
 import type { ApplicationFormAnswer, PendingSuggestion, PendingSuggestionSection, ProfileData } from '@/types'
@@ -28,17 +29,6 @@ export async function OPTIONS(request: Request) {
 function suggestionSectionForLabel(label: string): PendingSuggestionSection {
   if (/\bskills?\b|tools?|languages?|technolog|framework|stack/i.test(label)) return 'skills'
   return 'summary'
-}
-
-function upsertFormAnswer(
-  existing: ApplicationFormAnswer[],
-  entry: ApplicationFormAnswer,
-): ApplicationFormAnswer[] {
-  const idx = existing.findIndex(a => a.key === entry.key)
-  if (idx === -1) return [...existing, entry]
-  const next = [...existing]
-  next[idx] = entry
-  return next
 }
 
 export async function POST(request: Request) {
@@ -117,9 +107,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Application not found for this job' }, { status: 404, headers })
   }
 
-  const existing = Array.isArray(app.form_answers)
-    ? (app.form_answers as ApplicationFormAnswer[])
-    : []
+  const existing = normalizeFormAnswers(app.form_answers)
   const entry: ApplicationFormAnswer = {
     key,
     question,

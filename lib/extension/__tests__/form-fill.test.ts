@@ -3,6 +3,9 @@ import {
   classifyField,
   valueForKind,
   isSensitiveFieldLabel,
+  isMissingProfileValue,
+  isMasterBackfillKind,
+  missingProfilePrompt,
   type AutofillProfile,
 } from '@/lib/extension/form-fill'
 
@@ -100,5 +103,16 @@ describe('isSensitiveFieldLabel', () => {
   it('allows normal screening questions', () => {
     expect(isSensitiveFieldLabel('Why do you want this role?')).toBe(false)
     expect(isSensitiveFieldLabel('Years of React experience')).toBe(false)
+  })
+})
+
+describe('missing profile gaps', () => {
+  it('detects empty phone/email on profile', () => {
+    const emptyPhone: AutofillProfile = { ...profile, phone: '', email: '' }
+    expect(isMissingProfileValue('phone', emptyPhone)).toBe(true)
+    expect(isMissingProfileValue('email', emptyPhone)).toBe(true)
+    expect(isMissingProfileValue('phone', profile)).toBe(false)
+    expect(isMasterBackfillKind('phone')).toBe(true)
+    expect(missingProfilePrompt('phone')).toMatch(/phone/i)
   })
 })

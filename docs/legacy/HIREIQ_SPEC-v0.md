@@ -1,6 +1,8 @@
 # HireIQ — Complete Project Spec
 ## "The Job Search OS That Actually Gets You Hired"
 
+> **⚠️ Legacy document (v0).** Superseded by [SPEC.md](../SPEC.md) v1.0. For current build status see [STATUS.md](../STATUS.md). Auth uses `proxy.ts` (Next.js 16), not `middleware.ts`.
+
 ---
 
 ## 1. PRODUCT OVERVIEW
@@ -277,7 +279,7 @@ hireiq/
 │   ├── supabase/
 │   │   ├── client.ts               # Browser Supabase client
 │   │   ├── server.ts               # Server Supabase client
-│   │   └── middleware.ts           # Auth middleware
+│   │   └── proxy.ts                # Auth proxy (Next.js 16; was middleware.ts)
 │   └── utils.ts
 │
 ├── hooks/

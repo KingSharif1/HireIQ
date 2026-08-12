@@ -1,7 +1,12 @@
 -- Auth: populate first_name / last_name on signup (email + Google OAuth)
+-- Matches remote HireIQ schema (no full_name column on profiles).
 
-CREATE OR REPLACE FUNCTION handle_new_user()
-RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
 DECLARE
   fn TEXT;
   ln TEXT;
@@ -10,25 +15,24 @@ DECLARE
 BEGIN
   meta := COALESCE(NEW.raw_user_meta_data, '{}'::jsonb);
 
-  fn := NULLIF(trim(meta->>'first_name'), '');
-  ln := NULLIF(trim(meta->>'last_name'), '');
   full := NULLIF(trim(COALESCE(meta->>'full_name', meta->>'name', '')), '');
+  fn := NULLIF(trim(COALESCE(meta->>'first_name', split_part(COALESCE(full, ''), ' ', 1), '')), '');
+  ln := NULLIF(trim(COALESCE(
+    meta->>'last_name',
+    CASE
+      WHEN full IS NOT NULL AND position(' ' IN full) > 0
+        THEN trim(substring(full FROM position(' ' IN full) + 1))
+      ELSE ''
+    END,
+    ''
+  )), '');
 
-  -- Google OAuth often sends full_name / name only
-  IF fn IS NULL AND full IS NOT NULL THEN
-    fn := split_part(full, ' ', 1);
-    ln := NULLIF(trim(substring(full from length(split_part(full, ' ', 1)) + 1)), '');
-  END IF;
-
-  IF full IS NULL AND (fn IS NOT NULL OR ln IS NOT NULL) THEN
-    full := trim(concat_ws(' ', fn, ln));
-  END IF;
-
-  INSERT INTO profiles (id, email, full_name, first_name, last_name)
-  VALUES (NEW.id, NEW.email, full, fn, ln);
+  INSERT INTO public.profiles (id, email, first_name, last_name)
+  VALUES (NEW.id, NEW.email, fn, ln);
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$function$;
 
--- Rollback (manual): restore prior handle_new_user from 001_initial_schema.sql
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM anon, authenticated;

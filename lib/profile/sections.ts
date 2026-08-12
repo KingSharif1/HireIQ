@@ -47,6 +47,7 @@ export const SECTIONS: SectionDef[] = [
 
   { id: 'resumes', label: 'Resumes', group: 'DOCUMENTS', icon: FileText, kind: 'static' },
   { id: 'additionalDocuments', label: 'Additional Documents', group: 'DOCUMENTS', icon: Files, kind: 'list' },
+  { id: 'attachments', label: 'Attachments', group: 'DOCUMENTS', icon: Paperclip, kind: 'list' },
 
   { id: 'summary', label: 'Summary', group: 'PROFESSIONAL PROFILE', icon: AlignLeft, kind: 'text' },
   { id: 'urls', label: 'URLs', group: 'PROFESSIONAL PROFILE', icon: Link2, kind: 'list' },
@@ -57,10 +58,27 @@ export const SECTIONS: SectionDef[] = [
   { id: 'skills', label: 'Skills & Certs', group: 'PROFESSIONAL PROFILE', icon: Zap, kind: 'list' },
   { id: 'achievements', label: 'Achievements', group: 'PROFESSIONAL PROFILE', icon: Award, kind: 'list' },
   { id: 'additional', label: 'Additional', group: 'PROFESSIONAL PROFILE', icon: Plus, kind: 'text' },
-  { id: 'attachments', label: 'Attachments', group: 'PROFESSIONAL PROFILE', icon: Paperclip, kind: 'list' },
 ]
 
 export const SECTION_GROUPS: SectionGroup[] = ['PROFILE', 'DOCUMENTS', 'PROFESSIONAL PROFILE']
+
+/** Groups shown on Professional Profile (Sprout) — no Documents. */
+export const PROFESSIONAL_GROUPS: SectionGroup[] = ['PROFILE', 'PROFESSIONAL PROFILE']
+
+/** Document vault sections (uploaded resumes + link lists). */
+export const DOCUMENT_SECTION_IDS: SectionId[] = [
+  'resumes',
+  'additionalDocuments',
+  'attachments',
+]
+
+export function isDocumentSection(id: string): id is SectionId {
+  return (DOCUMENT_SECTION_IDS as string[]).includes(id)
+}
+
+export function isKnownSection(id: string): id is SectionId {
+  return SECTIONS.some(s => s.id === id)
+}
 
 /** Count badge value for a section. Returns a number for lists, or null. */
 export function sectionCount(id: SectionId, data: ProfileData, resumeCount: number): number | null {

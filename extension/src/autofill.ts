@@ -27,6 +27,11 @@ export type FillReport = {
   requiredTotal: number
 }
 
+export type FieldChoice = {
+  value: string
+  label: string
+}
+
 export type FieldDescriptor = {
   key: string
   el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -35,6 +40,9 @@ export type FieldDescriptor = {
   kind: FieldKind
   inputType: string
   value: string
+  /** Closed choices for <select>, radio group, or combobox */
+  choices?: FieldChoice[]
+  choiceMode?: 'select' | 'radio' | 'combobox'
 }
 
 const HIGHLIGHT_MS = 650
@@ -106,8 +114,148 @@ function collectControls(): Array<HTMLInputElement | HTMLTextAreaElement | HTMLS
       return false
     }
     if (el instanceof HTMLInputElement && el.type === 'hidden') return false
+    if (el.getAttribute('aria-hidden') === 'true') return false
+    // react-select required sentinel
+    if (el instanceof HTMLInputElement && el.tabIndex < 0 && el.getAttribute('role') !== 'combobox') {
+      return false
+    }
     return true
   }) as Array<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+}
+
+function isComboboxInput(el: Element): el is HTMLInputElement {
+  return (
+    el instanceof HTMLInputElement &&
+    (el.getAttribute('role') === 'combobox' ||
+      el.classList.contains('select__input') ||
+      el.getAttribute('aria-autocomplete') === 'list')
+  )
+}
+
+function openComboboxMenu(input: HTMLInputElement) {
+  const control =
+    (input.closest('.select__control') as HTMLElement | null) ||
+    (input.closest('[class*="select__control"]') as HTMLElement | null) ||
+    input
+  const rect = control.getBoundingClientRect()
+  const cx = rect.left + Math.max(rect.width / 2, 4)
+  const cy = rect.top + Math.max(rect.height / 2, 4)
+  for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'] as const) {
+    control.dispatchEvent(
+      new MouseEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        clientX: cx,
+        clientY: cy,
+        view: window,
+      }),
+    )
+  }
+  input.focus()
+  input.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'ArrowDown', code: 'ArrowDown', bubbles: true, cancelable: true }),
+  )
+}
+
+function closeComboboxMenu(input: HTMLInputElement) {
+  input.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }),
+  )
+  document.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }),
+  )
+}
+
+function readOpenComboboxOptions(input: HTMLInputElement): FieldChoice[] {
+  const menuId = input.getAttribute('aria-controls')
+  const menu =
+    (menuId ? document.getElementById(menuId) : null) ||
+    input.closest('.select-shell')?.querySelector('.select__menu, [class*="select__menu"]') ||
+    document.querySelector('.select__menu, [class*="MenuList"]')
+
+  const optionEls = menu
+    ? Array.from(menu.querySelectorAll('.select__option, [class*="select__option"], [role="option"]'))
+    : Array.from(document.querySelectorAll(`[id^="react-select-${CSS.escape(input.id)}-option"], [role="option"]`))
+
+  const seen = new Set<string>()
+  const choices: FieldChoice[] = []
+  for (const opt of optionEls) {
+    const label = (opt.textContent || '').replace(/\s+/g, ' ').trim()
+    if (!label || /^select(\s*\.{0,3}|(\s+one))?$/i.test(label)) continue
+    const key = label.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    choices.push({ value: label, label })
+  }
+  return choices
+}
+
+/** Open react-select / combobox, read options, close. */
+export async function readComboboxChoices(
+  input: HTMLInputElement,
+  opts?: { maxChoices?: number },
+): Promise<FieldChoice[]> {
+  const maxChoices = opts?.maxChoices ?? 8
+  openComboboxMenu(input)
+  await sleep(220)
+  for (let i = 0; i < 6; i++) {
+    if (input.getAttribute('aria-expanded') === 'true' || readOpenComboboxOptions(input).length) break
+    await sleep(80)
+  }
+  const choices = readOpenComboboxOptions(input)
+  closeComboboxMenu(input)
+  await sleep(80)
+  if (choices.length < 2 || choices.length > maxChoices) return []
+  return choices
+}
+
+/** Enrich descriptors that are comboboxes with closed choices when possible. */
+export async function enrichComboboxChoices(descriptors: FieldDescriptor[]): Promise<void> {
+  for (const d of descriptors) {
+    if (d.choiceMode !== 'combobox') continue
+    if (!(d.el instanceof HTMLInputElement)) continue
+    try {
+      const largeEnum =
+        d.kind === 'country' || /\bcountry\b/i.test(d.label) || /\bnationality\b/i.test(d.label)
+      const choices = await readComboboxChoices(d.el, { maxChoices: largeEnum ? 300 : 8 })
+      if (choices.length >= 2) d.choices = choices
+    } catch {
+      /* leave without choices → text fallback */
+    }
+  }
+}
+
+/** Click a combobox option (react-select). */
+export async function applyComboboxChoice(
+  el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement,
+  choice: FieldChoice,
+): Promise<boolean> {
+  if (!(el instanceof HTMLInputElement)) return false
+  openComboboxMenu(el)
+  await sleep(200)
+  for (let i = 0; i < 6; i++) {
+    if (el.getAttribute('aria-expanded') === 'true' || readOpenComboboxOptions(el).length) break
+    await sleep(80)
+  }
+  const menuId = el.getAttribute('aria-controls')
+  const menu =
+    (menuId ? document.getElementById(menuId) : null) ||
+    el.closest('.select-shell')?.querySelector('.select__menu, [class*="select__menu"]') ||
+    document.querySelector('.select__menu')
+  const options = menu
+    ? Array.from(menu.querySelectorAll('.select__option, [class*="select__option"], [role="option"]'))
+    : Array.from(document.querySelectorAll(`[id^="react-select-${CSS.escape(el.id)}-option"]`))
+
+  const wanted = choice.label.replace(/\s+/g, ' ').trim().toLowerCase()
+  const hit = options.find(o => (o.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase() === wanted)
+  if (hit instanceof HTMLElement) {
+    hit.click()
+    highlightEl(el)
+    await sleep(100)
+    return true
+  }
+  closeComboboxMenu(el)
+  return false
 }
 
 function fieldKey(el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement, label: string, index: number): string {
@@ -140,25 +288,167 @@ export function highlightEl(el: Element) {
   }
 }
 
+function selectChoices(el: HTMLSelectElement): FieldChoice[] {
+  return Array.from(el.options)
+    .filter(o => !o.disabled)
+    .map(o => ({
+      value: o.value,
+      label: (o.label || o.textContent || o.value).replace(/\s+/g, ' ').trim(),
+    }))
+    .filter(c => c.label && !/^select(\s+one)?$/i.test(c.label) && c.value !== '')
+}
+
+function radioOptionLabel(el: HTMLInputElement): string {
+  const wrap = el.closest('label')
+  if (wrap) {
+    const clone = wrap.cloneNode(true) as HTMLElement
+    clone.querySelectorAll('input').forEach(n => n.remove())
+    const t = (clone.textContent || '').replace(/\s+/g, ' ').trim()
+    if (t && t.length < 80) return t
+  }
+  const next = el.nextSibling
+  if (next && next.nodeType === Node.TEXT_NODE) {
+    const t = (next.textContent || '').replace(/\s+/g, ' ').trim()
+    if (t) return t
+  }
+  return el.value || 'Option'
+}
+
+function radioGroupChoices(name: string): {
+  els: HTMLInputElement[]
+  choices: FieldChoice[]
+  label: string
+  required: boolean
+} {
+  const els = Array.from(
+    document.querySelectorAll(`input[type="radio"][name="${CSS.escape(name)}"]`),
+  ).filter((el): el is HTMLInputElement => el instanceof HTMLInputElement)
+  const choices = els.map(el => ({
+    value: el.value,
+    label: radioOptionLabel(el),
+  }))
+  const first = els[0]
+  const groupLabel =
+    (first &&
+      (first.closest('fieldset')?.querySelector('legend')?.textContent ||
+        first.getAttribute('aria-label') ||
+        labelFor(first))) ||
+    name
+  return {
+    els,
+    choices,
+    label: String(groupLabel).replace(/\s+/g, ' ').trim().slice(0, 200) || name,
+    required: els.some(el => isRequired(el)),
+  }
+}
+
+/** Apply a closed choice to select or radio group. */
+export function applyChoiceToField(
+  el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement,
+  choice: FieldChoice,
+  mode?: 'select' | 'radio',
+) {
+  if (mode === 'radio' || (el instanceof HTMLInputElement && el.type === 'radio')) {
+    const name = el.name
+    const radios = name
+      ? Array.from(document.querySelectorAll(`input[type="radio"][name="${CSS.escape(name)}"]`))
+      : [el]
+    for (const r of radios) {
+      if (!(r instanceof HTMLInputElement)) continue
+      const match =
+        r.value === choice.value ||
+        labelFor(r).replace(/\s+/g, ' ').trim().toLowerCase() ===
+          choice.label.replace(/\s+/g, ' ').trim().toLowerCase()
+      if (match) {
+        r.checked = true
+        r.dispatchEvent(new Event('input', { bubbles: true }))
+        r.dispatchEvent(new Event('change', { bubbles: true }))
+        r.click()
+        highlightEl(r)
+        return
+      }
+    }
+    return
+  }
+
+  if (el instanceof HTMLSelectElement) {
+    const opt =
+      Array.from(el.options).find(o => o.value === choice.value) ||
+      Array.from(el.options).find(
+        o =>
+          (o.label || o.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase() ===
+          choice.label.replace(/\s+/g, ' ').trim().toLowerCase(),
+      )
+    if (opt) {
+      setNativeValue(el, opt.value)
+      highlightEl(el)
+    }
+    return
+  }
+
+  setNativeValue(el, choice.label || choice.value)
+  highlightEl(el)
+}
+
 export function collectFieldDescriptors(): FieldDescriptor[] {
   const out: FieldDescriptor[] = []
   const usedKeys = new Set<string>()
+  const seenRadioNames = new Set<string>()
   let i = 0
   for (const el of collectControls()) {
+    if (el instanceof HTMLInputElement && el.type === 'radio') {
+      const name = el.name || el.id
+      if (!name || seenRadioNames.has(name)) continue
+      seenRadioNames.add(name)
+      const group = radioGroupChoices(name)
+      if (group.choices.length < 2) continue
+      let key = fieldKey(el, group.label, i++)
+      if (usedKeys.has(key)) key = `${key}_${i}`
+      usedKeys.add(key)
+      const selected = group.els.find(r => r.checked)
+      out.push({
+        key,
+        el: group.els[0]!,
+        label: group.label.slice(0, 200),
+        required: group.required,
+        kind: 'unknown',
+        inputType: 'radio',
+        value: selected ? (selected.value || labelFor(selected)).trim() : '',
+        choices: group.choices,
+        choiceMode: 'radio',
+      })
+      continue
+    }
+
     const meta = metaFor(el)
     const kind = classifyField(meta)
     if (kind === 'skip') continue
     let key = fieldKey(el, meta.label, i++)
     if (usedKeys.has(key)) key = `${key}_${i}`
     usedKeys.add(key)
+
+    const choices = el instanceof HTMLSelectElement ? selectChoices(el) : undefined
+    const combobox = isComboboxInput(el)
+    let current = (el.value || '').trim()
+    if (combobox && !current) {
+      const shown = el
+        .closest('.select__control, .select-shell')
+        ?.querySelector('.select__single-value, [class*="singleValue"]')
+      current = (shown?.textContent || '').replace(/\s+/g, ' ').trim()
+    }
     out.push({
       key,
       el,
       label: meta.label.slice(0, 200),
       required: isRequired(el),
       kind,
-      inputType: meta.type,
-      value: (el.value || '').trim(),
+      inputType: combobox ? 'combobox' : meta.type,
+      value: current,
+      ...(choices && choices.length >= 2
+        ? { choices, choiceMode: 'select' as const }
+        : combobox
+          ? { choiceMode: 'combobox' as const }
+          : {}),
     })
   }
   return out
@@ -207,11 +497,37 @@ export async function autofillKnownAnimated(
     if (d.kind === 'unknown' || d.kind === 'skip') continue
     const value = valueForKind(d.kind, profile)
     if (!value) continue
-    const current = (d.el.value || '').trim()
-    if (current) continue // leave user edits
+
+    let current = (d.el.value || '').trim()
+    if (!current && d.choiceMode === 'combobox') {
+      const shown = d.el
+        .closest('.select__control, .select-shell')
+        ?.querySelector('.select__single-value, [class*="singleValue"]')
+      current = (shown?.textContent || '').replace(/\s+/g, ' ').trim()
+    }
+    if (current) continue
 
     highlightEl(d.el)
-    setNativeValue(d.el, value)
+    if (d.choiceMode === 'combobox') {
+      // Prefer matching a real option (country lists, etc.)
+      const largeEnum = d.kind === 'country' || /\bcountry\b/i.test(d.label)
+      const choices = await readComboboxChoices(d.el as HTMLInputElement, {
+        maxChoices: largeEnum ? 300 : 8,
+      })
+      const hit =
+        choices.find(c => c.label.toLowerCase() === value.toLowerCase()) ||
+        choices.find(c => c.label.toLowerCase().includes(value.toLowerCase())) ||
+        choices.find(c => value.toLowerCase().includes(c.label.toLowerCase()))
+      if (hit) {
+        await applyComboboxChoice(d.el, hit)
+      } else {
+        setNativeValue(d.el, value)
+      }
+    } else if (d.choiceMode === 'select' && d.el instanceof HTMLSelectElement) {
+      applyChoiceToField(d.el, { value, label: value }, 'select')
+    } else {
+      setNativeValue(d.el, value)
+    }
     opts?.onField?.(d.label)
     await sleep(delay)
   }

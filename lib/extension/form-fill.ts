@@ -107,6 +107,55 @@ export function valueForKind(kind: FieldKind, profile: AutofillProfile): string 
   }
 }
 
+/** Known contact/identity fields we can fill from (or backfill into) master profile. */
+export function isKnownProfileKind(kind: FieldKind): boolean {
+  return kind !== 'unknown' && kind !== 'skip'
+}
+
+/** Fields worth offering “save to master” when the user fills a gap. */
+export function isMasterBackfillKind(kind: FieldKind): boolean {
+  return (
+    kind === 'email' ||
+    kind === 'phone' ||
+    kind === 'linkedin' ||
+    kind === 'website' ||
+    kind === 'first_name' ||
+    kind === 'last_name' ||
+    kind === 'preferred_name' ||
+    kind === 'country'
+  )
+}
+
+/** Form field maps to a profile slot that is currently empty. */
+export function isMissingProfileValue(kind: FieldKind, profile: AutofillProfile): boolean {
+  return isKnownProfileKind(kind) && !valueForKind(kind, profile)
+}
+
+export function missingProfilePrompt(kind: FieldKind): string {
+  switch (kind) {
+    case 'email':
+      return 'Add your email…'
+    case 'phone':
+      return 'Add your phone number…'
+    case 'linkedin':
+      return 'Add your LinkedIn URL…'
+    case 'website':
+      return 'Add your website / portfolio…'
+    case 'first_name':
+      return 'Add your first name…'
+    case 'last_name':
+      return 'Add your last name…'
+    case 'preferred_name':
+      return 'Add your preferred name…'
+    case 'country':
+      return 'Add your country…'
+    case 'how_heard':
+      return 'How did you hear about this role?'
+    default:
+      return 'Type your answer…'
+  }
+}
+
 export function emptyAutofillProfile(): AutofillProfile {
   return {
     firstName: '',

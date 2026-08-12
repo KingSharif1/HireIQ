@@ -3,6 +3,8 @@ import type {
   Profile,
   Resume,
   Job,
+  Application,
+  ApplicationEvent,
   TailoredResume,
   StructuredResume,
   JobExtractedData,
@@ -128,6 +130,64 @@ export async function updateJobStatus(
     .eq('id', jobId)
     .select()
     .single<Job>()
+}
+
+// ---------------------------------------------------------------------------
+// Applications (Task 107)
+// ---------------------------------------------------------------------------
+
+export async function getApplicationsForUser(db: SupabaseClient, userId: string) {
+  return db
+    .from('applications')
+    .select(`
+      *,
+      job:jobs!job_id (
+        id, company, title, location, created_at, updated_at, tailoring_status
+      )
+    `)
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false })
+    .returns<(Application & {
+      job: Pick<Job, 'id' | 'company' | 'title' | 'location' | 'created_at' | 'updated_at' | 'tailoring_status'>
+    })[]>()
+}
+
+export async function getApplicationByJob(
+  db: SupabaseClient,
+  userId: string,
+  jobId: string
+) {
+  return db
+    .from('applications')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('job_id', jobId)
+    .maybeSingle<Application>()
+}
+
+export async function getApplicationEvents(
+  db: SupabaseClient,
+  applicationId: string
+) {
+  return db
+    .from('application_events')
+    .select('*')
+    .eq('application_id', applicationId)
+    .order('created_at', { ascending: false })
+    .returns<ApplicationEvent[]>()
+}
+
+export async function updateApplicationNotes(
+  db: SupabaseClient,
+  applicationId: string,
+  notes: string | null
+) {
+  return db
+    .from('applications')
+    .update({ notes, updated_at: new Date().toISOString() })
+    .eq('id', applicationId)
+    .select()
+    .single<Application>()
 }
 
 export async function getJob(db: SupabaseClient, jobId: string) {

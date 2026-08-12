@@ -30,7 +30,7 @@ export default async function ResumeDetailPage({ params }: { params: Promise<{ i
     <div className="max-w-3xl mx-auto px-4 py-8">
       <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard/resume" className="text-muted-foreground hover:text-foreground">
+          <Link href="/dashboard/builder" className="text-muted-foreground hover:text-foreground">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
@@ -49,6 +49,9 @@ export default async function ResumeDetailPage({ params }: { params: Promise<{ i
             </a>
           </Button>
         )}
+        <Button asChild>
+          <Link href="/dashboard/profile">Open master</Link>
+        </Button>
       </div>
 
       <Card>

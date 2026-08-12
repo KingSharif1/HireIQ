@@ -5,11 +5,18 @@ import { ZoomIn, ZoomOut, Maximize2, FileText, AlertTriangle, CheckCircle2, Minu
 import { cn } from '@/lib/utils'
 import { normalizeResumeForDisplay } from '@/lib/format/normalize'
 import { checkResumeHealth, healthScore, type HealthSeverity } from '@/lib/resume/health'
+import { resumeSkillLabels } from '@/lib/profile/skills'
+import {
+  DEFAULT_RESUME_THEME,
+  mergeResumeTheme,
+  themeFontFamilyCss,
+  type ResumeTheme,
+} from '@/lib/export/theme'
 import type { StructuredResume } from '@/types'
 
 /**
  * WYSIWYG preview of the exported PDF. Mirrors lib/export/pdf-generator.tsx
- * (LETTER page, Helvetica, same sizes/spacing). Renders content as discrete
+ * (LETTER page, theme fonts/sizes/spacing). Renders content as discrete
  * page sheets (like a real document viewer) so users can see exactly where it
  * breaks onto page 2/3.
  */
@@ -21,16 +28,19 @@ interface ResumePreviewProps {
   showHealth?: boolean
   /** Recommended max pages for the role's seniority. 0 = none. */
   recommendedPages?: number
+  theme?: ResumeTheme
+  /** Drag to pan when zoomed past the viewport (also enables wider zoom range). */
+  enablePan?: boolean
+  className?: string
 }
+
+const MIN_ZOOM = 0.4
+const MAX_ZOOM = 1.75
 
 // Letter page geometry at 96 DPI (matches the PDF generator).
 const DPI = 96
 const PAGE_W = 8.5 * DPI // 816
 const PAGE_H = 11 * DPI // 1056
-const PAD_Y = 40
-const PAD_X = 48
-const USABLE = PAGE_H - PAD_Y * 2 // content height per page
-const BODY_W = PAGE_W - PAD_X * 2
 
 export function ResumePreview({
   data: rawData,
@@ -38,20 +48,41 @@ export function ResumePreview({
   showTools = true,
   showHealth = false,
   recommendedPages = 0,
+  theme,
+  enablePan = false,
+  className,
 }: ResumePreviewProps) {
   const data = useMemo(() => normalizeResumeForDisplay(rawData), [rawData])
+  const resolvedTheme = useMemo(
+    () => mergeResumeTheme(DEFAULT_RESUME_THEME, theme ?? null),
+    [theme]
+  )
+
+  const padX = resolvedTheme.marginX * DPI
+  const padY = resolvedTheme.marginY * DPI
+  const usable = PAGE_H - padY * 2
+  const bodyW = PAGE_W - padX * 2
+  const fontFamily = themeFontFamilyCss(resolvedTheme.fontFamily)
 
   const measureRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [zoom, setZoom] = useState(scale ?? 0.85)
   const [autoFit, setAutoFit] = useState(scale == null)
   const [pageCount, setPageCount] = useState(1)
+  const panRef = useRef<{
+    active: boolean
+    startX: number
+    startY: number
+    scrollLeft: number
+    scrollTop: number
+  } | null>(null)
+  const [panning, setPanning] = useState(false)
 
   const measure = useCallback(() => {
     const el = measureRef.current
     if (!el) return
-    setPageCount(Math.max(1, Math.ceil(el.scrollHeight / USABLE - 0.02)))
-  }, [])
+    setPageCount(Math.max(1, Math.ceil(el.scrollHeight / usable - 0.02)))
+  }, [usable])
 
   useEffect(() => {
     measure()
@@ -60,7 +91,7 @@ export function ResumePreview({
     const ro = new ResizeObserver(() => measure())
     ro.observe(el)
     return () => ro.disconnect()
-  }, [measure, data])
+  }, [measure, data, resolvedTheme])
 
   useEffect(() => {
     if (!autoFit) return
@@ -68,7 +99,7 @@ export function ResumePreview({
     if (!el) return
     const fit = () => {
       const avail = el.clientWidth - 32
-      setZoom(Math.min(1, Math.max(0.4, avail / PAGE_W)))
+      setZoom(Math.min(1, Math.max(MIN_ZOOM, avail / PAGE_W)))
     }
     fit()
     if (typeof ResizeObserver === 'undefined') return
@@ -87,15 +118,60 @@ export function ResumePreview({
 
   function zoomBy(delta: number) {
     setAutoFit(false)
-    setZoom(z => Math.min(1, Math.max(0.4, +(z + delta).toFixed(2))))
+    setZoom(z => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, +(z + delta).toFixed(2))))
   }
 
-  const body = <ResumeBody data={data} />
+  function onPanStart(e: React.PointerEvent<HTMLDivElement>) {
+    if (!enablePan || e.button !== 0) return
+    const el = containerRef.current
+    if (!el) return
+    // Only pan when content overflows
+    if (el.scrollWidth <= el.clientWidth + 1 && el.scrollHeight <= el.clientHeight + 1) return
+    el.setPointerCapture(e.pointerId)
+    panRef.current = {
+      active: true,
+      startX: e.clientX,
+      startY: e.clientY,
+      scrollLeft: el.scrollLeft,
+      scrollTop: el.scrollTop,
+    }
+    setPanning(true)
+  }
+
+  function onPanMove(e: React.PointerEvent<HTMLDivElement>) {
+    const pan = panRef.current
+    const el = containerRef.current
+    if (!pan?.active || !el) return
+    el.scrollLeft = pan.scrollLeft - (e.clientX - pan.startX)
+    el.scrollTop = pan.scrollTop - (e.clientY - pan.startY)
+  }
+
+  function onPanEnd(e: React.PointerEvent<HTMLDivElement>) {
+    const el = containerRef.current
+    if (el && panRef.current?.active) {
+      try {
+        el.releasePointerCapture(e.pointerId)
+      } catch {
+        /* ignore */
+      }
+    }
+    panRef.current = null
+    setPanning(false)
+  }
+
+  const contentStyle: React.CSSProperties = {
+    color: '#1a1a1a',
+    fontFamily,
+    fontSize: resolvedTheme.bodyFontSize,
+    lineHeight: resolvedTheme.lineHeight,
+  }
+
+  const body = <ResumeBody data={data} theme={resolvedTheme} />
 
   return (
-    <div className="w-full">
+    <div className={cn('w-full', enablePan && 'flex flex-col min-h-0 h-full', className)}>
       {showTools && (
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3 flex-shrink-0">
           <div
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium',
@@ -110,16 +186,34 @@ export function ResumePreview({
           </div>
 
           <div className="inline-flex items-center gap-0.5 rounded-lg border border-border p-0.5">
-            <button onClick={() => zoomBy(-0.1)} className="p-1.5 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors" aria-label="Zoom out">
+            <button
+              type="button"
+              onClick={() => zoomBy(-0.1)}
+              className="p-1.5 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+              aria-label="Zoom out"
+            >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
-            <span className="px-1.5 text-xs text-muted-foreground tabular-nums w-10 text-center">{Math.round(zoom * 100)}%</span>
-            <button onClick={() => zoomBy(0.1)} className="p-1.5 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors" aria-label="Zoom in">
+            <span className="px-1.5 text-xs text-muted-foreground tabular-nums w-10 text-center">
+              {Math.round(zoom * 100)}%
+            </span>
+            <button
+              type="button"
+              onClick={() => zoomBy(0.1)}
+              className="p-1.5 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+              aria-label="Zoom in"
+            >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
             <button
+              type="button"
               onClick={() => setAutoFit(true)}
-              className={cn('p-1.5 rounded-md transition-colors', autoFit ? 'text-brand-purple' : 'text-muted-foreground hover:bg-secondary hover:text-foreground')}
+              className={cn(
+                'p-1.5 rounded-md transition-colors',
+                autoFit
+                  ? 'text-foreground bg-secondary'
+                  : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+              )}
               aria-label="Fit to width"
             >
               <Maximize2 className="w-3.5 h-3.5" />
@@ -128,9 +222,7 @@ export function ResumePreview({
         </div>
       )}
 
-      {showHealth && health.length > 0 && (
-        <HealthPanel checks={health} score={score} />
-      )}
+      {showHealth && health.length > 0 && <HealthPanel checks={health} score={score} />}
 
       {/* Hidden measurer: same width as the page body, used to compute page count. */}
       <div
@@ -142,19 +234,33 @@ export function ResumePreview({
           pointerEvents: 'none',
           left: -99999,
           top: 0,
-          width: BODY_W,
-          color: '#1a1a1a',
-          fontFamily: 'Helvetica, Arial, sans-serif',
-          fontSize: 10,
-          lineHeight: 1.4,
+          width: bodyW,
+          ...contentStyle,
         }}
       >
         {body}
       </div>
 
-      {/* Page sheets */}
-      <div ref={containerRef} className="w-full overflow-auto bg-neutral-200 dark:bg-neutral-800 rounded-xl p-4">
-        <div className="flex flex-col items-center gap-5">
+      {/* Page sheets — left-aligned when zoomed so horizontal pan/scroll works */}
+      <div
+        ref={containerRef}
+        className={cn(
+          'w-full overflow-auto bg-neutral-200 dark:bg-neutral-800 rounded-xl p-4',
+          enablePan && 'flex-1 min-h-0',
+          enablePan && (panning ? 'cursor-grabbing select-none' : 'cursor-grab')
+        )}
+        onPointerDown={onPanStart}
+        onPointerMove={onPanMove}
+        onPointerUp={onPanEnd}
+        onPointerCancel={onPanEnd}
+      >
+        <div
+          className={cn(
+            'flex flex-col gap-5',
+            zoom > 0.95 || enablePan ? 'items-start' : 'items-center'
+          )}
+          style={{ minWidth: PAGE_W * zoom + 8 }}
+        >
           {Array.from({ length: pageCount }).map((_, i) => (
             <div key={i} className="flex flex-col items-center gap-1">
               <div style={{ width: PAGE_W * zoom, height: PAGE_H * zoom }}>
@@ -163,14 +269,20 @@ export function ResumePreview({
                   style={{ width: PAGE_W, height: PAGE_H, transform: `scale(${zoom})` }}
                 >
                   {/* Clipped content window for this page. */}
-                  <div style={{ position: 'absolute', top: PAD_Y, left: PAD_X, width: BODY_W, height: USABLE, overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: padY,
+                      left: padX,
+                      width: bodyW,
+                      height: usable,
+                      overflow: 'hidden',
+                    }}
+                  >
                     <div
                       style={{
-                        transform: `translateY(-${i * USABLE}px)`,
-                        color: '#1a1a1a',
-                        fontFamily: 'Helvetica, Arial, sans-serif',
-                        fontSize: 10,
-                        lineHeight: 1.4,
+                        transform: `translateY(-${i * usable}px)`,
+                        ...contentStyle,
                       }}
                     >
                       {body}
@@ -178,7 +290,9 @@ export function ResumePreview({
                   </div>
                 </div>
               </div>
-              <span className="text-[11px] text-muted-foreground">Page {i + 1} of {pageCount}</span>
+              <span className="text-[11px] text-muted-foreground">
+                Page {i + 1} of {pageCount}
+              </span>
             </div>
           ))}
         </div>
@@ -220,7 +334,7 @@ function HealthPanel({ checks, score }: { checks: ReturnType<typeof checkResumeH
   )
 }
 
-function ResumeBody({ data }: { data: StructuredResume }) {
+function ResumeBody({ data, theme }: { data: StructuredResume; theme: ResumeTheme }) {
   const contactLine = [
     data.contact?.email,
     data.contact?.phone,
@@ -229,104 +343,118 @@ function ResumeBody({ data }: { data: StructuredResume }) {
     data.contact?.github,
   ].filter(Boolean).join('  ·  ')
 
-  const allSkills = [
-    ...(data.skills?.technical || []),
-    ...(data.skills?.tools || []),
-    ...(data.skills?.languages || []),
-  ]
+  const allSkills = resumeSkillLabels(data.skills)
+
+  const sectionLabel = (key: string, fallback: string) =>
+    theme.sectionLabels[key] ?? fallback
+
+  const sectionRenderers: Record<string, () => React.ReactNode | null> = {
+    summary: () =>
+      data.summary ? (
+        <Section key="summary" title={sectionLabel('summary', 'Summary')} theme={theme}>
+          <p
+            style={{
+              fontSize: theme.bodyFontSize - 0.5,
+              color: '#333',
+              marginTop: theme.contentSpacing.body,
+              lineHeight: theme.lineHeight,
+            }}
+          >
+            {data.summary}
+          </p>
+        </Section>
+      ) : null,
+
+    experience: () =>
+      data.experience?.length > 0 ? (
+        <Section key="experience" title={sectionLabel('experience', 'Experience')} theme={theme}>
+          {data.experience.map(exp => (
+            <ExperienceEntry key={exp.id} exp={exp} theme={theme} />
+          ))}
+        </Section>
+      ) : null,
+
+    skills: () =>
+      allSkills.length > 0 ? (
+        <Section key="skills" title={sectionLabel('skills', 'Skills')} theme={theme}>
+          <SkillsContent skills={allSkills} theme={theme} />
+        </Section>
+      ) : null,
+
+    education: () =>
+      data.education?.length > 0 ? (
+        <Section key="education" title={sectionLabel('education', 'Education')} theme={theme}>
+          {data.education.map(edu => (
+            <EducationEntry key={edu.id} edu={edu} theme={theme} />
+          ))}
+        </Section>
+      ) : null,
+
+    projects: () =>
+      data.projects?.length > 0 ? (
+        <Section key="projects" title={sectionLabel('projects', 'Projects')} theme={theme}>
+          {data.projects.map(proj => (
+            <div key={proj.id} style={{ marginTop: theme.entrySpacing.project }}>
+              <div style={{ fontWeight: 700, fontSize: theme.bodyFontSize }}>{proj.name}</div>
+              {proj.technologies?.length > 0 && (
+                <div style={{ fontSize: theme.bodyFontSize - 0.5, color: '#444' }}>
+                  {proj.technologies.join(', ')}
+                </div>
+              )}
+              {proj.bullets?.map((b, i) => (
+                <Bullet key={i} theme={theme}>{b}</Bullet>
+              ))}
+            </div>
+          ))}
+        </Section>
+      ) : null,
+  }
 
   return (
     <>
-      <div style={{ fontSize: 22, fontWeight: 700, textAlign: 'center', marginBottom: 4 }}>
+      <div
+        style={{
+          fontSize: theme.nameFontSize,
+          fontWeight: 700,
+          textAlign: theme.headerAlign,
+          marginBottom: theme.contentSpacing.subheading,
+        }}
+      >
         {data.contact?.name || ''}
       </div>
-      <div style={{ fontSize: 9, color: '#555', textAlign: 'center', marginBottom: 16 }}>
+      <div
+        style={{
+          fontSize: theme.bodyFontSize - 1,
+          color: '#555',
+          textAlign: theme.headerAlign,
+          marginBottom: theme.entrySpacing.section,
+        }}
+      >
         {contactLine}
       </div>
 
-      {data.summary && (
-        <Section title="Summary">
-          <p style={{ fontSize: 9.5, color: '#333', marginTop: 4, lineHeight: 1.5 }}>{data.summary}</p>
-        </Section>
-      )}
-
-      {data.experience?.length > 0 && (
-        <Section title="Experience">
-          {data.experience.map(exp => (
-            <div key={exp.id}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, marginBottom: 2 }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 10 }}>{exp.title}</div>
-                  <div style={{ fontSize: 9.5, color: '#444' }}>
-                    {exp.company}{exp.location ? `  ·  ${exp.location}` : ''}
-                  </div>
-                </div>
-                <div style={{ fontSize: 9, color: '#666', fontStyle: 'italic' }}>
-                  {exp.startDate} – {exp.endDate}
-                </div>
-              </div>
-              {exp.bullets?.map((b, i) => <Bullet key={i}>{b}</Bullet>)}
-            </div>
-          ))}
-        </Section>
-      )}
-
-      {allSkills.length > 0 && (
-        <Section title="Skills">
-          <p style={{ fontSize: 9.5, color: '#333', marginTop: 4 }}>{allSkills.join('  ·  ')}</p>
-        </Section>
-      )}
-
-      {data.education?.length > 0 && (
-        <Section title="Education">
-          {data.education.map(edu => (
-            <div key={edu.id} style={{ marginTop: 6 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <div style={{ fontWeight: 700, fontSize: 10 }}>
-                  {edu.degree}{edu.field ? ` in ${edu.field}` : ''}
-                </div>
-                <div style={{ fontSize: 9, color: '#666', fontStyle: 'italic' }}>
-                  {edu.startDate} – {edu.endDate}
-                </div>
-              </div>
-              <div style={{ fontSize: 9.5, color: '#444' }}>{edu.institution}</div>
-              {edu.gpa && <div style={{ fontSize: 9, color: '#666' }}>GPA: {edu.gpa}</div>}
-            </div>
-          ))}
-        </Section>
-      )}
-
-      {data.projects?.length > 0 && (
-        <Section title="Projects">
-          {data.projects.map(proj => (
-            <div key={proj.id} style={{ marginTop: 6 }}>
-              <div style={{ fontWeight: 700, fontSize: 10 }}>{proj.name}</div>
-              {proj.technologies?.length > 0 && (
-                <div style={{ fontSize: 9.5, color: '#444' }}>{proj.technologies.join(', ')}</div>
-              )}
-              {proj.bullets?.map((b, i) => <Bullet key={i}>{b}</Bullet>)}
-            </div>
-          ))}
-        </Section>
-      )}
+      {theme.sectionOrder.map(key => {
+        const render = sectionRenderers[key]
+        return render ? render() : null
+      })}
     </>
   )
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children, theme }: { title: string; children: React.ReactNode; theme: ResumeTheme }) {
   return (
     <div>
       <div
         style={{
-          fontSize: 10,
+          fontSize: theme.bodyFontSize,
           fontWeight: 700,
           textTransform: 'uppercase',
           letterSpacing: 1,
-          color: '#333',
-          marginTop: 14,
-          marginBottom: 4,
+          color: theme.accentColor,
+          marginTop: theme.entrySpacing.section,
+          marginBottom: theme.contentSpacing.heading,
           paddingBottom: 3,
-          borderBottom: '0.5px solid #ccc',
+          borderBottom: `0.5px solid ${theme.accentColor}`,
         }}
       >
         {title}
@@ -336,11 +464,174 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-function Bullet({ children }: { children: React.ReactNode }) {
+function Bullet({ children, theme }: { children: React.ReactNode; theme: ResumeTheme }) {
   return (
-    <div style={{ display: 'flex', marginTop: 2, paddingLeft: 8 }}>
+    <div style={{ display: 'flex', marginTop: theme.contentSpacing.listItem, paddingLeft: 8 }}>
       <span style={{ width: 8, color: '#555' }}>•</span>
-      <span style={{ flex: 1, fontSize: 9.5 }}>{children}</span>
+      <span
+        style={{
+          flex: 1,
+          fontSize: theme.bodyFontSize - 0.5,
+          lineHeight: theme.listLineHeight,
+        }}
+      >
+        {children}
+      </span>
+    </div>
+  )
+}
+
+function SkillsContent({ skills, theme }: { skills: string[]; theme: ResumeTheme }) {
+  if (theme.skillsLayout === 'columns') {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 4,
+          marginTop: theme.contentSpacing.body,
+        }}
+      >
+        {skills.map(skill => (
+          <span
+            key={skill}
+            style={{
+              fontSize: theme.bodyFontSize - 0.5,
+              color: '#333',
+              backgroundColor: '#f0f0f0',
+              padding: '2px 6px',
+              borderRadius: 3,
+            }}
+          >
+            {skill}
+          </span>
+        ))}
+      </div>
+    )
+  }
+
+  const separator = theme.skillsLayout === 'comma' ? ', ' : ' · '
+  return (
+    <p style={{ fontSize: theme.bodyFontSize - 0.5, color: '#333', marginTop: theme.contentSpacing.body }}>
+      {skills.join(separator)}
+    </p>
+  )
+}
+
+function ExperienceEntry({
+  exp,
+  theme,
+}: {
+  exp: StructuredResume['experience'][number]
+  theme: ResumeTheme
+}) {
+  const { showBy, showLocationBy, showDatesBy } = theme.experienceSettings
+  const dateStr = `${exp.startDate} – ${exp.endDate}`
+  const locationSuffix = showLocationBy !== 'hidden' && exp.location ? `  ·  ${exp.location}` : ''
+
+  const titleFirst = showBy === 'title-first'
+  const primaryText = titleFirst ? exp.title : exp.company
+  const secondaryText = titleFirst ? exp.company : exp.title
+
+  const secondaryWithLocation =
+    showLocationBy === 'company-line' && titleFirst
+      ? `${secondaryText}${locationSuffix}`
+      : showLocationBy === 'title-line' && !titleFirst
+        ? `${secondaryText}${locationSuffix}`
+        : secondaryText
+
+  const primaryWithLocation =
+    showLocationBy === 'title-line' && titleFirst
+      ? `${primaryText}${locationSuffix}`
+      : showLocationBy === 'company-line' && !titleFirst
+        ? `${primaryText}${locationSuffix}`
+        : primaryText
+
+  if (showDatesBy === 'inline') {
+    return (
+      <div style={{ marginTop: theme.entrySpacing.experience, marginBottom: theme.contentSpacing.subheading }}>
+        <div style={{ fontWeight: 700, fontSize: theme.bodyFontSize }}>
+          {primaryWithLocation}
+          <span style={{ fontWeight: 400, fontSize: theme.bodyFontSize - 1, color: '#666', fontStyle: 'italic' }}>
+            {'  ·  '}{dateStr}
+          </span>
+        </div>
+        {secondaryWithLocation && (
+          <div style={{ fontSize: theme.bodyFontSize - 0.5, color: '#444' }}>{secondaryWithLocation}</div>
+        )}
+        {exp.bullets?.map((b, i) => (
+          <Bullet key={i} theme={theme}>{b}</Bullet>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ marginTop: theme.entrySpacing.experience, marginBottom: theme.contentSpacing.subheading }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: theme.bodyFontSize }}>{primaryWithLocation}</div>
+          {secondaryWithLocation && (
+            <div style={{ fontSize: theme.bodyFontSize - 0.5, color: '#444' }}>{secondaryWithLocation}</div>
+          )}
+        </div>
+        <div style={{ fontSize: theme.bodyFontSize - 1, color: '#666', fontStyle: 'italic', textAlign: theme.dateAlign }}>
+          {dateStr}
+        </div>
+      </div>
+      {exp.bullets?.map((b, i) => (
+        <Bullet key={i} theme={theme}>{b}</Bullet>
+      ))}
+    </div>
+  )
+}
+
+function EducationEntry({
+  edu,
+  theme,
+}: {
+  edu: StructuredResume['education'][number]
+  theme: ResumeTheme
+}) {
+  const { showBy, layout } = theme.educationSettings
+  const dateStr = `${edu.startDate} – ${edu.endDate}`
+  const degreeText = `${edu.degree}${edu.field ? ` in ${edu.field}` : ''}`
+
+  const primaryText = showBy === 'degree-first' ? degreeText : edu.institution
+  const secondaryText = showBy === 'degree-first' ? edu.institution : degreeText
+
+  if (layout === 'inline') {
+    return (
+      <div style={{ marginTop: theme.entrySpacing.education }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4 }}>
+          <div style={{ fontSize: theme.bodyFontSize - 0.5, color: '#333' }}>
+            <span style={{ fontWeight: 700, fontSize: theme.bodyFontSize }}>{primaryText}</span>
+            {', '}
+            <span style={{ color: '#444' }}>{secondaryText}</span>
+          </div>
+          <div style={{ fontSize: theme.bodyFontSize - 1, color: '#666', fontStyle: 'italic' }}>
+            {dateStr}
+          </div>
+        </div>
+        {edu.gpa && (
+          <div style={{ fontSize: theme.bodyFontSize - 1, color: '#666' }}>GPA: {edu.gpa}</div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ marginTop: theme.entrySpacing.education }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <div style={{ fontWeight: 700, fontSize: theme.bodyFontSize }}>{primaryText}</div>
+        <div style={{ fontSize: theme.bodyFontSize - 1, color: '#666', fontStyle: 'italic', textAlign: theme.dateAlign }}>
+          {dateStr}
+        </div>
+      </div>
+      <div style={{ fontSize: theme.bodyFontSize - 0.5, color: '#444' }}>{secondaryText}</div>
+      {edu.gpa && (
+        <div style={{ fontSize: theme.bodyFontSize - 1, color: '#666' }}>GPA: {edu.gpa}</div>
+      )}
     </div>
   )
 }

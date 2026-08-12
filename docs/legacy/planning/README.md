@@ -1,16 +1,16 @@
 # HireIQ — Internal Planning Docs
 
-> **Local only.** This folder lives in `_docs/` and is git-ignored. It is the working
-> brain for HireIQ's design, decisions, and build progress.
+> **⚠️ Legacy / archived.** Pre–SPEC v1.0 planning from June 2026. **Current source of truth:** [STATUS.md](../../STATUS.md), [TASKS.md](../../TASKS.md), [SPEC.md](../../SPEC.md).
 
-## Start here
+> **Local only (original intent).** This folder was git-ignored internal planning. It is kept for history — do not treat dates or progress % here as current.
 
-1. **[`STATUS.md`](./STATUS.md)** — where we are right now
-2. **[`14-sprout-ui-gap.md`](./14-sprout-ui-gap.md)** — Sprout layout: what matches vs what's left
-3. **[`08-v1-product-spec.md`](./08-v1-product-spec.md)** — full v1 contract
-4. **[`05-roadmap.md`](./05-roadmap.md)** — phased build checklist
+## Start here (current repo)
 
-## How to use this folder
+1. **[`docs/STATUS.md`](../../STATUS.md)** — where we are now (2026-06-29)
+2. **[`docs/SPEC.md`](../../SPEC.md)** — product spec v1.0
+3. **[`docs/TASKS.md`](../../TASKS.md)** — agent task queue
+
+## Historical index (this folder)
 
 - When a **decision** changes → `01-decisions.md`
 - When **work lands** → `05-roadmap.md` + `06-changelog.md`

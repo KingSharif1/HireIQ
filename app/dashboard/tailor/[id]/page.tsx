@@ -4,10 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 export const dynamic = 'force-dynamic'
 
 /**
- * The standalone tailored-result page has been merged into the Job Hub
- * (/dashboard/jobs/[jobId]), which is now the single home for a job's
- * documents, fit score, questions, and timeline. We resolve the tailored
- * resume's job and redirect there so old links keep working.
+ * Standalone tailored-result page → full-page application detail.
  */
 export default async function TailoredResultRedirect({
   params,
@@ -28,5 +25,5 @@ export default async function TailoredResultRedirect({
 
   if (!tailored?.job_id) notFound()
 
-  redirect(`/dashboard/jobs/${tailored.job_id}`)
+  redirect(`/dashboard/tracker/${tailored.job_id}`)
 }

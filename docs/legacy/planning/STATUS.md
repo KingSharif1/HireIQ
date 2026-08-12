@@ -1,5 +1,8 @@
 # STATUS — Where We Are Right Now
 
+> **⚠️ Legacy / archived (2026-06-14).** Do not use this file for current state.  
+> **Read instead:** [docs/STATUS.md](../../STATUS.md) · [docs/TASKS.md](../../TASKS.md)
+
 > **Read this first** after `README.md`. Updated when reality changes.
 > Last updated: **2026-06-14**
 

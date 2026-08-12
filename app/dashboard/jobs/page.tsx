@@ -171,8 +171,8 @@ export default function JobsPage() {
         </Card>
 
         <Button className="w-full" asChild size="lg">
-          <Link href={`/dashboard/tailor?jobId=${jobId}`}>
-            Tailor My Resume to This Job
+          <Link href={`/dashboard/tracker/${jobId}?tab=documents`}>
+            Match resume to this job
             <ArrowRight className="w-4 h-4" />
           </Link>
         </Button>
@@ -181,14 +181,15 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-8">
+    <div className="max-w-xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
       <div className="flex items-center gap-3 mb-6">
-        <Link href="/dashboard" className="text-muted-foreground hover:text-foreground">
+        <Link href="/dashboard" className="text-muted-foreground hover:text-foreground rounded-lg p-1 hover:bg-secondary">
           <ChevronLeft className="w-5 h-5" />
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-foreground">Add a Job</h1>
-          <p className="text-sm text-muted-foreground">Paste the description or drop the URL</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Applications</p>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Add a job</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Paste the description or drop a careers URL</p>
         </div>
       </div>
 
