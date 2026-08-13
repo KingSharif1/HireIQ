@@ -36,7 +36,8 @@ Interpretation locked for docs:
 
 ### Server auto-apply — charge always (when using our servers)
 
-- Uses **our** KVM / Cloud Run browsers → must be metered.
+- Uses **our** Cloud Run browsers → must be metered for customers.
+- **Infra reality (personal / low volume):** request-based Cloud Run + free tier ≈ **$0** for typical hunt volume; ~**$0.005/run** gross at 90s · 2 vCPU / 2 GiB before free tier. See [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) cost table. The **$28 VPS** is flat monthly whether idle or busy — not the primary apply farm.
 - Suggested complexity ladder (same idea as Sprout, not their prices):
   - **1 unit** — Greenhouse / Lever / Ashby-style single form
   - **3 units** — Workday, account create + OTP, CAPTCHA pause/retry, multi-step

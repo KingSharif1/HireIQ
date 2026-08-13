@@ -17,8 +17,9 @@ This is the single checklist for what shipped recently, what’s next, and what 
 | **Gmail sync** | History API incremental sync when `history_id` exists; falls back to 14-day list scan. |
 | **Export QA** | `runResumeLayoutCheck` blocks PDF/DOCX on critical issues; warns on page count + font-size/line-height (Task 106). |
 | **Resume Builder** | One nav: **Master resume** (all sections, one page) + **Files & versions**. `/dashboard/profile` redirects. |
+| **Hosted Auto-apply (148)** | `apply_runs` (021), queue/poll/worker APIs, Playwright fill, job-detail CTA + live progress panel, `services/apply-worker`. Cloud Run deploy still human/ops. |
 
-Open PR: **#3** — **merged 2026-08-13** to `main` (Vercel production deploy)
+PRs **#3–#7** merged earlier 2026-08-13; **#8** Task 148 (this merge).
 
 ---
 
@@ -30,6 +31,8 @@ Open PR: **#3** — **merged 2026-08-13** to `main` (Vercel production deploy)
 - [x] Apply migration **019** — applied 2026-08-13 (`applications.ats_account_password`)
 - [x] Merge PR **#3** to `main` (merged 2026-08-13) — copy apply email, unmatched outreach, Builder, board adapters, masked autofill, Task 115
 - [x] Apply migration **020** — applied 2026-08-13 (`profiles.forward_save_email`)
+- [x] Apply migration **021** — applied 2026-08-13 (`apply_runs` for Task 148)
+- [x] Merge PR **#8** — Task 148 hosted Auto-apply (code + docs)
 
 ### 2. Production smoke
 
@@ -60,8 +63,8 @@ Open PR: **#3** — **merged 2026-08-13** to `main` (Vercel production deploy)
 | 115 | Forward-to-save email | **Done:** `save.*@mail.kingsharif.com` + inbound parse → tracker. Remaining: deploy + one forwarded posting smoke |
 | 140 | Mask reply-relay v2 | **First slice live (PR #4).** Remaining: All outreach reply; `RESEND_FORWARD_FROM` |
 | 147 | Extension when on ATS | Assist autofill/agentic if already on the job site |
-| 148 | **Auto-apply with HireIQ** | 🟡 Queue+CTA+Playwright engine shipped; **Cloud Run deploy** + env still open |
-| Pricing | Draft only | Tailor 2-for-1; charge server apply; autofill free ([PRICING.md](./PRICING.md)) |
+| 148 | **Auto-apply with HireIQ** | ✓ Code+UI+021 (PR #8). **Ops:** Cloud Run deploy + Vercel env ([CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md)) |
+| Pricing | Draft only | Tailor 2-for-1; charge server apply; autofill free ([PRICING.md](./PRICING.md)). Cloud Run personal cost ≈ free tier; see CLOUD-RUN-APPLY cost table |
 
 ### 5. Nice-to-have / v2
 

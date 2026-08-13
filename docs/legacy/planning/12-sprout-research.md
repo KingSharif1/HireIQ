@@ -96,13 +96,24 @@ Save / open job → Tailor resume (Claude — usage cost only)
 
 ---
 
-## Product lock proposal (Task 147 / 148) — updated 2026-08-13
+## Product lock (Task 147 / 148) — 2026-08-13
 
 1. **Both runtimes:** Chrome extension (on-site assist) **and** Cloud Run Playwright (primary Auto-apply with HireIQ on web).
 2. Hosted on **Cloud Run** (scale-to-zero); KVM optional debug only.
 3. Website primary CTA: **Auto-apply with HireIQ**; extension when already on ATS.
 4. Coverage grows via **board adapters** on failures — not every site forever.
-5. Pricing draft: [PRICING.md](../../PRICING.md) · full arch: [AUTO-APPLY.md](../../AUTO-APPLY.md).
+5. Pricing draft: [PRICING.md](../../PRICING.md) · full arch: [AUTO-APPLY.md](../../AUTO-APPLY.md) · deploy: [CLOUD-RUN-APPLY.md](../../CLOUD-RUN-APPLY.md).
+
+### What we can know about Sprout “adapters + polish” (public only)
+
+Sprout does **not** publish adapter source. Public signals ([AI Apply](https://www.usesprout.com/features/ai-apply), [credits](https://help.usesprout.com/en/articles/11639803-how-credits-work), [failures](https://help.usesprout.com/en/articles/11511529-why-did-sprout-fail-to-submit-my-job-application)):
+
+- Form detection + field mapping + optional human approval + tracker sync.
+- **1 vs 3 credits** for complexity (Workday / CAPTCHA / multi-step / redirects).
+- Failures (layout change, CAPTCHA, weird fields, login timeout) → stop, refund credit, manual apply.
+- Plans ~$30/wk · 50 apps, ~$60/mo · 200 apps ([pricing](https://www.usesprout.com/pricing)).
+
+Inference: hosted browser farm + per-ATS playbooks + retries — polish is failure volume over time, not a single magic model. HireIQ mirrors that with learnable board adapters.
 
 ---
 

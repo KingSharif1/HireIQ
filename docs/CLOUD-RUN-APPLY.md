@@ -137,9 +137,26 @@ On a job detail page: **Auto-apply with HireIQ** → status should move queued �
 
 So: **yes on the big boards once Cloud Run is wired**; **not magic on every site day one**. Coverage grows when failed hosts get adapters (same as Sprout’s reality).
 
-## Cost ballpark
+## Cost ballpark (Cloud Run vs $28 VPS)
 
-Idle ≈ **$0**. A fill run is usually tens of seconds on 2 vCPU / 2Gi — cents at low volume. Workday (complexity 3) may need longer timeout / more memory later.
+Assumptions: **2 vCPU · 2 GiB · request-based billing · min instances 0**.  
+Rates (Tier 1 / us-central1-style): ~**$0.000024 / vCPU-s**, ~**$0.0000025 / GiB-s** ([Cloud Run pricing](https://cloud.google.com/run/pricing)).  
+Free tier/mo (request-based): **180k vCPU-s · 360k GiB-s · 2M requests**.
+
+| Run length | Rough meaning | ≈ $/run (before free tier) |
+|------------|---------------|----------------------------|
+| 45s | Simple GH dry-run | ~$0.0024 |
+| 90s | Typical fill + resume | ~$0.0048 |
+| 180s | Workday-ish | ~$0.0095 |
+| 300s | Hard / retries | ~$0.016 |
+
+- Free tier covers ~**1,000 × 90s** applies/month before meaningful charges.
+- Personal volume (30–200 apps/mo) ≈ **$0** after free tier.
+- Cloud Run monthly ≈ $28 only at **thousands** of long applies — not personal hunt scale.
+- Idle Cloud Run ≈ **$0**; VPS is **$28 whether you apply or not**.
+- Sprout public plans (~$60/mo · 200 apps) ≈ **$0.30+/app** — far above raw Cloud Run compute.
+
+Caveats: cold starts, ATS egress, Artifact Registry, retries. Keep the VPS only if you already need it for other work.
 
 ## Local debug (no Cloud Run)
 

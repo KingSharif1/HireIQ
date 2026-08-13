@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-13 — Task 148 merged: docs sync + cost table
+
+**What:** Docs pass before merge — STATUS/TASKS/REMAINING/AUTO-APPLY/PRICING/Sprout research + Cloud Run vs VPS cost math in CLOUD-RUN-APPLY.
+
+**Files:** docs/*
+
+**Why:** Owner asked to commit, merge, and keep documents current.
+
+**Next:** Deploy Cloud Run worker; Task 147.
+
+---
+
 ## 2026-08-13 — Task 148: live apply progress UI + Cloud Run setup guide
 
 **What:** Job detail progress panel (steps, % bar, filled-field chips with motion). Worker writes live `result.progress`. Step-by-step Cloud Run deploy doc.
