@@ -60,7 +60,7 @@ Open PR: **#3** — **merged 2026-08-13** to `main` (Vercel production deploy)
 | 115 | Forward-to-save email | **Done:** `save.*@mail.kingsharif.com` + inbound parse → tracker. Remaining: deploy + one forwarded posting smoke |
 | 140 | Mask reply-relay v2 | **First slice live (PR #4).** Remaining: All outreach reply; `RESEND_FORWARD_FROM` |
 | 147 | Extension when on ATS | Assist autofill/agentic if already on the job site |
-| 148 | **Auto-apply with HireIQ** | Playwright on **Cloud Run**; web CTA; learnable board adapters |
+| 148 | **Auto-apply with HireIQ** | 🟡 Queue+CTA+Playwright engine shipped; **Cloud Run deploy** + env still open |
 | Pricing | Draft only | Tailor 2-for-1; charge server apply; autofill free ([PRICING.md](./PRICING.md)) |
 
 ### 5. Nice-to-have / v2
