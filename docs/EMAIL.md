@@ -77,17 +77,38 @@ Site URL: prefer prod `https://hireiq.kingsharif.com` (localhost still listed in
 
 | Place | Behavior |
 |-------|----------|
-| Profile → Personal → Application email | Create / copy / forward toggle |
-| Applications → All outreach | Matched inbound (source HireIQ) |
+| Profile → Personal → **Gmail tracking** | Connect Google (gmail.readonly); sync toggle default on |
+| Profile → Personal → Application email | Create / copy / forward toggle (Task 139) |
+| Applications → All outreach | Matched inbound (source HireIQ / later Gmail) |
 | Job → Email tab | Same when matched |
 | Alerts | `email_status` |
 
-## Schema (migration 015)
+## Schema
 
-- `profiles.masked_email`, `email_forward_to`, `email_forward_enabled`
-- `inbound_email_events` + RLS SELECT for owner; webhook inserts via service role  
+**015** — masked inbound: `profiles.masked_email`, `email_forward_*`, `inbound_email_events`  
+**016** — Gmail connect: `profiles.gmail_sync_enabled` (default true), `google_connections` (refresh token + history_id)  
+**017** — `inbound_email_events.provider` + `provider_message_id` (unique per provider)
 
-File: `docs/supabase/migrations/015_masked_inbound_email.sql`
+## Env (Gmail connect)
+
+```env
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+# Redirect: ${NEXT_PUBLIC_APP_URL}/api/google/callback
+# Optional batch cron auth:
+# CRON_SECRET=
+```
+
+Separate from Supabase “Sign in with Google” — this flow requests `gmail.readonly` + offline refresh.
+
+## Sync
+
+| Trigger | Route |
+|---------|--------|
+| Profile → Sync now | `POST /api/google/sync` (session) |
+| Cron / ops | `GET|POST /api/cron/gmail-sync` with `Authorization: Bearer $CRON_SECRET` |
+
+Scans `newer_than:14d` (excludes chats/promos/social), matches open applications via existing inbound scorer, writes `email_log` with `source: gmail`.
 
 ## Smoke checklist (prod)
 

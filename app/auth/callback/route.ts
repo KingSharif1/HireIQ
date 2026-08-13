@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { syncProfileFromAuthUser } from '@/lib/auth/profile-sync'
+import { maybePersistGoogleGmailTokens } from '@/lib/auth/persist-google-gmail'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -30,6 +31,7 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
       const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
       if (user) {
         await syncProfileFromAuthUser(
           supabase,
@@ -37,6 +39,11 @@ export async function GET(request: NextRequest) {
           user.email,
           user.user_metadata as Record<string, unknown>
         )
+        try {
+          await maybePersistGoogleGmailTokens(supabase, session)
+        } catch (e) {
+          console.error('[auth/callback] persist Gmail tokens failed', e)
+        }
       }
       return NextResponse.redirect(`${origin}${next}`)
     }

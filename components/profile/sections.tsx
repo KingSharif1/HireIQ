@@ -33,7 +33,6 @@ import {
 import { ProvenanceBulletEditor } from './ProvenanceBulletEditor'
 import { GitHubConnectPanel } from './GitHubConnectPanel'
 import { PendingSuggestionsPanel } from './PendingSuggestionsPanel'
-import { MaskedEmailCard } from './MaskedEmailCard'
 import { Suspense } from 'react'
 import { bulletsWithIds } from '@/lib/profile/bullets'
 import { recordBulletEdit, entrySourceLabel } from '@/lib/profile/provenance'
@@ -81,7 +80,6 @@ export function PersonalSection({ data, update }: { data: ProfileData; update: U
           </Field>
         </div>
       </div>
-      <MaskedEmailCard />
     </div>
   )
 }
@@ -368,9 +366,16 @@ export function ProjectsSection({
               key={proj.id}
               title={proj.name || 'New project'}
               subtitle={proj.technologies?.join(', ')}
+              sourceBadge={
+                proj.source === 'github' || proj.github
+                  ? 'github'
+                  : proj.source === 'resume'
+                    ? 'resume'
+                    : null
+              }
               sourceLine={
                 entrySourceLabel(data.provenance, proj.bulletIds) ??
-                (proj.github ? 'From GitHub' : null)
+                (proj.github ? 'From GitHub' : proj.source === 'resume' ? 'From uploaded resume' : null)
               }
               sourceHref={proj.github || null}
               onRemove={() => remove(proj.id)}

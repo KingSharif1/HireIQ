@@ -90,6 +90,6 @@ export function linkProjectGithubUrls(projects: ResumeProject[], repos: GitHubRe
     if (project.github?.trim()) return project
     const match = repos.find(r => repoMatchesProject(r, project))
     if (!match) return project
-    return { ...project, github: match.htmlUrl }
+    return { ...project, github: match.htmlUrl, source: project.source ?? 'github' }
   })
 }

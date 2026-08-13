@@ -97,6 +97,8 @@ export async function POST() {
       .update({
         masked_email: address,
         email_forward_to: profile.email_forward_to ?? profile.email ?? user.email ?? null,
+        email_tracking_mode: 'masked',
+        gmail_sync_enabled: false,
         updated_at: new Date().toISOString(),
       })
       .eq('id', user.id)
@@ -110,6 +112,7 @@ export async function POST() {
         email_forward_to: updated.email_forward_to ?? updated.email,
         email_forward_enabled: updated.email_forward_enabled ?? true,
         created: true,
+        mode: 'masked',
         domain,
       })
     }

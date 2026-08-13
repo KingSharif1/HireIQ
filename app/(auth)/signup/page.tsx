@@ -9,6 +9,7 @@ import { AuthShell } from '@/components/auth/AuthShell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { mapSupabaseAuthError } from '@/lib/auth/messages'
+import { googleSignInOAuthOptions } from '@/lib/auth/google-sign-in'
 import { Globe, Zap } from 'lucide-react'
 
 export default function SignupPage() {
@@ -56,10 +57,10 @@ export default function SignupPage() {
     const supabase = createClient()
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: googleSignInOAuthOptions(`${window.location.origin}/auth/callback`),
     })
     if (oauthError) {
-      setError(oauthError.message)
+      setError(mapSupabaseAuthError(oauthError.message))
       setLoading(false)
     }
   }

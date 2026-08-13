@@ -13,6 +13,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'HireIQ — Get the Interview',
   description: 'Tailor your resume to any job description and pass ATS systems with AI-powered precision.',
+  icons: {
+    icon: '/logo.svg',
+    apple: '/logo.png',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

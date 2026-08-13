@@ -8,6 +8,7 @@ import { AuthShell } from '@/components/auth/AuthShell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { authErrorMessage, mapSupabaseAuthError } from '@/lib/auth/messages'
+import { googleSignInOAuthOptions } from '@/lib/auth/google-sign-in'
 import { Globe } from 'lucide-react'
 
 function LoginForm() {
@@ -53,12 +54,12 @@ function LoginForm() {
     const supabase = createClient()
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback${redirectNext}`,
-      },
+      options: googleSignInOAuthOptions(
+        `${window.location.origin}/auth/callback${redirectNext}`,
+      ),
     })
     if (oauthError) {
-      setError(oauthError.message)
+      setError(mapSupabaseAuthError(oauthError.message))
       setLoading(false)
     }
   }
@@ -124,6 +125,11 @@ function LoginForm() {
           Don&apos;t have an account?{' '}
           <Link href="/signup" className="text-primary hover:underline">
             Sign up free
+          </Link>
+        </p>
+        <p className="text-center text-xs text-muted-foreground">
+          <Link href="/privacy" className="hover:underline underline-offset-2">
+            Privacy Policy
           </Link>
         </p>
       </div>

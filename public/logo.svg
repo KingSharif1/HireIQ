@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="HireIQ">
+  <rect width="128" height="128" rx="28" fill="#ffffff"/>
+  <path
+    fill="#1a1d24"
+    d="M72 18 38 70h22l-8 40 42-58H70l2-34z"
+  />
+  <path
+    fill="#0d9488"
+    d="M72 18 58 42h16l-2-24z"
+  />
+</svg>

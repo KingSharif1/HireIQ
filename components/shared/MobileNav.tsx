@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-import { LogOut, User, Sun, Moon } from 'lucide-react'
+import { LogOut, Settings, Sun, Moon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -35,7 +35,7 @@ export function MobileNav({ profile, unreadCount: _unreadCount = 0 }: MobileNavP
     ? `${profile.first_name?.[0] ?? ''}${profile.last_name?.[0] ?? ''}`.toUpperCase() || '?'
     : '?'
 
-  const profileActive = pathname.startsWith('/dashboard/profile')
+  const settingsActive = pathname.startsWith('/dashboard/settings')
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#1a1d24] border-t border-black/30 z-50 text-white/70">
@@ -63,10 +63,10 @@ export function MobileNav({ profile, unreadCount: _unreadCount = 0 }: MobileNavP
             <button
               className={cn(
                 'flex flex-col items-center gap-1 px-2 py-1.5 rounded-md min-w-[48px] outline-none transition-colors',
-                profileActive ? 'text-white' : 'text-white/55'
+                settingsActive ? 'text-white' : 'text-white/55'
               )}
               aria-label="Open account menu"
-              aria-current={profileActive ? 'page' : undefined}
+              aria-current={settingsActive ? 'page' : undefined}
             >
               <Avatar className="h-5 w-5">
                 <AvatarFallback className="text-[8px] bg-white/20 text-white leading-none">
@@ -87,9 +87,9 @@ export function MobileNav({ profile, unreadCount: _unreadCount = 0 }: MobileNavP
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/dashboard/profile">
-                <User className="w-4 h-4" />
-                Profile
+              <Link href="/dashboard/settings">
+                <Settings className="w-4 h-4" />
+                Settings
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem

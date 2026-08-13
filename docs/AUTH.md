@@ -57,14 +57,59 @@ Password reset and email confirm links use the same callback with `?next=/reset-
 
 Email/password sign-in is working on the HireIQ Supabase project.
 
-### 3. Google OAuth
+### 3. Google OAuth (required for “Continue with Google”)
+
+**Status (2026-08-12):** Email/password works. Google is **not enabled** on project `wsbbgznobxhjefaqbniv` until you finish this section. Until then, `/auth/v1/authorize?provider=google` returns `Unsupported provider: provider is not enabled` (login page shows a friendly message).
+
+This is **Supabase Auth Google** (sign-in). It is separate from **Gmail sync** (`GOOGLE_CLIENT_*` → `/api/google/callback`, Task 114). You can reuse one Google Cloud OAuth client if you add **both** redirect URIs below.
+
+#### A. Google Cloud Console
+
+1. Open [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials)
+2. **Create credentials → OAuth client ID → Web application**
+3. Authorized JavaScript origins (optional but tidy):
+   - `http://localhost:3000`
+   - `https://hireiq.kingsharif.com`
+4. **Authorized redirect URIs** (add all you need):
+   - `https://wsbbgznobxhjefaqbniv.supabase.co/auth/v1/callback` ← **required for Google login**
+   - `http://localhost:3000/api/google/callback` ← Gmail sync (local)
+   - `https://hireiq.kingsharif.com/api/google/callback` ← Gmail sync (prod)
+5. Copy **Client ID** and **Client secret**
+
+#### B. Supabase Dashboard
 
 **Authentication → Providers → Google**
 
-1. Create OAuth credentials in [Google Cloud Console](https://console.cloud.google.com/)
-2. Authorized redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback`
-3. Paste Client ID + Secret into Supabase
-4. **Enable** the Google provider (disabled = `provider is not enabled` in auth logs)
+1. Toggle **Enable**
+2. Paste Client ID + Client secret
+3. Save
+
+**Authentication → URL configuration** — redirect allowlist must include app callbacks (section 1). For Advanced extension Google-in-popup only, also add:
+
+```
+https://<EXTENSION_ID>.chromiumapp.org/
+```
+
+Find `EXTENSION_ID` on `chrome://extensions` (Developer mode). Prefer **Connect HireIQ** (website tab) so users can use Google *or* email without the chromiumapp URL.
+
+#### D. “Access blocked… has not completed the Google verification process” (403)
+
+Your OAuth consent screen is in **Testing**. Until Google verifies the app (or you publish for limited use), **only Test users** can sign in.
+
+1. [Google Cloud → OAuth consent screen](https://console.cloud.google.com/apis/credentials/consent)
+2. **Publishing status = Testing**
+3. **Test users** → **Add users** → add `sharifzamzam2@gmail.com` (and any other emails you’ll use)
+4. Wait ~1–5 minutes → try **Continue with Google** again
+
+Because we request `gmail.readonly` (restricted), full public launch later needs Google verification / CASA. **For now, Test users is enough.**
+
+Do **not** need to “Publish” yet for your own testing.
+
+#### C. Smoke test
+
+1. Hard-refresh `/login` (or clear site cookies if you saw refresh-token errors)
+2. **Continue with Google** → Google consent → land on `/dashboard` (or `?next=` destination)
+3. Extension: **Connect HireIQ** → same login (Google or email) → return to extension connected
 
 ### 4. Database migrations
 
@@ -97,8 +142,9 @@ Next.js 16 uses **`proxy.ts`** instead of the deprecated `middleware.ts` convent
 `proxy.ts` at the repo root:
 
 - Refreshes the Supabase session on each matched request
+- On stale/missing refresh tokens (`refresh_token_not_found`), clears `sb-*` cookies and treats the user as logged out (stops console spam)
 - Redirects unauthenticated users from `/dashboard/*` → `/login`
-- Redirects authenticated users from `/login`, `/signup`, `/forgot-password` → `/dashboard`
+- Redirects authenticated users from `/login`, `/signup`, `/forgot-password` → `/dashboard` (honors safe `?next=`)
 - Does **not** redirect `/reset-password` (recovery session must stay)
 
 `config.matcher` must be defined in `proxy.ts` — do not re-export from another file.
@@ -108,8 +154,10 @@ Next.js 16 uses **`proxy.ts`** instead of the deprecated `middleware.ts` convent
 | Issue | Fix |
 |-------|-----|
 | OAuth redirects to login with `error=auth_failed` | Add callback URL in Supabase redirect allowlist |
-| Google: `provider is not enabled` | Enable Google provider in Supabase Dashboard |
+| Google: `provider is not enabled` / friendly UI message | Enable Google in Supabase + paste Google Cloud client (section 3) |
+| `Invalid Refresh Token: Refresh Token Not Found` | Stale cookies — clear site data for localhost/prod, or hit `/login` after proxy clears `sb-*`; then sign in again |
 | Google sign-in works but name is blank | Run migration 007; re-login syncs via callback |
 | Email signup never confirms | Check spam; confirm Site URL matches your app origin |
 | Reset link does nothing | Ensure `/auth/callback` is in redirect URLs |
+| Extension Google popup fails after site Google works | Add `https://<EXTENSION_ID>.chromiumapp.org/` to redirect URLs, or use **Connect HireIQ** instead |
 | `middleware.ts` + `proxy.ts` conflict | Delete `middleware.ts`; use `proxy.ts` only (Next.js 16) |

@@ -54,6 +54,8 @@ export interface ResumeProject {
   technologies: string[]
   url: string
   github: string
+  /** Where this project first entered the profile. */
+  source?: 'manual' | 'github' | 'resume'
 }
 
 export interface ResumeCertification {
@@ -306,6 +308,10 @@ export interface Profile {
   masked_email?: string | null
   email_forward_to?: string | null
   email_forward_enabled?: boolean | null
+  /** Default true — opt out of Gmail employer-mail sync when Google is connected. */
+  gmail_sync_enabled?: boolean | null
+  /** Exclusive tracking path: gmail | masked | off */
+  email_tracking_mode?: 'gmail' | 'masked' | 'off' | null
   target_role: string | null
   years_experience: number | null
   profile_data: ProfileData | null

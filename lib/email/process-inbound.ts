@@ -1,16 +1,10 @@
 import { Resend } from 'resend'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { ApplicationEmailLogEntry } from '@/types'
 import {
   extractRecipientEmails,
   normalizeMaskedRecipient,
 } from '@/lib/email/masked-address'
-import {
-  inferStatusFromEmail,
-  matchInboundToJob,
-  type JobMatchCandidate,
-} from '@/lib/email/inbound-match'
-import type { NotificationInsert } from '@/lib/notifications'
+import { linkInboundEmailForUser } from '@/lib/email/link-inbound'
 
 export type ResendReceivedEvent = {
   type: string
@@ -35,69 +29,6 @@ function getResend(): Resend {
 function snippetFromBodies(text?: string | null, html?: string | null): string {
   const raw = (text || html || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
   return raw.length > 280 ? `${raw.slice(0, 277).trimEnd()}…` : raw
-}
-
-async function loadOpenApplications(userId: string): Promise<JobMatchCandidate[]> {
-  const admin = createAdminClient()
-  const { data } = await admin
-    .from('applications')
-    .select('id, job_id, status, job:jobs!inner(id, company, title)')
-    .eq('user_id', userId)
-    .not('status', 'in', '(accepted,rejected)')
-    .order('updated_at', { ascending: false })
-    .limit(80)
-
-  const rows: JobMatchCandidate[] = []
-  for (const row of data ?? []) {
-    const job = Array.isArray(row.job) ? row.job[0] : row.job
-    if (!job || typeof job !== 'object') continue
-    rows.push({
-      applicationId: row.id as string,
-      jobId: (job as { id: string }).id,
-      company: (job as { company?: string }).company ?? '',
-      title: (job as { title?: string }).title ?? '',
-    })
-  }
-  return rows
-}
-
-async function appendToEmailLog(opts: {
-  userId: string
-  applicationId: string
-  entry: ApplicationEmailLogEntry
-}): Promise<void> {
-  const admin = createAdminClient()
-  const { data: app } = await admin
-    .from('applications')
-    .select('email_log')
-    .eq('id', opts.applicationId)
-    .eq('user_id', opts.userId)
-    .maybeSingle()
-
-  const previous = Array.isArray(app?.email_log) ? app.email_log : []
-  if (previous.some((e: { id?: string }) => e?.id === opts.entry.id)) return
-
-  const next = [...previous, opts.entry].slice(-200)
-  const { error } = await admin
-    .from('applications')
-    .update({ email_log: next, updated_at: new Date().toISOString() })
-    .eq('id', opts.applicationId)
-    .eq('user_id', opts.userId)
-
-  if (error) throw error
-
-  await admin.from('application_events').insert({
-    application_id: opts.applicationId,
-    user_id: opts.userId,
-    event_type: 'email_linked',
-    meta: {
-      emailId: opts.entry.id,
-      subject: opts.entry.subject,
-      direction: opts.entry.direction,
-      source: opts.entry.source ?? 'masked',
-    },
-    created_at: opts.entry.at,
-  })
 }
 
 async function maybeForward(opts: {
@@ -127,7 +58,7 @@ async function maybeForward(opts: {
 
 /**
  * Process a verified Resend `email.received` event.
- * Idempotent on resend_email_id.
+ * Idempotent on provider=resend + provider_message_id.
  */
 export async function processResendInbound(event: ResendReceivedEvent): Promise<{
   ok: boolean
@@ -146,9 +77,18 @@ export async function processResendInbound(event: ResendReceivedEvent): Promise<
   const { data: existing } = await admin
     .from('inbound_email_events')
     .select('id')
-    .eq('resend_email_id', emailId)
+    .eq('provider', 'resend')
+    .eq('provider_message_id', emailId)
     .maybeSingle()
   if (existing) return { ok: true, reason: 'duplicate', eventId: existing.id }
+
+  // Fallback for pre-017 rows keyed only on resend_email_id
+  const { data: legacy } = await admin
+    .from('inbound_email_events')
+    .select('id')
+    .eq('resend_email_id', emailId)
+    .maybeSingle()
+  if (legacy) return { ok: true, reason: 'duplicate', eventId: legacy.id }
 
   const recipients = extractRecipientEmails(event.data.to)
   if (recipients.length === 0) return { ok: false, reason: 'no_recipients' }
@@ -190,72 +130,28 @@ export async function processResendInbound(event: ResendReceivedEvent): Promise<
   const html = received.data?.html ?? ''
   const bodyPreview = snippetFromBodies(text, html)
   const at = event.data.created_at ?? event.created_at ?? new Date().toISOString()
-  const hint = inferStatusFromEmail(subject, bodyPreview)
 
-  const candidates = await loadOpenApplications(user.id)
-  const matched = matchInboundToJob(candidates, {
-    from: fromAddress,
-    subject,
-    bodyPreview,
-  })
-
-  const logEntryId = `masked_${emailId}`
-  const entry: ApplicationEmailLogEntry = {
-    id: logEntryId,
-    subject,
-    body: text || bodyPreview || undefined,
-    direction: 'received',
-    at,
-    sender: fromAddress,
-    recipients: [normalizeMaskedRecipient(user.masked_email)],
-    snippet: bodyPreview,
-    messageId: event.data.message_id,
-    source: 'masked',
-    isRead: false,
-  }
-
-  if (matched) {
-    await appendToEmailLog({
-      userId: user.id,
-      applicationId: matched.match.applicationId,
-      entry,
-    })
-  }
-
-  const { data: inserted, error: insertError } = await admin
-    .from('inbound_email_events')
-    .insert({
-      user_id: user.id,
-      application_id: matched?.match.applicationId ?? null,
-      job_id: matched?.match.jobId ?? null,
-      masked_email: user.masked_email,
-      resend_email_id: emailId,
-      message_id: event.data.message_id ?? null,
-      from_address: fromAddress,
-      to_addresses: recipients,
+  const linked = await linkInboundEmailForUser({
+    userId: user.id,
+    email: {
+      provider: 'resend',
+      providerMessageId: emailId,
+      mailbox: normalizeMaskedRecipient(user.masked_email),
+      fromAddress,
+      toAddresses: recipients,
       subject,
-      body_preview: bodyPreview,
-      parsed_status: hint?.status ?? null,
-      confidence: hint?.confidence ?? null,
-      raw_meta: {
-        matchScore: matched?.score ?? null,
-        hintReason: hint?.reason ?? null,
+      bodyText: text || undefined,
+      bodyPreview,
+      messageId: event.data.message_id ?? null,
+      at,
+      rawMeta: {
         attachmentCount: Array.isArray(event.data.attachments) ? event.data.attachments.length : 0,
       },
-      created_at: at,
-    })
-    .select('id')
-    .single()
+    },
+  })
 
-  if (insertError) {
-    // Unique race on resend_email_id
-    if (insertError.code === '23505') {
-      return { ok: true, reason: 'duplicate' }
-    }
-    throw insertError
-  }
+  if (!linked.ok || !linked.eventId) return linked
 
-  let forwardedAt: string | null = null
   if (user.email_forward_enabled !== false) {
     const forwardTo = (user.email_forward_to || user.email || '').trim()
     if (forwardTo) {
@@ -266,30 +162,13 @@ export async function processResendInbound(event: ResendReceivedEvent): Promise<
         text: text || bodyPreview,
       })
       if (fwdId) {
-        forwardedAt = new Date().toISOString()
         await admin
           .from('inbound_email_events')
-          .update({ forwarded_at: forwardedAt })
-          .eq('id', inserted.id)
+          .update({ forwarded_at: new Date().toISOString() })
+          .eq('id', linked.eventId)
       }
     }
   }
 
-  const link = matched
-    ? `/dashboard/tracker/${matched.match.jobId}?tab=email`
-    : '/dashboard/tracker?view=outreach'
-
-  const notification: NotificationInsert = {
-    user_id: user.id,
-    type: 'email_status',
-    title: matched
-      ? `Email from ${matched.match.company || 'employer'}`
-      : 'New application email',
-    body: subject,
-    link,
-    ref_id: inserted.id,
-  }
-  await admin.from('notifications').insert(notification)
-
-  return { ok: true, eventId: inserted.id }
+  return { ok: true, eventId: linked.eventId, reason: linked.reason }
 }

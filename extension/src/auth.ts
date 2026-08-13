@@ -58,7 +58,15 @@ export async function signInWithGoogle(): Promise<AuthSession> {
   const expiresIn = Number(params.get('expires_in') || '3600')
   const error = params.get('error_description') || params.get('error')
 
-  if (error) throw new Error(error)
+  if (error) {
+    const lower = error.toLowerCase()
+    if (lower.includes('provider is not enabled') || lower.includes('unsupported provider')) {
+      throw new Error(
+        'Google sign-in is not enabled in Supabase yet. Use Connect HireIQ (email or Google on the website), or enable Google under Authentication → Providers.',
+      )
+    }
+    throw new Error(error)
+  }
   if (!accessToken || !refreshToken) {
     throw new Error(
       `No session returned. Add this redirect URL in Supabase Auth → URL configuration: ${redirectUri}`,

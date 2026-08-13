@@ -28,7 +28,6 @@ import {
   isNegativeChoice,
 } from '@hireiq/review-choices'
 import { matchChoiceLabel } from '@hireiq/location-country'
-import { isEntryLevelRole } from '@hireiq/entry-level'
 import {
   clickSubmitButton,
   findSubmitButton,
@@ -497,6 +496,24 @@ function ensureUi() {
         flex-direction: column;
         gap: 6px;
       }
+      .resume-slot {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid #e2e8f0;
+      }
+      .resume-slot:empty { display: none; border: 0; padding: 0; margin: 0; }
+      .resume-slot .check {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        font-size: 12px;
+        color: #334155;
+      }
+      .resume-slot .check.ok { color: #047857; }
+      .resume-slot .check.need { color: #b45309; }
       .files select {
         width: 100%;
         box-sizing: border-box;
@@ -556,41 +573,38 @@ function ensureUi() {
             <input id="hiq-ats-email" type="email" placeholder="email you used on this site" />
             <button type="button" class="btn secondary" id="hiq-ats-save">Save ATS email</button>
           </div>
-          <details class="section" id="hiq-autofill-info">
+          <details class="section" id="hiq-autofill-info" open>
             <summary>
-              <span class="sum-title">Your Autofill Information</span>
+              <span class="sum-title">Autofill Information</span>
               <span class="muted" id="hiq-preview-summary">Sign in to load…</span>
             </summary>
             <div class="section-body">
               <div class="muted" id="hiq-preview-loading">Sign in to load master resume…</div>
               <div class="kv" id="hiq-preview" hidden></div>
               <button type="button" class="btn linkish" id="hiq-edit-profile" hidden>Edit master profile →</button>
+              <div class="progress" style="margin-top:8px">
+                <div class="progress-top">
+                  <span id="hiq-prog-label">Form progress</span>
+                  <span id="hiq-prog-pct">0%</span>
+                </div>
+                <div class="bar"><i id="hiq-prog-bar"></i></div>
+                <details class="fields-details">
+                  <summary>Show fields</summary>
+                  <div id="hiq-checks"><div class="muted">Connect HireIQ in the popup, then Autofill.</div></div>
+                </details>
+              </div>
+              <div id="hiq-resume-slot" class="resume-slot"></div>
             </div>
           </details>
           <div class="section review" id="hiq-review">
-            <h3>Review AI answers</h3>
+            <h3>Questions</h3>
+            <p class="hint" id="hiq-review-hint">Repetitive ATS questions — pick or type answers here.</p>
             <div id="hiq-review-list"></div>
           </div>
           <div class="section submit" id="hiq-submit-wrap">
             <h3>Submit</h3>
             <p class="hint" id="hiq-submit-hint">You watch the click — HireIQ never submits silently.</p>
             <button type="button" class="btn primary" id="hiq-submit" disabled>Submit on this site</button>
-          </div>
-          <div class="section files" id="hiq-files">
-            <h3>Documents</h3>
-            <p class="hint" id="hiq-files-hint">Generate on HireIQ, then attach the PDF here.</p>
-            <div id="hiq-files-body"></div>
-          </div>
-          <div class="progress">
-            <div class="progress-top">
-              <span id="hiq-prog-label">Form progress</span>
-              <span id="hiq-prog-pct">0%</span>
-            </div>
-            <div class="bar"><i id="hiq-prog-bar"></i></div>
-            <details class="fields-details">
-              <summary>Show fields</summary>
-              <div id="hiq-checks"><div class="muted">Connect HireIQ in the popup, then Autofill.</div></div>
-            </details>
           </div>
           <div class="status" id="hiq-status"></div>
         </div>
@@ -623,11 +637,12 @@ function ensureUi() {
   const progBar = shadow.getElementById('hiq-prog-bar') as HTMLElement
   const reviewEl = shadow.getElementById('hiq-review')!
   const reviewList = shadow.getElementById('hiq-review-list')!
-  const filesEl = shadow.getElementById('hiq-files')!
+  const filesEl = shadow.getElementById('hiq-resume-slot')!
   const submitWrap = shadow.getElementById('hiq-submit-wrap')!
   const submitBtn = shadow.getElementById('hiq-submit') as HTMLButtonElement
   const submitHint = shadow.getElementById('hiq-submit-hint')!
-  const filesBody = shadow.getElementById('hiq-files-body')!
+  const filesBody = filesEl
+
 
   let trackerUrl = ''
   let resumeUrl = ''
@@ -698,14 +713,32 @@ function ensureUi() {
     editProfileBtn.hidden = !profileUrl
   }
 
+  function formNeedsResumeAttach() {
+    return Boolean(lastFilesOpts.hasResumeInput || findResumeFileInput())
+  }
+
+  function resumeAttachedOk() {
+    return Boolean(lastFilesOpts.resumeAttached)
+  }
+
   function updateProgress(report: FillReport) {
-    const total = report.requiredTotal || report.fillableCount || report.items.length
-    const filled = report.requiredTotal ? report.requiredFilled : report.filledCount
+    let total = report.requiredTotal || report.fillableCount || report.items.length
+    let filled = report.requiredTotal ? report.requiredFilled : report.filledCount
+    const needsResume = formNeedsResumeAttach()
+    if (needsResume) {
+      total += 1
+      if (resumeAttachedOk()) filled += 1
+    }
     const p = pct(filled, total)
     progLabel.textContent = total ? `${filled}/${total} ready` : 'Form progress'
     progPct.textContent = `${p}%`
     progBar.style.width = `${p}%`
-    checksEl.innerHTML = renderChecklist(report)
+    let html = renderChecklist(report)
+    if (needsResume) {
+      const ok = resumeAttachedOk()
+      html += `<div class="check ${ok ? 'ok' : 'need'}"><span>${ok ? '✓' : '○'}</span><span>Resume PDF</span></div>`
+    }
+    checksEl.innerHTML = html
   }
 
   async function loadProfile(): Promise<AutofillProfile> {
@@ -835,15 +868,11 @@ function ensureUi() {
       }
       resumes = Array.isArray(json.resumes) ? json.resumes : []
       selectedResumeId = resumes[0]?.id || ''
-      if (filesEl.classList.contains('show')) {
-        renderFilesUi(lastFilesOpts)
-      } else if (resumes.length > 0) {
-        // Show documents section so user can pick even before autofill attach attempt
-        renderFilesUi({
-          hasResumeInput: Boolean(findResumeFileInput()),
-          hasCoverInput: Boolean(findCoverFileInput()),
-        })
-      }
+      renderFilesUi({
+        ...lastFilesOpts,
+        hasResumeInput: Boolean(findResumeFileInput()),
+        hasCoverInput: Boolean(findCoverFileInput()),
+      })
     } catch {
       resumes = []
       selectedResumeId = ''
@@ -1062,20 +1091,13 @@ function ensureUi() {
       return
     }
 
-    const job = scrape()
-    const entry = isEntryLevelRole(job.title, job.description)
-    const needsResume =
-      entry &&
-      (lastFilesOpts.hasResumeInput || Boolean(findResumeFileInput())) &&
-      !lastFilesOpts.resumeAttached
-
+    const needsResume = formNeedsResumeAttach() && !resumeAttachedOk()
     if (needsResume) {
       submitBtn.disabled = true
       submitBtn.className = 'btn warn'
-      submitBtn.textContent = 'Attach resume to submit'
+      submitBtn.textContent = 'Finish Autofill to submit'
       submitHint.textContent =
-        'Entry-level / intern / new-grad roles: generate a tailored resume on HireIQ, then attach it here.'
-      filesEl.classList.add('show')
+        'This form needs a resume — generate on HireIQ, then attach under Autofill Information.'
       return
     }
 
@@ -1264,15 +1286,11 @@ function ensureUi() {
   }
 
   function showDocumentsSection() {
-    filesEl.classList.add('show')
     renderFilesUi(lastFilesOpts)
   }
 
   function hideDocumentsIfEmpty() {
-    if (!savedJobId) {
-      filesEl.classList.remove('show')
-      filesBody.innerHTML = ''
-    }
+    if (!savedJobId) filesBody.innerHTML = ''
   }
 
   function renderFilesUi(opts: {
@@ -1283,18 +1301,31 @@ function ensureUi() {
     hasResumeInput?: boolean
     hasCoverInput?: boolean
   }) {
-    lastFilesOpts = opts
+    lastFilesOpts = {
+      ...opts,
+      hasResumeInput: opts.hasResumeInput ?? Boolean(findResumeFileInput()),
+      hasCoverInput: opts.hasCoverInput ?? Boolean(findCoverFileInput()),
+    }
     if (!savedJobId) {
-      filesEl.classList.remove('show')
+      filesBody.innerHTML = ''
       return
     }
 
+    const hasResume = Boolean(lastFilesOpts.hasResumeInput)
     const bits: string[] = []
     bits.push(`<div class="doc-actions">
       <button type="button" class="btn secondary" id="hiq-gen-resume">Generate tailored resume</button>
       <button type="button" class="btn secondary" id="hiq-gen-cover">Generate cover letter</button>
       <button type="button" class="btn linkish" id="hiq-open">Open job in HireIQ →</button>
     </div>`)
+
+    if (hasResume) {
+      bits.push(
+        lastFilesOpts.resumeAttached
+          ? `<div class="check ok"><span>✓</span><span>Resume PDF attached</span></div>`
+          : `<div class="check need"><span>○</span><span>Resume PDF — required for this form</span></div>`,
+      )
+    }
 
     if (resumes.length > 0) {
       const options = resumes
@@ -1306,27 +1337,23 @@ function ensureUi() {
       bits.push(
         `<label class="muted" for="hiq-resume-pick" style="display:block;margin-bottom:2px">Resume version</label><select id="hiq-resume-pick">${options}</select>`,
       )
-      if (opts.hasResumeInput) {
-        bits.push(
-          opts.resumeAttached
-            ? `<div class="muted">Resume PDF attached ✓</div>`
-            : `<button type="button" class="btn secondary" id="hiq-attach-resume">Attach selected resume</button>`,
-        )
+      if (hasResume && !lastFilesOpts.resumeAttached) {
+        bits.push(`<button type="button" class="btn secondary" id="hiq-attach-resume">Attach selected resume</button>`)
       }
-    } else {
-      bits.push(`<div class="muted">No tailored resume yet — generate on HireIQ, then come back to attach.</div>`)
+    } else if (hasResume) {
+      bits.push(`<div class="muted">No tailored resume yet — generate on HireIQ, then come back.</div>`)
     }
 
-    if (opts.hasCoverInput) {
-      if (opts.coverAttached) {
-        bits.push(`<div class="muted">Cover letter PDF attached ✓</div>`)
-      } else if (opts.coverAvailable) {
+    if (lastFilesOpts.hasCoverInput) {
+      if (lastFilesOpts.coverAttached) {
+        bits.push(`<div class="check ok"><span>✓</span><span>Cover letter attached</span></div>`)
+      } else if (lastFilesOpts.coverAvailable) {
         bits.push(`<button type="button" class="btn secondary" id="hiq-attach-cover">Attach cover letter</button>`)
       }
     }
 
-    filesEl.classList.add('show')
     filesBody.innerHTML = bits.join('')
+    if (profile) updateProgress(scanFormProgress(profile))
 
     shadow.getElementById('hiq-gen-resume')?.addEventListener('click', () => {
       openHireIQ(resumeUrl || trackerUrl)
@@ -1470,16 +1497,9 @@ function ensureUi() {
       refreshSubmitUi()
       return
     }
-    const job = scrape()
-    const entry = isEntryLevelRole(job.title, job.description)
-    if (
-      entry &&
-      (lastFilesOpts.hasResumeInput || Boolean(findResumeFileInput())) &&
-      !lastFilesOpts.resumeAttached
-    ) {
-      setStatus('Attach a tailored resume first (entry-level / intern / new-grad).', 'err')
+    if (formNeedsResumeAttach() && !resumeAttachedOk()) {
+      setStatus('Attach a resume under Autofill Information first.', 'err')
       refreshSubmitUi()
-      filesEl.classList.add('show')
       return
     }
     const pending = pendingReviewCount()

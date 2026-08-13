@@ -1,5 +1,77 @@
 # Changelog
 
+## 2026-08-12 — Task 143: Google login readiness + stale session cleanup
+
+**What:** Proxy clears stale Supabase cookies on `refresh_token_not_found` (stops terminal spam). Skips `getUser` when no auth cookies (less auth API chatter on public pages). Login/signup map “provider not enabled” to a clear message. AUTH.md §3 checklist with exact Supabase callback URI. Extension Google popup error copy points to enable steps / Connect HireIQ.
+
+**Files:** `proxy.ts`, `lib/auth/messages.ts`, `app/(auth)/login/page.tsx`, `app/(auth)/signup/page.tsx`, `extension/src/auth.ts`, `docs/AUTH.md`, `docs/TASKS.md`, `docs/STATUS.md`
+
+**Why:** App UI already has Continue with Google; Supabase still returns `provider is not enabled` until dashboard + Google Cloud OAuth are configured. Dead refresh cookies + Set-Cookie churn was helping drive `/login` refetch storms in dev.
+
+**Next:** User enables Google in Supabase → smoke site login → extension Connect (email or Google).
+
+---
+
+## 2026-08-12 — Privacy Policy page + Google verification assets
+
+**What:** Public `/privacy` policy covering account, resumes, Gmail readonly, GitHub, masked email, AI processors; logo in `public/`; login link to privacy.
+
+**Files:** `app/privacy/page.tsx`, `public/logo.*`, `app/layout.tsx`, login page, docs
+
+**Why:** Required for Google OAuth verification / consent screen.
+
+**Next:** Point Google verification at `https://hireiq.kingsharif.com/privacy`.
+
+---
+
+## 2026-08-12 — Settings + Google Gmail at signup + tracking modes
+
+**What:** `/dashboard/settings` (Integrations + Account); Profile in primary nav; exclusive `email_tracking_mode` (gmail|masked|off); Google login requests `gmail.readonly` and persists refresh token when available; project GitHub/Resume badges; hide Email tab when off. Migration **018** applied.
+
+**Files:** auth google sign-in, auth callback, settings UI/APIs, nav, JobDetailPage, profile EntryCard, migrations 018, docs
+
+**Why:** Clear permissions surface; one Google consent for tracking; mutual exclusive tracking paths.
+
+**Next:** Smoke Google login + Gmail persist; reconnect Gmail if already signed in without refresh token.
+
+---
+
+## 2026-08-12 — Task 114 slice 2: Gmail sync poller + shared inbound linker
+
+**What:** Applied migrations **016** + **017**. Shared `linkInboundEmailForUser`; Gmail list/get + token refresh; user **Sync now** (`POST /api/google/sync`) and batch cron (`/api/cron/gmail-sync`). Matched mail → `email_log` source `gmail` + notifications.
+
+**Files:** `016_gmail_sync.sql`, `017_inbound_provider.sql`, `lib/email/{link-inbound,process-inbound}.ts`, `lib/google/{gmail,sync}.ts`, `app/api/google/sync`, `app/api/cron/gmail-sync`, `GoogleConnectPanel.tsx`, docs
+
+**Why:** Finish MVP path from mailbox → tracker once OAuth client is configured.
+
+**Next:** Add `GOOGLE_CLIENT_*` (+ optional `CRON_SECRET`) locally/Vercel; connect Gmail in Profile; Sync now smoke.
+
+---
+
+## 2026-08-12 — Task 114 slice 1: Gmail connect + opt-out pref
+
+**What:** Separate Google OAuth (gmail.readonly + offline) mirrored after GitHub connect; `google_connections` + `profiles.gmail_sync_enabled` (default true); Profile → Personal **Gmail tracking** panel. No mailbox scan yet.
+
+**Files:** `docs/supabase/migrations/016_gmail_sync.sql`, `lib/google/*`, `app/api/google/{connect,callback,disconnect,status}`, `GoogleConnectPanel.tsx`, `.env.example`, docs
+
+**Why:** Store refresh tokens + opt-out before building the poller; Supabase Google login does not grant Gmail scopes.
+
+**Next:** Apply migration 016; add GOOGLE_CLIENT_* locally; then Gmail poller → inbound_email_events / email_log.
+
+---
+
+## 2026-08-12 — Extension v0.9.5: panel IA (Autofill + Questions)
+
+**What:** Folded Documents into **Autofill Information** (profile + progress % + generate/attach). Renamed review to **Questions**. Resume is a progress checklist item; Submit blocks whenever the form has a resume upload (not only entry-level).
+
+**Files:** `extension/src/content.ts`, `extension/package.json`, `extension/manifest.config.ts`, `docs/EXTENSION.md`, `docs/STATUS.md`, `docs/TASKS.md`
+
+**Why:** Match panel IA lock — one autofill truth surface; no separate “attach to submit” Documents product.
+
+**Next:** Reload unpacked extension → refresh apply tab; then Task 114 Gmail MVP.
+
+---
+
 ## 2026-08-12 — Docs sync: Resend prod + deploy + next queue
 
 **What:** STATUS/EMAIL/TASKS updated for production HireIQ (`hireiq.kingsharif.com`), Resend receiving on `mail.kingsharif.com`, migration 015, Vercel env hygiene, and the dual-path email plan (114 Gmail MVP / 139 live mask / 140 v2 reply-relay). Task 141 deploy marked DONE.

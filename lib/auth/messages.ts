@@ -4,6 +4,8 @@ const AUTH_ERRORS: Record<string, string> = {
   auth_failed: 'Sign-in failed. Try again or use a different method.',
   invalid_credentials: 'Email or password is incorrect.',
   email_not_confirmed: 'Confirm your email first — check your inbox for the link.',
+  google_not_enabled:
+    'Google sign-in is not enabled yet. Use email/password, or ask an admin to enable Google in Supabase Auth.',
 }
 
 export function authErrorMessage(code: string | null | undefined, fallback?: string): string | null {
@@ -19,6 +21,13 @@ export function mapSupabaseAuthError(message: string): string {
   }
   if (lower.includes('email not confirmed')) {
     return AUTH_ERRORS.email_not_confirmed
+  }
+  if (
+    lower.includes('provider is not enabled') ||
+    lower.includes('unsupported provider') ||
+    lower.includes('validation_failed')
+  ) {
+    return AUTH_ERRORS.google_not_enabled
   }
   return message
 }

@@ -127,6 +127,7 @@ function applyEnrichment(
       technologies: enrichment.technologies ?? suggestion.newProject?.technologies ?? [],
       url: enrichment.url?.trim() ?? '',
       github: enrichment.github?.trim() || suggestion.newProject?.github || '',
+      source: suggestion.source === 'github' ? ('github' as const) : ('manual' as const),
     }
     return {
       ...data,
@@ -231,6 +232,7 @@ function applyNewProject(data: ProfileData, suggestion: PendingSuggestion): Prof
     technologies: np.technologies,
     url: '',
     github: np.github,
+    source: suggestion.source === 'github' ? ('github' as const) : ('manual' as const),
   }
 
   const provenance = { ...(data.provenance ?? {}) }

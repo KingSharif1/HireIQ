@@ -4,7 +4,7 @@ export default defineManifest({
   manifest_version: 3,
   name: 'HireIQ — Job Apply Copilot',
   description: 'Save jobs to HireIQ and autofill applications from your profile.',
-  version: '0.9.4',
+  version: '0.9.5',
   action: {
     default_popup: 'src/popup.html',
     default_title: 'HireIQ',

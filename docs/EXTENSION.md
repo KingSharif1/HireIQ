@@ -23,7 +23,7 @@ NEXT_PUBLIC_SUPABASE_URL=…
 NEXT_PUBLIC_SUPABASE_ANON_KEY=…
 ```
 
-Migrations through **`014_application_form_answers`**. Extension package **v0.9.1**.
+Migrations through **`014_application_form_answers`**. Extension package **v0.9.5**.
 
 ## Build
 
@@ -33,13 +33,14 @@ cd extension && npm run build
 
 Chrome → Extensions → Load unpacked → `extension/dist` (or Reload after rebuild).
 
-## Autofill (v0.9)
+## Autofill (v0.9.5)
 
 1. **Autofill** fills known profile fields with scroll + green highlight (job must already be saved).
 2. Closed fields (Yes/No, select, radio, **Greenhouse react-select combobox**) → pick buttons when ≤8 options; larger lists (Country…) stay typeahead/text.
 3. Free-text / sensitive without readable options → type or Accept AI draft; lasting facts can **Also save to master?**
 4. Answering **No** auto-fills later “If yes / please explain” follow-ups with **N/A**.
-5. **Documents** (merged): Generate tailored resume/cover opens HireIQ website (full Q&A + edit). On tab focus, resume list refreshes and selects the newest PDF to attach.
+5. **Autofill Information** holds profile preview, **progress %** (includes Resume PDF when the form has an upload), and Generate / attach actions. Generate opens the HireIQ website (full Q&A + edit). On tab focus, resume list refreshes and selects the newest PDF.
+6. **Questions** is for repetitive ATS Q&A (pick / type / Accept).
 
 ## Save-first (v0.8+)
 
@@ -51,6 +52,7 @@ Chrome → Extensions → Load unpacked → `extension/dist` (or Reload after re
 
 - Panel **Submit on this site** finds Submit/Apply on the page, scrolls, highlights, and clicks **only when you press it**.
 - Requires the job to be saved first.
+- If the form has a resume upload and none is attached → Submit stays blocked (“Finish Autofill to submit”).
 - Pending review answers → confirm dialog (“Submit anyway?”).
 - After click → marks the application **Applied** in HireIQ.
 - **LinkedIn / Indeed:** blocked from automated click — you submit yourself.
@@ -61,14 +63,13 @@ If the panel doesn’t appear on a job page: open the HireIQ popup once (injects
 
 | Action | Behavior |
 |--------|----------|
-| **Your Autofill Information** | Collapsed `<details>`; summary shows Name · email · location |
-| **Autofill** | Requires saved job → animated known-field fill → AI provisional drafts → accordion review → attach selected resume/cover PDF |
-| **Review AI answers** | One expanded card at a time; Accept / Edit / Skip; lasting facts can promote to master |
-| **Submit on this site** | Disabled until saved; user-watched click; marks Applied in HireIQ |
+| **Autofill Information** | Open `<details>`; summary Name · email · location; progress + Generate/attach inside |
+| **Autofill** | Requires saved job → animated known-field fill → AI provisional drafts → Questions → attach resume/cover PDF |
+| **Questions** | One expanded card at a time; Accept / Edit / Skip; lasting facts can promote to master |
+| **Submit on this site** | Disabled until saved; blocked if resume upload present and not attached; user-watched click; marks Applied |
 | **Save to HireIQ** | Creates job/application; then enables Autofill + shows Saved chip |
-| **Documents** | Resume `<select>` after save; Generate & attach when PDF missing |
-| **Progress** | Bar + N/M ready + %; field checklist behind “Show fields” |
-| **Generate resume / cover** | Opens tracker Documents |
+| **Progress** | Bar + N/M ready + %; field checklist + Resume PDF row when upload exists |
+| **Generate resume / cover** | Opens HireIQ website from Autofill Information |
 | **Employer account needed** | If login/signup wall detected — you create the account; paste the email for tracking |
 
 We do **not** create ATS accounts or mask emails for you. Sensitive EEOC/salary/conviction fields are skipped client-side and by the drafts API.

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-import { LogOut, Zap, Bell, User, Sun, Moon } from 'lucide-react'
+import { LogOut, Zap, Bell, Settings, Sun, Moon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -39,7 +39,7 @@ export function Sidebar({ profile, unreadCount = 0 }: SidebarProps) {
     ? `${profile.first_name?.[0] ?? ''}${profile.last_name?.[0] ?? ''}`.toUpperCase() || '?'
     : '?'
 
-  const profileActive = pathname.startsWith('/dashboard/profile')
+  const settingsActive = pathname.startsWith('/dashboard/settings')
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -100,10 +100,10 @@ export function Sidebar({ profile, unreadCount = 0 }: SidebarProps) {
               <button
                 className={cn(
                   'flex items-center justify-center w-11 h-11 rounded-md hover:bg-white/10 outline-none',
-                  profileActive && 'bg-white/15'
+                  settingsActive && 'bg-white/15'
                 )}
                 aria-label="Open account menu"
-                aria-current={profileActive ? 'page' : undefined}
+                aria-current={settingsActive ? 'page' : undefined}
               >
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="text-[10px] bg-white/20 text-white">{initials}</AvatarFallback>
@@ -121,9 +121,9 @@ export function Sidebar({ profile, unreadCount = 0 }: SidebarProps) {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/dashboard/profile">
-                  <User className="w-4 h-4" />
-                  Profile
+                <Link href="/dashboard/settings">
+                  <Settings className="w-4 h-4" />
+                  Settings
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem

@@ -1,5 +1,62 @@
 # HireIQ Decisions
 
+## 2026-08-12 — Settings + email tracking modes + Google Gmail at signup
+
+**Context:** Google login ≠ Gmail mailbox permission. Tracking UX was buried under Personal Info. User wants exclusive tracking paths and account Settings.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Tracking modes | **Mutual exclusive:** `gmail` \| `masked` \| `off` (`email_tracking_mode`) |
+| Google signup | **One consent** — login scopes include `gmail.readonly` + offline; persist refresh token when Supabase returns it |
+| Settings | `/dashboard/settings` — Integrations (tracking + GitHub) + Account (password, delete) |
+| Nav | **Profile** in primary rail; avatar menu → **Settings** (not Profile) |
+| Off mode | Hide job **Email** tab |
+| Projects | Badge for GitHub / resume-sourced entries |
+
+**Tradeoff:** Supabase must return `provider_refresh_token` (prompt=consent). If missing, Settings still offers Connect Gmail.
+
+**Revisit if:** Google/Supabase stops issuing refresh tokens → fall back to always `/api/google/connect` after login.
+
+---
+
+## 2026-08-12 — Email tracking: Gmail MVP (default on), masking v2 polish
+
+**Context:** User wants employer status updates without requiring a separate apply identity for MVP. Prefer reading the mailbox they already use when signed in with Google. Full Sprout-style mask + reply relay remains desirable but heavier.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| MVP tracking | **Gmail read-only sync** (Task 114) — match employer mail to saved/applied jobs |
+| Default | **On** when Google is connected — user may **opt out** |
+| Email/password-only users | Soft nudge: connect Google for tracking; optional use existing masked apply address (Task 139) until Gmail connected |
+| Extension Submit | Record submitted-at on HireIQ Submit to improve match confidence; mobile / manual submit still rely on mail matching |
+| Accuracy | Not 100% — high-confidence auto-link; medium/low ask confirm |
+| v2 | Full **masking / forwarding / reply relay** (inbound → log → forward; user reply via HireIQ or CC path). Documented; do not block MVP on it |
+| Already shipped | Masked inbound address (015 / Task 139) stays available as apply-paste + forward; v2 deepens reply UX |
+
+**Tradeoff:** Gmail `readonly` needs Google OAuth verification (CASA) for production scale; better UX for Google users than forcing a second email. Masking remains the path for non-Google and for stronger thread ownership later.
+
+**Revisit if:** OAuth verification blocked → lean on masked inbound as primary; or per-job `+alias` forwarding ships first.
+
+---
+
+## 2026-08-12 — Extension panel IA + resume gate (grill lock)
+
+**Context:** User does not want a separate Documents / “attach resume to submit” product surface. Autofill truth + progress should be one place; repetitive ATS Qs in Questions.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Panel sections | **Autofill Information** (profile + **progress %**) + **Questions** (repetitive ATS Q&A) |
+| Resume | Required when form has resume upload (**gate A**); surface as a **progress item**, not a separate Documents block |
+| Cover | Soft nudge only |
+| Generate / edit resume | Still opens HireIQ website (B); focus-refresh list when returning |
+
+**Revisit if:** Users miss Generate CTA without Documents section.
+
+---
+
 ## 2026-08-09 — Extension autofill: animate + AI drafts + write-back (grill lock)
 
 **Context:** User wants Jobright-like watch-it-fill, AI drafts for unanswered questions with Accept/Edit/Skip, gray provisional text, PDF attach when tailored export exists, and write-back to job + optional master.
@@ -66,7 +123,8 @@
 
 **Tradeoff:** Attribution to a job is heuristic (company in subject/from); unmatched mail still notifies and stores relationally. JSONB log stays a view adapter, not the primary store for provider mail.
 
-**Revisit if:** Need per-job aliases (`+jobid`) or LLM status classification.
+**Revisit if:** Need per-job aliases (`+jobid`) or LLM status classification.  
+**Updated 2026-08-12:** MVP tracking for Google users is **Gmail sync (default on / opt-out)** — see decision above. Masked inbound remains for apply-paste + v2 reply-relay (Task 140).
 
 ---
 

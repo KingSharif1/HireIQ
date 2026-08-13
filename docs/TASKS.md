@@ -145,11 +145,13 @@ Files changed: `components/jobs/ApplicationsTracker.tsx`, `TrackerBoard.tsx`, `T
 ---
 
 ## Task 114 — Gmail read-only scan + status inference
-Status: PENDING (MVP email tracking — elevate)  
+Status: IN PROGRESS  
 Scope: Gmail OAuth readonly, scan job, match to tracked applications, notifications, **opt-out pref (default on)**  
 Goal: When Google is connected, scan/match employer emails to saved/applied jobs; high confidence auto-link, medium/low confirm. Extension Submit timestamps improve matching. Per 2026-08-12 DECISIONS lock.  
 Notes: Not 100% accurate by design. Email/password users nudged to connect Google. Full mask/reply relay = v2 (see Task 139 + EMAIL.md).  
-Blocked by: Google OAuth verification path for `gmail.readonly` in production; Edge/cron or app-side poller.
+Blocked by: Google OAuth verification path for `gmail.readonly` in production; needs `GOOGLE_CLIENT_ID`/`SECRET` in env.  
+Result (partial): Migrations **016/017** applied. Connect + opt-out + Sync now + cron batch + shared inbound linker. History API incremental still TODO (currently newer_than:14d list).  
+Files changed: `016_gmail_sync.sql`, `017_inbound_provider.sql`, `lib/google/*`, `lib/email/link-inbound.ts`, `process-inbound.ts`, `app/api/google/*`, `app/api/cron/gmail-sync`, `GoogleConnectPanel.tsx`, docs
 
 ---
 
@@ -168,6 +170,15 @@ Goal: Forwarded posting → parsed → lands in tracker. Per DESIGN-TEAL-PARITY.
 
 ---
 
+## Task 142 — Extension panel IA: Autofill+progress + Questions (v0.9.5)
+Status: DONE  
+Scope: `extension/src/content.ts`, version bump, docs  
+Goal: One Autofill Information section (profile + progress % + resume actions); Questions for ATS Q&A; no standalone Documents; Submit gated whenever resume upload exists.  
+Result: Progress includes Resume PDF row; Generate/attach folded into Autofill; review retitled Questions; gate A (any resume field) replaces entry-level-only; v0.9.5.  
+Files changed: `extension/src/content.ts`, `extension/package.json`, `extension/manifest.config.ts`, `docs/EXTENSION.md`, `docs/CHANGELOG.md`, `docs/STATUS.md`, `docs/TASKS.md`
+
+---
+
 ## Task 116 — Chrome extension Phase 1: save-to-tracker
 Status: DONE  
 Scope: new `extension/` (MV3 + TS + CRXJS), token handshake from dashboard, `POST /api/jobs` token auth  
@@ -181,9 +192,9 @@ Files changed: `docs/supabase/migrations/012_api_tokens.sql`, `lib/supabase/admi
 Status: IN PROGRESS  
 Scope: `extension/` board adapters (GH/Lever/Ashby/Workday + generic fallback), review queue UI  
 Goal: Fill forms from profile + tailored PDF; user batch-reviews and submits while watching. Unknown fields ask the user every time (no answer bank). LinkedIn/Indeed excluded from automation. Per DESIGN-TEAL-PARITY.md §D.  
-Notes: Phase 2 connect/ATS + autofill UX done. Phase 3 **user-watched Submit** shipped (v0.7.0). **v0.8.0** save-first panel + compact UX + resume pick. Board-specific adapters still optional polish.  
-Result (partial): Website connect + ATS email + autofill UX + Submit + save-first gate + accordion review + resume select. LinkedIn/Indeed submit click blocked.  
-Files changed (v0.8): `extension/src/content.ts`, `extension/package.json`, `extension/manifest.config.ts`, `docs/EXTENSION.md`
+Notes: Phase 2 connect/ATS + autofill UX done. Phase 3 **user-watched Submit** shipped (v0.7.0). **v0.8–0.9.5** panel/save-first/choice review/panel IA. Board-specific adapters still optional polish.  
+Result (partial): Website connect + ATS email + autofill UX + Submit + save-first + Questions + Autofill progress with resume gate. LinkedIn/Indeed submit click blocked.  
+Files changed (v0.9.5): `extension/src/content.ts`, `extension/package.json`, `extension/manifest.config.ts`, `docs/EXTENSION.md`
 
 ---
 
@@ -367,6 +378,15 @@ Files changed: `.vercelignore`, docs STATUS/EMAIL/CHANGELOG
 
 ---
 
+## Task 143 — Enable Supabase Google login (site + extension)
+Status: IN PROGRESS  
+Scope: `proxy.ts`, `lib/auth/messages.ts`, auth pages, `docs/AUTH.md`, extension auth error copy  
+Goal: Users can sign in with Google on `/login` and `/signup`; extension via Connect HireIQ (Google or email) once provider is on.  
+Result (code): Stale refresh-token cookie clear in proxy; friendlier `google_not_enabled` errors; AUTH checklist with exact redirect URIs. **Blocked on human:** enable Google provider in Supabase + Google Cloud OAuth client (see AUTH.md §3). Verified live: authorize returns `provider is not enabled`.  
+Files changed: `proxy.ts`, `lib/auth/messages.ts`, `app/(auth)/login/page.tsx`, `app/(auth)/signup/page.tsx`, `extension/src/auth.ts`, `docs/AUTH.md`, STATUS/CHANGELOG/TASKS  
+
+---
+
 ## Task 135 — Job description quality (extension save + UI)
 Status: DONE  
 Scope: `app/api/jobs/route.ts`, `lib/jobs/description.ts`, `components/jobs/detail/JobSummary.tsx`, description tests, docs  
@@ -378,7 +398,7 @@ Files changed: `app/api/jobs/route.ts`, `lib/jobs/description.ts`, `lib/jobs/__t
 
 ## Backlog (Phase 2+)
 
-- Extension: panel IA (Autofill+progress + Questions); masked email autofill on apply forms
+- Extension: masked email autofill on apply forms
 - Task 140 — mask reply-relay prefs + reply path
 - Master update soft-keep (24h enrichments) + classify existing vs new
 - Contacts + Check List on job detail (real)

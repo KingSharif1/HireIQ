@@ -62,6 +62,8 @@ interface JobDetailPageProps {
   events: ApplicationEvent[]
   tailoredVersions: JobDetailTailoredVersion[]
   profileData: ProfileData
+  /** When false, Email tab / inbox is hidden (tracking mode off). */
+  emailTrackingEnabled?: boolean
 }
 
 function resolveInitialTab(param: string | null): DetailTab {
@@ -74,10 +76,19 @@ export function JobDetailPage({
   events,
   tailoredVersions,
   profileData: initialProfile,
+  emailTrackingEnabled = true,
 }: JobDetailPageProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [tab, setTab] = useState<DetailTab>(() => resolveInitialTab(searchParams.get('tab')))
+  const visibleTabs = useMemo(
+    () => (emailTrackingEnabled ? TABS : TABS.filter(t => t.id !== 'email')),
+    [emailTrackingEnabled],
+  )
+  const [tab, setTab] = useState<DetailTab>(() => {
+    const initial = resolveInitialTab(searchParams.get('tab'))
+    if (initial === 'email' && !emailTrackingEnabled) return 'overview'
+    return initial
+  })
   const [notes, setNotes] = useState(item.notes ?? '')
   const [emails, setEmails] = useState<ApplicationEmailLogEntry[]>(item.email_log ?? [])
   const formAnswers = useMemo(
@@ -383,7 +394,7 @@ export function JobDetailPage({
         </div>
 
         <div role="tablist" className="flex items-center gap-0.5 overflow-x-auto border-t border-border px-4 md:px-6">
-          {TABS.map(itemTab => {
+          {visibleTabs.map(itemTab => {
             const count =
               itemTab.id === 'questions'
                 ? questions.length

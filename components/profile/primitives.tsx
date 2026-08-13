@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Plus, Trash2, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Trash2, X, ChevronDown, ChevronUp, FileText, FolderGit2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function Field({
@@ -76,6 +76,7 @@ export function EntryCard({
   subtitle,
   sourceLine,
   sourceHref,
+  sourceBadge,
   onRemove,
   children,
   defaultOpen = true,
@@ -85,6 +86,8 @@ export function EntryCard({
   /** Muted provenance, e.g. "From Role @ Company" */
   sourceLine?: string | null
   sourceHref?: string | null
+  /** Small origin chip: GitHub logo or resume parse. */
+  sourceBadge?: 'github' | 'resume' | null
   onRemove: () => void
   children: React.ReactNode
   defaultOpen?: boolean
@@ -104,7 +107,27 @@ export function EntryCard({
             <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
           )}
           <div className="min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">{title || 'Untitled'}</p>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">{title || 'Untitled'}</p>
+              {sourceBadge === 'github' && (
+                <span
+                  className="inline-flex items-center gap-0.5 rounded-md border border-border bg-secondary/50 px-1.5 py-0.5 text-[10px] text-muted-foreground flex-shrink-0"
+                  title="From GitHub"
+                >
+                  <FolderGit2 className="w-3 h-3" />
+                  GitHub
+                </span>
+              )}
+              {sourceBadge === 'resume' && (
+                <span
+                  className="inline-flex items-center gap-0.5 rounded-md border border-border bg-secondary/50 px-1.5 py-0.5 text-[10px] text-muted-foreground flex-shrink-0"
+                  title="From uploaded resume"
+                >
+                  <FileText className="w-3 h-3" />
+                  Resume
+                </span>
+              )}
+            </div>
             {subtitle && <p className="text-xs text-muted-foreground truncate">{subtitle}</p>}
             {sourceLine ? (
               sourceHref ? (

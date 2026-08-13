@@ -156,7 +156,7 @@ export function structuredResumeToProfileData(resume: StructuredResume): Profile
     summary: resume.summary ?? '',
     urls: urls.map((u, i) => ({ id: `url-${i}`, ...u })),
     experience: resume.experience ?? [],
-    projects: resume.projects ?? [],
+    projects: (resume.projects ?? []).map(p => ({ ...p, source: p.source ?? ('resume' as const) })),
     education: resume.education ?? [],
     skills: resume.skills ?? base.skills,
     certifications: resume.certifications ?? [],
