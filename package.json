@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:jobs:live": "JOB_FETCH_LIVE=1 JOB_FETCH_PLAYWRIGHT=0 vitest run lib/jobs/__tests__/job-fetch-live.test.ts",
     "test:watch": "vitest",
     "ui:shots": "node docs/scripts/ui-shots.mjs",
     "ui:shots:headed": "node docs/scripts/ui-shots.mjs --headed",
