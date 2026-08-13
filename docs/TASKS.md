@@ -448,24 +448,22 @@ Files changed: `app/api/jobs/route.ts`, `lib/jobs/description.ts`, `lib/jobs/__t
 
 ---
 
-## Task 147 — Extension agentic apply spec (doc only)
+## Task 147b — Extension agentic apply spec (doc only, historical)
 Status: DONE  
 Scope: `docs/EXTENSION.md`, `docs/DECISIONS.md`, `docs/TASKS.md`  
-Goal: Document v2 agentic apply — multi-step navigation, account creation + OTP tied to `email_tracking_mode` (`gmail` | `masked` | `off`), login override/timeline for masked, autofill-only when off. No code.  
-Result: Added EXTENSION.md § Agentic apply (planned); DECISIONS 2026-08-13 intent lock; panel table updated. Implementation blocked on Gmail sync + masked inbound OTP.  
+Goal: Document v2 agentic apply — multi-step navigation, account creation + OTP tied to `email_tracking_mode`.  
+Result: EXTENSION.md agentic section shipped; implementation continues as Task **147** (extension CTA) + **148** (hosted worker).  
 Files changed: `docs/EXTENSION.md`, `docs/DECISIONS.md`, `docs/TASKS.md`
 
 ---
 
 ## Backlog (Phase 2+)
 
-- **Extension agentic apply** — implement Task 147 spec (navigation, signup by tracking mode, OTP from Gmail or masked inbound)
-- Extension: masked email autofill on apply forms
-- Task 140 — mask reply-relay prefs + reply path
+- **Task 147 / 148** — extension handoff + hosted auto-apply ([AUTO-APPLY.md](./AUTO-APPLY.md))
+- Stripe / usage meters per [PRICING.md](./PRICING.md)
 - Master update soft-keep (24h enrichments) + classify existing vs new
 - Contacts + Check List on job detail (real)
 - Fit score on application cards
-- Playwright fallback for generic job URLs
 - OCR for scanned PDFs
 - People / Companies tracker tabs
 - Resume parse: tiered skills + low-confidence flags
