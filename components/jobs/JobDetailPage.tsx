@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, ExternalLink, FileText, MapPin, PanelRightOpen } from 'lucide-react'
+import { ArrowLeft, Check, Copy, ExternalLink, FileText, MapPin, PanelRightOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ActivityPanel, type AddActivityEventInput } from '@/components/jobs/detail/ActivityPanel'
 import { ApplicationAnswers } from '@/components/jobs/detail/ApplicationAnswers'
@@ -64,6 +64,8 @@ interface JobDetailPageProps {
   profileData: ProfileData
   /** When false, Email tab / inbox is hidden (tracking mode off). */
   emailTrackingEnabled?: boolean
+  /** HireIQ application address — shown so you can paste it on the employer form. */
+  applyEmail?: string | null
 }
 
 function resolveInitialTab(param: string | null): DetailTab {
@@ -77,6 +79,7 @@ export function JobDetailPage({
   tailoredVersions,
   profileData: initialProfile,
   emailTrackingEnabled = true,
+  applyEmail = null,
 }: JobDetailPageProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -107,6 +110,18 @@ export function JobDetailPage({
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null)
   const [railOpen, setRailOpen] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [copiedApplyEmail, setCopiedApplyEmail] = useState(false)
+
+  async function copyApplyEmail() {
+    if (!applyEmail) return
+    try {
+      await navigator.clipboard.writeText(applyEmail)
+      setCopiedApplyEmail(true)
+      window.setTimeout(() => setCopiedApplyEmail(false), 1600)
+    } catch {
+      setError('Could not copy application email')
+    }
+  }
 
   const questions = useMemo(() => {
     const result: TailorGapAnswer[] = []
@@ -342,6 +357,12 @@ export function JobDetailPage({
               <FileText className="h-3.5 w-3.5" />
               {versions.length ? 'Edit resume' : 'Create resume'}
             </Button>
+            {applyEmail ? (
+              <Button type="button" variant="outline" size="sm" onClick={() => void copyApplyEmail()}>
+                {copiedApplyEmail ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {copiedApplyEmail ? 'Copied' : 'Copy apply email'}
+              </Button>
+            ) : null}
             {safeApplyUrl ? (
               <Button asChild size="sm">
                 <a href={safeApplyUrl} target="_blank" rel="noreferrer">
@@ -534,6 +555,7 @@ export function JobDetailPage({
               selectedThreadId={selectedThreadId}
               onSelectThread={setSelectedThreadId}
               onLogEmail={logEmail}
+              applyEmail={applyEmail}
             />
           ) : null}
         </div>

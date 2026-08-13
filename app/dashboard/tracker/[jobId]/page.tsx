@@ -62,13 +62,18 @@ export default async function TrackerJobDetailPage({
       .eq('user_id', user.id)
       .eq('job_id', jobId)
       .maybeSingle(),
-    supabase.from('profiles').select('profile_data, email_tracking_mode').eq('id', user.id).maybeSingle(),
+    supabase.from('profiles').select('profile_data, email_tracking_mode, masked_email').eq('id', user.id).maybeSingle(),
   ])
 
   const app = appRow as AppRow | null
   if (!app?.job) notFound()
 
   const emailTrackingEnabled = (profile as { email_tracking_mode?: string } | null)?.email_tracking_mode !== 'off'
+  const applyEmail =
+    (profile as { email_tracking_mode?: string; masked_email?: string | null } | null)?.email_tracking_mode ===
+      'masked'
+      ? (profile as { masked_email?: string | null }).masked_email ?? null
+      : null
 
   const [eventsRes, tailoredRes] = await Promise.all([
     supabase
@@ -134,6 +139,7 @@ export default async function TrackerJobDetailPage({
         tailoredVersions={versions}
         profileData={profileData}
         emailTrackingEnabled={emailTrackingEnabled}
+        applyEmail={applyEmail}
       />
     </Suspense>
   )

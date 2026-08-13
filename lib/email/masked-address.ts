@@ -56,6 +56,24 @@ export function buildMaskedEmail(opts: {
   return `${buildMaskedLocalPart(opts)}@${domain}`
 }
 
+/** Dedicated inbox for forwarding job postings into the tracker (Task 115). */
+export function buildForwardSaveEmail(opts: {
+  username?: string | null
+  firstName?: string | null
+  lastName?: string | null
+  email?: string | null
+  domain?: string
+}): string {
+  const domain = (opts.domain ?? maskedEmailDomain()).toLowerCase()
+  const token = randomToken(6)
+  const fromUsername = opts.username ? slugify(opts.username) : ''
+  const fromName = slugify([opts.firstName, opts.lastName].filter(Boolean).join('.'))
+  const fromEmail = opts.email?.includes('@') ? slugify(opts.email.split('@')[0] ?? '') : ''
+  const base = fromUsername || fromName || fromEmail || 'jobs'
+  const local = `save.${base}.${token}`.slice(0, LOCAL_MAX).replace(/^\.+|\.+$/g, '')
+  return `${local || `save.jobs.${token}`}@${domain}`
+}
+
 export function normalizeMaskedRecipient(address: string): string {
   return address.trim().toLowerCase().replace(/^<|>$/g, '')
 }

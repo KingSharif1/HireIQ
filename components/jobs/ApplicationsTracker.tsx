@@ -12,7 +12,7 @@ import {
   APPLICATION_STATUSES,
   normalizeApplicationStatus,
 } from '@/lib/jobs/status'
-import { buildOutreachFeed, filterOutreachFeed } from '@/lib/applications/outreach'
+import { buildOutreachFeed, filterOutreachFeed, type UnmatchedInboundRow } from '@/lib/applications/outreach'
 import { cn } from '@/lib/utils'
 import type { ApplicationEmailLogEntry, ApplicationStatus, ApplicationTrackerItem } from '@/types'
 
@@ -26,11 +26,13 @@ const SURFACE_KEY = 'hireiq.tracker.surface'
 interface ApplicationsTrackerProps {
   initialItems: ApplicationTrackerItem[]
   initialSurface?: Surface
+  unmatchedInbound?: UnmatchedInboundRow[]
 }
 
 export function ApplicationsTracker({
   initialItems,
   initialSurface = 'applications',
+  unmatchedInbound = [],
 }: ApplicationsTrackerProps) {
   const router = useRouter()
   const [items, setItems] = useState(initialItems)
@@ -105,7 +107,10 @@ export function ApplicationsTracker({
     })
   }, [items, statusFilter, query])
 
-  const outreachAll = useMemo(() => buildOutreachFeed(items), [items])
+  const outreachAll = useMemo(
+    () => buildOutreachFeed(items, unmatchedInbound),
+    [items, unmatchedInbound],
+  )
   const visibleOutreach = useMemo(
     () => filterOutreachFeed(outreachAll, { query, direction: directionFilter }),
     [outreachAll, query, directionFilter]

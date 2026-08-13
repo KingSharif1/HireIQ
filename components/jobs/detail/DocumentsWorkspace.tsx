@@ -1,9 +1,11 @@
 'use client'
 
+import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { JobResumeEditor } from '@/components/jobs/detail/JobResumeEditor'
 import { ResumePreview } from '@/components/resume/ResumePreview'
+import { DocumentExportActions, LayoutIssuesBanner } from '@/components/jobs/detail/LayoutIssuesBanner'
 import { DEFAULT_RESUME_THEME } from '@/lib/export/theme'
 import { cn, scoreColor } from '@/lib/utils'
 import type { ProfileData, StructuredResume, TailorGapAnswer } from '@/types'
@@ -71,39 +73,12 @@ export function DocumentsWorkspace({
   if (mode === 'preview' && selected?.structured_data) {
     const score = selected.tailored_score ?? selected.match_score
     return (
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <button
-              type="button"
-              className="text-xs font-medium text-muted-foreground hover:text-foreground"
-              onClick={() => onMode('list')}
-            >
-              ← All documents
-            </button>
-            <h2 className="mt-1 text-lg font-semibold text-foreground">
-              Resume v{selected.version}
-              {score != null ? (
-                <span className={cn('ml-2 text-sm tabular-nums', scoreColor(score))}>
-                  {score}% match
-                </span>
-              ) : null}
-            </h2>
-          </div>
-          <Button type="button" size="sm" onClick={() => onMode('edit')}>
-            Edit resume
-          </Button>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-3">
-          <ResumePreview
-            data={selected.structured_data}
-            theme={DEFAULT_RESUME_THEME}
-            showHealth={false}
-            showTools
-            enablePan
-          />
-        </div>
-      </section>
+      <DocumentsPreview
+        selected={{ ...selected, structured_data: selected.structured_data }}
+        score={score}
+        onBack={() => onMode('list')}
+        onEdit={() => onMode('edit')}
+      />
     )
   }
 
@@ -183,6 +158,73 @@ export function DocumentsWorkspace({
           })}
         </ul>
       )}
+    </section>
+  )
+}
+
+function DocumentsPreview({
+  selected,
+  score,
+  onBack,
+  onEdit,
+}: {
+  selected: JobDetailTailoredVersion & { structured_data: StructuredResume }
+  score: number | null | undefined
+  onBack: () => void
+  onEdit: () => void
+}) {
+  const [pageCount, setPageCount] = useState(1)
+
+  return (
+    <section className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <button
+            type="button"
+            className="text-xs font-medium text-muted-foreground hover:text-foreground"
+            onClick={onBack}
+          >
+            ← All documents
+          </button>
+          <h2 className="mt-1 text-lg font-semibold text-foreground">
+            Resume v{selected.version}
+            {score != null ? (
+              <span className={cn('ml-2 text-sm tabular-nums', scoreColor(score))}>
+                {score}% match
+              </span>
+            ) : null}
+          </h2>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <DocumentExportActions
+            tailoredResumeId={selected.id}
+            fileStem={`resume-v${selected.version}`}
+            resume={selected.structured_data}
+          />
+          <Button type="button" size="sm" onClick={onEdit}>
+            Edit resume
+          </Button>
+        </div>
+      </div>
+      <LayoutIssuesBanner
+        resume={selected.structured_data}
+        pageCount={pageCount}
+        fonts={{
+          bodyFontSize: DEFAULT_RESUME_THEME.bodyFontSize,
+          nameFontSize: DEFAULT_RESUME_THEME.nameFontSize,
+          lineHeight: DEFAULT_RESUME_THEME.lineHeight,
+        }}
+      />
+      <div className="rounded-xl border border-border bg-card p-3">
+        <ResumePreview
+          data={selected.structured_data}
+          theme={DEFAULT_RESUME_THEME}
+          showHealth={false}
+          showTools
+          enablePan
+          onPageCount={setPageCount}
+        />
+      </div>
     </section>
   )
 }

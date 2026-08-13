@@ -2,7 +2,7 @@
 
 import type { ProfileData } from '@/types'
 import type { GitHubProfileData } from '@/lib/github/types'
-import type { SectionId } from '@/lib/profile/sections'
+import { SECTIONS, profileSectionAnchor, type SectionId } from '@/lib/profile/sections'
 import type { ResumeRow } from '@/lib/profile/resume-row'
 import {
   PersonalSection,
@@ -22,16 +22,7 @@ import {
 
 export type { ResumeRow } from '@/lib/profile/resume-row'
 
-export function ProfileSectionPanel({
-  active,
-  data,
-  update,
-  resumes,
-  githubData,
-  onSuggestionResolved,
-  onGitHubSynced,
-}: {
-  active: SectionId
+export type ProfileSectionContentProps = {
   data: ProfileData
   update: (patch: Partial<ProfileData>) => void
   resumes: ResumeRow[]
@@ -42,8 +33,11 @@ export function ProfileSectionPanel({
     enrichment?: import('@/lib/profile/suggestion-followup').SuggestionEnrichment
   ) => Promise<void>
   onGitHubSynced: () => void
-}) {
-  switch (active) {
+}
+
+export function renderProfileSection(id: SectionId, props: ProfileSectionContentProps) {
+  const { data, update, resumes, githubData, onSuggestionResolved, onGitHubSynced } = props
+  switch (id) {
     case 'personal':
       return <PersonalSection data={data} update={update} />
     case 'resumes':
@@ -93,4 +87,28 @@ export function ProfileSectionPanel({
     default:
       return null
   }
+}
+
+export function ProfileSectionPanel({
+  active,
+  ...props
+}: ProfileSectionContentProps & { active: SectionId }) {
+  return renderProfileSection(active, props)
+}
+
+/** All master sections on one page — left nav jumps to anchors. */
+export function ProfileSectionStack(props: ProfileSectionContentProps) {
+  return (
+    <div className="space-y-10 pb-16">
+      {SECTIONS.map(section => (
+        <section
+          key={section.id}
+          id={profileSectionAnchor(section.id)}
+          className="scroll-mt-20 border-b border-border/70 pb-10 last:border-b-0 last:pb-0"
+        >
+          {renderProfileSection(section.id, props)}
+        </section>
+      ))}
+    </div>
+  )
 }

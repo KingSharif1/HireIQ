@@ -1,10 +1,13 @@
 /** Lightweight job-page heuristics for the extension (no Next.js imports). */
 
+import { applyFormSelectorList, postingSelectorList } from '@hireiq/board'
+
 const BLOCKED_HOSTS = [
   'localhost',
   '127.0.0.1',
   'hireiq.app',
   'www.hireiq.app',
+  'hireiq.kingsharif.com',
 ]
 
 const JOB_HOST_HINTS = [
@@ -21,6 +24,8 @@ const JOB_HOST_HINTS = [
   'jobs.lever.co',
   'wellfound.com',
   'angel.co',
+  'amazon.jobs',
+  'careers.microsoft.com',
 ]
 
 const JOB_PATH_HINTS = [
@@ -42,15 +47,12 @@ export type JobDetectResult = {
   pageKind: 'posting' | 'apply' | 'unknown'
 }
 
-export function detectPageKind(doc: Document = document): 'posting' | 'apply' | 'unknown' {
-  const hasApplyForm = Boolean(
-    doc.querySelector(
-      'form#application-form, form[action*="apply"], #application_form, input[name="first_name"], input[name="resume"], input[type="file"][name*="resume" i]',
-    ),
-  )
-  const hasLongJd =
-    (doc.querySelector('#content, .job__description, [data-job-description], .job-description')
-      ?.textContent || '').length > 400
+export function detectPageKind(doc: Document = document, hostname?: string): 'posting' | 'apply' | 'unknown' {
+  const host =
+    hostname ||
+    (typeof location !== 'undefined' ? location.hostname : '')
+  const hasApplyForm = Boolean(doc.querySelector(applyFormSelectorList(host)))
+  const hasLongJd = (doc.querySelector(postingSelectorList(host))?.textContent || '').length > 400
   if (hasApplyForm) return 'apply'
   if (hasLongJd) return 'posting'
   return 'unknown'
@@ -65,7 +67,7 @@ export function detectJobPage(urlString: string, doc?: Document): JobDetectResul
   }
 
   const host = url.hostname.toLowerCase()
-  const pageKind = doc ? detectPageKind(doc) : 'unknown'
+  const pageKind = doc ? detectPageKind(doc, host) : 'unknown'
 
   if (BLOCKED_HOSTS.some(h => host === h || host.endsWith(`.${h}`))) {
     return {

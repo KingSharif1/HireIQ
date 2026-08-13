@@ -23,8 +23,8 @@ export function OutreachList({ items }: OutreachListProps) {
         </div>
         <h3 className="font-semibold text-foreground">No outreach yet</h3>
         <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-          Log emails on a job’s Email tab — sent and received messages across all applications show up
-          here.
+          Log emails on a job’s Email tab, or send mail to your application address — unmatched
+          messages still show up here.
         </p>
       </div>
     )
@@ -33,9 +33,13 @@ export function OutreachList({ items }: OutreachListProps) {
   return (
     <ul className="divide-y divide-border bg-white dark:bg-card min-h-full">
       {items.map(item => (
-        <li key={`${item.applicationId}-${item.id}`}>
+        <li key={`${item.applicationId ?? 'inbox'}-${item.id}`}>
           <Link
-            href={`/dashboard/tracker/${item.jobId}?tab=email`}
+            href={
+              item.jobId
+                ? `/dashboard/tracker/${item.jobId}?tab=email`
+                : '/dashboard/notifications'
+            }
             className="flex gap-3 px-4 py-3.5 no-underline transition-colors hover:bg-secondary/40"
           >
             <span
@@ -58,14 +62,20 @@ export function OutreachList({ items }: OutreachListProps) {
             <span className="min-w-0 flex-1">
               <span className="flex flex-wrap items-center gap-2">
                 <span className="text-sm font-medium text-foreground truncate">{item.subject}</span>
-                <span
-                  className={cn(
-                    'inline-flex rounded-md border px-1.5 py-0.5 text-[10px] font-medium',
-                    applicationStatusClasses(normalizeApplicationStatus(item.applicationStatus))
-                  )}
-                >
-                  {applicationStatusLabel(normalizeApplicationStatus(item.applicationStatus))}
-                </span>
+                {item.applicationStatus ? (
+                  <span
+                    className={cn(
+                      'inline-flex rounded-md border px-1.5 py-0.5 text-[10px] font-medium',
+                      applicationStatusClasses(normalizeApplicationStatus(item.applicationStatus))
+                    )}
+                  >
+                    {applicationStatusLabel(normalizeApplicationStatus(item.applicationStatus))}
+                  </span>
+                ) : (
+                  <span className="inline-flex rounded-md border border-border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    Unmatched
+                  </span>
+                )}
               </span>
               <span className="mt-0.5 block text-xs text-muted-foreground truncate">
                 {item.company} · {item.jobTitle}

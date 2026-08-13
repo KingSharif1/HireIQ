@@ -2,15 +2,15 @@
 
 **As of:** 2026-08-13  
 **Branch:** `main` · **Production:** https://hireiq.kingsharif.com  
-**Tests:** 196 unit · 11 live URL · extension **v0.9.7** · PR #2 merged
+**Tests:** 217 unit · 11 live URL · extension **v0.9.9** · PR #3 open
 
 ## Session handoff
 
 | | |
 |--|--|
-| **Working on** | Prod smoke complete for portal login UI |
-| **Blocked** | Gmail sync (not connected) · masked inbound (no alias yet) · Task 143 Google provider |
-| **Next** | Connect Gmail on Settings → Sync now · create application email + send test · Task 146 |
+| **Working on** | PR #3 — masked autofill + forward-to-save (Task 115) |
+| **Blocked** | Gmail OAuth consent · Task 143 Google provider · Chrome extension needs user’s browser |
+| **Next** | Merge PR #3 · reload extension v0.9.9 on Greenhouse apply (email = masked address) |
 | **Roadmap** | [REMAINING-WORK.md](./REMAINING-WORK.md) |
 
 ## System snapshot
@@ -22,7 +22,7 @@
 | Legal / branding | 🟡 Landing + `/privacy` + `/terms` live · Search Console + re-verify branding + submit sensitive-scope verification — see `docs/GOOGLE-VERIFICATION.md` |
 | Resume upload (PDF/DOCX) | ✓ |
 | Resume parse (Claude) | 🟡 — needs tiered skills + low-confidence flags + OCR |
-| Profile / Resume Builder | 🟡 **Task 146** — library hero shipped; full single-page consolidation pending |
+| Profile / Resume Builder | ✓ **Task 146** — one Builder nav; Master is one scrolling page + Files tab |
 | Job URL fetch | ✓ ~90% | Amazon/Microsoft + tiered pipeline; legacy MS URLs need Playwright |
 | Job analyze | ✓ |
 | ATS score | ✓ — algorithmic |
@@ -30,7 +30,8 @@
 | Tailor stepper | ⛔ Redirected — Job Matcher + tracker replace primary flow |
 | Application tracker | ✓ — Teal list/board; All outreach (134); masked inbound code + DB (139) |
 | Masked apply email (Resend) | ✓ Infra live — `mail.kingsharif.com` receiving; webhook URL prod; needs smoke + `RESEND_FORWARD_FROM` optional |
-| Chrome extension | 🟡 **v0.9.7** · agentic apply v1 · EXTENSION.md + CHROME-STORE.md |
+| Forward-to-save (Task 115) | ✓ Address + webhook parse → tracker; needs deploy + one forwarded posting smoke |
+| Chrome extension | 🟡 **v0.9.9** · GH/Lever/Ashby/Workday adapters · agentic apply v1 · masked email now overlays autofill profile · EXTENSION.md |
 | GitHub integration | ✓ Task 105 |
 | Gmail sync | 🟡 **Task 114** | History API incremental; prod OAuth + smoke |
 | Settings | ✓ `/dashboard/settings` — tracking modes, GitHub, password, delete |
@@ -45,7 +46,7 @@
 | 3 | Job URL ingestion | ✓ ~90% | Tiered fetch + Amazon/Microsoft live tests |
 | 4 | Gap analysis | ✓ ~90% | 3-tier JSON + UI |
 | 5 | Tailored resume + tracked changes | ✓ ~90% | Accept/decline/edit done |
-| 6 | ATS + visual check | 🟡 65% | Layout check blocks critical export issues (106 partial) |
+| 6 | ATS + visual check | 🟡 85% | Documents Export check + page count + font-size heuristics; critical issues still block API export |
 | 7 | Application log | ✓ ~92% | Portal login UI; Gmail history sync |
 
 Legend: ✓ done · 🟡 in progress · 🔴 not started · 🔭 planned
@@ -78,10 +79,9 @@ Migrations 001–018 applied remotely; **019 applied** 2026-08-13 — see [supab
 
 ## Next recommended tasks
 
-1. **Task 143** — Enable Google in Supabase ([AUTH.md](./AUTH.md) §3)  
-2. Connect Gmail on prod Settings → Sync now (History API smoke)  
-3. Create application email + send test inbound  
-4. **Task 146** — Resume Builder full consolidation ([RESUME-BUILDER.md](./RESUME-BUILDER.md))  
-5. **Chrome Store draft** — [CHROME-STORE.md](./CHROME-STORE.md)  
+1. Merge PR #3, then Connect Gmail on prod Settings → Sync now  
+2. **Task 143** — Enable Google in Supabase ([AUTH.md](./AUTH.md) §3)  
+3. After deploy: create **Save jobs by email** address → forward a Greenhouse posting  
+4. **Chrome Store draft** — [CHROME-STORE.md](./CHROME-STORE.md)  
 
 Docs: [REMAINING-WORK.md](./REMAINING-WORK.md) · [EMAIL.md](./EMAIL.md) · [DECISIONS.md](./DECISIONS.md) · [AUTH.md](./AUTH.md) · [EXTENSION.md](./EXTENSION.md)

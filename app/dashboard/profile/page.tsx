@@ -1,33 +1,20 @@
-import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { ProfileHome } from '@/components/profile/ProfileHome'
-import { loadProfileWorkspaceData } from '@/lib/profile/load-workspace'
 
 export const dynamic = 'force-dynamic'
 
 /**
- * Profile = master resume (documents + career content + pending accept/deny).
- * `?section=` deep-links into a document tab or master section.
+ * Profile is now the Master resume tab on Resume Builder.
+ * Keep this route as a redirect so old links and OAuth callbacks still work.
  */
-export default async function ProfilePage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  const { profile, initialData, resumes, githubData } = await loadProfileWorkspaceData(user.id)
-
-  return (
-    <Suspense fallback={null}>
-      <ProfileHome
-        userId={user.id}
-        initialData={initialData}
-        profile={profile}
-        resumes={resumes}
-        githubData={githubData}
-      />
-    </Suspense>
-  )
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ section?: string; github_error?: string; google_error?: string }>
+}) {
+  const params = await searchParams
+  const q = new URLSearchParams({ view: 'master' })
+  if (params.section) q.set('section', params.section)
+  if (params.github_error) q.set('github_error', params.github_error)
+  if (params.google_error) q.set('google_error', params.google_error)
+  redirect(`/dashboard/builder?${q.toString()}`)
 }

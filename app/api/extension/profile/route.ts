@@ -7,7 +7,7 @@ import {
   type AutofillProfile,
 } from '@/lib/extension/form-fill'
 import { inferCountryFromLocation } from '@/lib/extension/location-country'
-import { resolveApplyIdentity } from '@/lib/extension/apply-identity'
+import { overlayApplyEmail, resolveApplyIdentity } from '@/lib/extension/apply-identity'
 import { ensureAccessTokenForUser } from '@/lib/google/token-access'
 import type { Profile, ProfileData } from '@/types'
 
@@ -98,7 +98,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404, headers })
   }
 
-  const profile = buildAutofillProfile(
+  const baseProfile = buildAutofillProfile(
     data as Pick<Profile, 'first_name' | 'last_name' | 'email' | 'profile_data'>,
   )
   const row = data as Pick<
@@ -113,10 +113,11 @@ export async function GET(request: Request) {
   const gmailConnected = Boolean(await ensureAccessTokenForUser(userId))
   const applyIdentity = resolveApplyIdentity({
     mode: (row.email_tracking_mode as 'gmail' | 'masked' | 'off' | null) ?? 'off',
-    profileEmail: profile.email,
+    profileEmail: baseProfile.email,
     maskedEmail: row.masked_email,
     gmailConnected,
   })
+  const profile = overlayApplyEmail(baseProfile, applyIdentity.applyEmail)
 
   const autofillPreview = {
     fullName: [profile.firstName, profile.lastName].filter(Boolean).join(' ') || 'Add your name',
@@ -149,7 +150,7 @@ export async function GET(request: Request) {
       applyIdentity,
       emailTrackingMode: applyIdentity.mode,
       appUrl: (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, ''),
-      profileUrl: `${(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')}/dashboard/profile/professional`,
+      profileUrl: `${(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')}/dashboard/builder?view=master`,
     },
     { status: 200, headers },
   )

@@ -1,5 +1,101 @@
 # Changelog
 
+## 2026-08-13 — Task 115: save jobs by forwarding email
+
+**What:** Each user can mint a `save.*@mail.kingsharif.com` address. Forward a posting there and the inbound webhook extracts a job URL, scrapes it, and adds it to Applications (deduped by apply URL). Settings → Integrations shows **Save jobs by email**. Extension autofill now uses the masked apply address when tracking mode is application email.
+
+**Files:** `lib/email/{extract-job-urls,process-forward-save,process-inbound,masked-address}.ts`, `lib/jobs/save-from-url.ts`, `app/api/jobs/route.ts`, `app/api/profile/forward-save-email/route.ts`, `ForwardSaveCard.tsx`, `SettingsPanels.tsx`, `app/api/extension/profile/route.ts`, `lib/extension/apply-identity.ts`, `020_forward_save_email.sql`
+
+**Why:** Spec Module 4 / Task 115. Also, masked tracking was on for the test user but Autofill still filled the Gmail address.
+
+**Next:** Merge PR #3; reload extension v0.9.9 on the Aechelon Greenhouse form and confirm Email is the masked address; forward a Greenhouse URL to the new save address after deploy.
+
+---
+
+## 2026-08-13 — Copy apply email on job detail
+
+**What:** When tracking mode is application email, job detail shows **Copy apply email** next to Apply, and the Email tab reminds you which address to use on the employer form. Prod smoke: test user already on masked mode with a live Greenhouse apply form.
+
+**Files:** `JobDetailPage.tsx`, `EmailInbox.tsx`, `app/dashboard/tracker/[jobId]/page.tsx`
+
+**Why:** Settings had the address; Apply opened Greenhouse without a way to copy it onto the Email field.
+
+**Next:** Merge PR #3 so unmatched inbound appears in All outreach; reload extension v0.9.9 on a real apply form.
+
+---
+
+## 2026-08-13 — Extension board adapters (v0.9.9)
+
+**What:** Greenhouse / Lever / Ashby / Workday field maps, submit/continue/resume selectors, and Lever/Ashby full-name fill. Generic fallback unchanged. Extension **v0.9.9**.
+
+**Files:** `lib/extension/board.ts`, `lib/extension/form-fill.ts`, `extension/src/{autofill,detect,submit,file-attach}.ts`, `agentic-nav.ts`, tests, docs
+
+**Why:** Task 117 remaining polish — generic classify missed ATS-specific names (`urls[LinkedIn]`, Workday `data-automation-id`, Ashby `_systemfield_*`).
+
+**Next:** Merge PR #3; Gmail OAuth; more adapters when a host fails.
+
+---
+
+## 2026-08-13 — Master resume scrolls as one page
+
+**What:** Resume Builder Master shows every profile section on one page. Left nav jumps to anchors; `?section=` deep links still work.
+
+**Files:** `components/profile/{ProfileHome,ProfileSectionPanel}.tsx`, `lib/profile/sections.ts`, `BuilderHome.tsx`, docs
+
+**Why:** Task 146 remaining carousel felt like many pages.
+
+**Next:** Merge PR #3; Gmail OAuth.
+
+---
+
+## 2026-08-13 — Font-size export checks + Amazon/MS save hosts
+
+**What:** Export check warns on body/name font size and loose line height. Extension + server job-URL gate allow `amazon.jobs` / `careers.microsoft.com` and block prod `hireiq.kingsharif.com`. Tracker empty-score CTA says Tailor. Profile/GitHub/suggestion links go to Resume Builder master (and keep `github_error` on redirect). Extension **v0.9.8**.
+
+**Files:** `lib/resume/layout-check.ts`, `LayoutIssuesBanner.tsx`, `lib/extension/job-page.ts`, `extension/src/detect.ts`, `TrackerList.tsx`, `TrackerBoard.tsx`, `lib/notifications.ts`, GitHub OAuth callbacks, docs
+
+**Why:** Close Task 106 font heuristics and leftover Profile doors after Builder consolidation.
+
+**Next:** Merge PR #3; Task 146 optional scroll-all-sections; Gmail OAuth.
+
+---
+
+## 2026-08-13 — Unmatched inbound in All outreach
+
+**What:** Application-address mail that doesn’t match a company still appears in All outreach (Unmatched). Prod webhook stored the inbound smoke message.
+
+**Files:** `lib/applications/outreach.ts`, `ApplicationsTracker.tsx`, `OutreachList.tsx`, `app/dashboard/tracker/page.tsx`
+
+**Why:** Smoke mail was received but hidden because All outreach only read job `email_log`.
+
+**Next:** Merge PR #3; Gmail OAuth.
+
+---
+
+## 2026-08-13 — One Resume Builder nav + live page-count export check
+
+**What:** Resume Builder is the only resume destination (Master + Files tabs). Profile URLs redirect. Documents export check uses measured preview page count. Gmail sync copy explains stale History API fallback.
+
+**Files:** `components/builder/BuilderHome.tsx`, `app/dashboard/builder/page.tsx`, `app/dashboard/profile/page.tsx`, `primary-nav.ts`, `HomeTiles.tsx`, `ResumePreview.tsx`, `LayoutIssuesBanner.tsx`, `lib/google/sync.ts`, docs
+
+**Why:** Continue remaining backlog after prod smoke; fewer hops for master resume edits.
+
+**Next:** Merge PR #3; inbound test mail; Gmail OAuth.
+
+---
+
+## 2026-08-13 — Documents export check + remaining prod smoke
+
+**What:** Documents preview shows layout issues and PDF/DOCX export (blocked on critical). Hide duplicate Portal login on Activity at desktop. Gmail Sync now copy includes incremental vs full scan. Prod: created application email; Amazon/Microsoft fetch-url returned titles; Gmail connect reaches Google OAuth.
+
+**Files:** `components/jobs/detail/{LayoutIssuesBanner,DocumentsWorkspace,JobResumeEditor,ActivityPanel}.tsx`, `lib/resume/layout-check.ts`, `lib/api/client.ts`, `GoogleConnectPanel.tsx`, `SettingsPanels.tsx`, docs
+
+**Why:** Close remaining smoke we can do without Google mailbox access; surface export QA in the live Documents UI.
+
+**Next:** Send a test message to the application alias; finish Gmail OAuth; Task 146.
+
+---
+
 ## 2026-08-13 — Prod smoke: portal login UI
 
 **What:** Logged into production and verified Portal login on job tracker detail (facts rail + Activity tab): email, show/hide password, note. Gmail sync correctly returns 400 until connected. Masked inbound still needs an application alias.

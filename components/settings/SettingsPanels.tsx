@@ -9,6 +9,7 @@ import { Loader2, Mail, RefreshCw, Shield, Unlink } from 'lucide-react'
 import { mapGoogleConnectError } from '@/lib/google/oauth'
 import { GitHubConnectPanel } from '@/components/profile/GitHubConnectPanel'
 import { MaskedEmailCard } from '@/components/profile/MaskedEmailCard'
+import { ForwardSaveCard } from '@/components/profile/ForwardSaveCard'
 
 type TrackingMode = 'gmail' | 'masked' | 'off'
 
@@ -117,8 +118,22 @@ export function SettingsIntegrations() {
       const res = await fetch('/api/google/sync', { method: 'POST' })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Sync failed')
-      const r = json.result as { scanned: number; matched: number; duplicates: number }
-      setInfo(`Synced ${r.scanned} · ${r.matched} matched · ${r.duplicates} already stored`)
+      const r = json.result as {
+        scanned: number
+        matched: number
+        duplicates: number
+        mode?: 'history' | 'full'
+        historyExpired?: boolean
+      }
+      const modeLabel = r.mode === 'history' ? 'incremental' : r.mode === 'full' ? 'full scan' : null
+      const expired = r.historyExpired
+        ? ' History was stale, so this run scanned the last 14 days. Next sync can be incremental.'
+        : ''
+      setInfo(
+        `Synced ${r.scanned} · ${r.matched} matched · ${r.duplicates} already stored${
+          modeLabel ? ` · ${modeLabel}` : ''
+        }.${expired}`,
+      )
       await load()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Sync failed')
@@ -251,6 +266,8 @@ export function SettingsIntegrations() {
         )}
 
         {mode === 'masked' && <MaskedEmailCard />}
+
+        <ForwardSaveCard />
 
         {info && <p className="text-xs text-muted-foreground">{info}</p>}
         {error && <p className="text-xs text-destructive">{error}</p>}

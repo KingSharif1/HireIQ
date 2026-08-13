@@ -100,6 +100,6 @@ export async function POST(request: Request) {
   return NextResponse.json({
     queued: fresh.length,
     pendingCount: merged.length,
-    profilePath: '/dashboard/profile?section=experience',
+    profilePath: '/dashboard/builder?view=master&section=experience',
   })
 }

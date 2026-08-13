@@ -26,7 +26,13 @@ function hasPlaceholder(text: string): boolean {
 }
 
 /** Pre-export sanity checks — length, placeholders, empty sections. */
-export function runResumeLayoutCheck(resume: StructuredResume): LayoutCheckResult {
+export function runResumeLayoutCheck(
+  resume: StructuredResume,
+  options?: {
+    pageCount?: number
+    fonts?: { bodyFontSize?: number; nameFontSize?: number; lineHeight?: number }
+  },
+): LayoutCheckResult {
   const issues: LayoutCheckIssue[] = []
 
   const name = resume.contact?.name?.trim() ?? ''
@@ -89,6 +95,46 @@ export function runResumeLayoutCheck(resume: StructuredResume): LayoutCheckResul
       severity: 'warning',
       title: 'Heavy bullet count',
       detail: `${bulletCount} bullets may overflow a one-page layout — trim lower-priority items.`,
+    })
+  }
+
+  if (options?.pageCount && options.pageCount > 1) {
+    issues.push({
+      id: 'multi-page',
+      severity: 'warning',
+      title: 'Runs past one page',
+      detail: `Preview is ${options.pageCount} pages. Trim content if you need a one-page resume.`,
+    })
+  }
+
+  const bodySize = options?.fonts?.bodyFontSize
+  const nameSize = options?.fonts?.nameFontSize
+  const lineHeight = options?.fonts?.lineHeight
+  if (bodySize != null && (bodySize > 12 || bodySize < 9)) {
+    issues.push({
+      id: 'body-font-size',
+      severity: 'warning',
+      title: 'Body font size is off',
+      detail:
+        bodySize > 12
+          ? `Body text is ${bodySize}pt — 10–11pt usually fits a one-page resume.`
+          : `Body text is ${bodySize}pt — below 9pt can fail ATS parsing and print poorly.`,
+    })
+  }
+  if (nameSize != null && nameSize > 28) {
+    issues.push({
+      id: 'name-font-size',
+      severity: 'warning',
+      title: 'Name is very large',
+      detail: `Name is ${nameSize}pt and can push the resume onto a second page.`,
+    })
+  }
+  if (lineHeight != null && lineHeight > 1.65) {
+    issues.push({
+      id: 'line-height',
+      severity: 'warning',
+      title: 'Line spacing is loose',
+      detail: `Line height ${lineHeight} may overflow one page. ~1.3–1.45 is typical.`,
     })
   }
 

@@ -1534,7 +1534,7 @@ function ensureUi() {
         await runAgenticApplyStep(ctx, savedJobId)
       }
       refreshAuthWall()
-      updateProgress(scanFormProgress())
+      updateProgress(scanFormProgress(profile))
     } catch (err) {
       setStatus(friendlyExtensionError(err), 'err')
     } finally {

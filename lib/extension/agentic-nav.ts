@@ -1,3 +1,5 @@
+import { distinctiveContinueSelectors } from './board'
+
 const CONTINUE_LABEL =
   /^(continue|next|proceed|save and continue|save & continue|continue application|go to application|start application)$/i
 
@@ -36,6 +38,13 @@ function scoreContinue(el: Element): number {
 }
 
 export function findContinueButton(doc: Document): { el: HTMLElement; label: string } | null {
+  for (const sel of distinctiveContinueSelectors()) {
+    const el = doc.querySelector(sel)
+    if (el instanceof HTMLElement && isVisible(el)) {
+      return { el, label: labelFor(el) || 'Continue' }
+    }
+  }
+
   const candidates = Array.from(
     doc.querySelectorAll('button, input[type="submit"], input[type="button"], a[role="button"]'),
   ).filter(isVisible)

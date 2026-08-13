@@ -32,7 +32,7 @@ export default async function TrackerPage({
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [appsRes, tailoredRes] = await Promise.all([
+  const [appsRes, tailoredRes, inboundRes] = await Promise.all([
     supabase
       .from('applications')
       .select(`
@@ -48,6 +48,13 @@ export default async function TrackerPage({
       .select('id, job_id, tailored_score, match_score, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false }),
+    supabase
+      .from('inbound_email_events')
+      .select('id, from_address, subject, body_preview, created_at')
+      .eq('user_id', user.id)
+      .is('application_id', null)
+      .order('created_at', { ascending: false })
+      .limit(50),
   ])
 
   const apps = (appsRes.data ?? []) as AppRow[]
@@ -73,6 +80,7 @@ export default async function TrackerPage({
     <ApplicationsTracker
       initialItems={items}
       initialSurface={view === 'outreach' ? 'outreach' : 'applications'}
+      unmatchedInbound={inboundRes.data ?? []}
     />
   )
 }

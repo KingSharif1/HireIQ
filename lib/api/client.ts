@@ -15,7 +15,11 @@ import type {
 // ---------------------------------------------------------------------------
 
 export class APIError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string,
+    public details?: Record<string, unknown>,
+  ) {
     super(message)
     this.name = 'APIError'
   }
@@ -172,8 +176,13 @@ export async function exportPDF(tailoredResumeId: string): Promise<Blob> {
     body: JSON.stringify({ tailoredResumeId }),
   })
   if (!res.ok) {
-    const data = await res.json().catch(() => ({ error: res.statusText }))
-    throw new APIError(res.status, data.error ?? 'Failed to export PDF')
+    const data = await res.json().catch(() => ({ error: res.statusText })) as {
+      error?: string
+      layoutIssues?: unknown
+    }
+    throw new APIError(res.status, data.error ?? 'Failed to export PDF', {
+      layoutIssues: data.layoutIssues,
+    })
   }
   return res.blob()
 }
@@ -185,8 +194,13 @@ export async function exportDOCX(tailoredResumeId: string): Promise<Blob> {
     body: JSON.stringify({ tailoredResumeId }),
   })
   if (!res.ok) {
-    const data = await res.json().catch(() => ({ error: res.statusText }))
-    throw new APIError(res.status, data.error ?? 'Failed to export DOCX')
+    const data = await res.json().catch(() => ({ error: res.statusText })) as {
+      error?: string
+      layoutIssues?: unknown
+    }
+    throw new APIError(res.status, data.error ?? 'Failed to export DOCX', {
+      layoutIssues: data.layoutIssues,
+    })
   }
   return res.blob()
 }

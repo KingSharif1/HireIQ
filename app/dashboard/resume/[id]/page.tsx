@@ -50,7 +50,7 @@ export default async function ResumeDetailPage({ params }: { params: Promise<{ i
           </Button>
         )}
         <Button asChild>
-          <Link href="/dashboard/profile">Open master</Link>
+          <Link href="/dashboard/builder?view=master">Open master</Link>
         </Button>
       </div>
 

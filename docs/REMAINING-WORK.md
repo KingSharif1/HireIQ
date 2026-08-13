@@ -15,10 +15,10 @@ This is the single checklist for what shipped recently, what’s next, and what 
 | **Extension agentic apply v1** | Continue/signup flows, OTP from Gmail or masked inbound, portal creds saved on application. |
 | **Portal login UI** | Job detail **Job facts** rail + **Activity** tab show email / password / note when saved. |
 | **Gmail sync** | History API incremental sync when `history_id` exists; falls back to 14-day list scan. |
-| **Export QA** | `runResumeLayoutCheck` blocks PDF/DOCX export on critical layout issues (Task 106 partial). |
-| **Resume Builder** | Library page UX pass — master profile hero, clearer stats and links (Task 146 partial). |
+| **Export QA** | `runResumeLayoutCheck` blocks PDF/DOCX on critical issues; warns on page count + font-size/line-height (Task 106). |
+| **Resume Builder** | One nav: **Master resume** (all sections, one page) + **Files & versions**. `/dashboard/profile` redirects. |
 
-Open PR: **merged** — PR #2 → `main` (2026-08-13)
+Open PR: **#3** — `cursor/prod-smoke-layout-warnings-d22e` (export check + Builder consolidation)
 
 ---
 
@@ -33,9 +33,11 @@ Open PR: **merged** — PR #2 → `main` (2026-08-13)
 
 - [x] Portal login UI on tracker detail (seeded creds on Forward Deployed Engineer / harperinsure) — email, masked password, show/reveal, copy, note; also on Activity tab
 - [ ] Extension connect on prod → save job with portal creds (end-to-end from extension, not seed)
-- [ ] Paste Amazon + Microsoft `?pid=` URLs on prod job fetch
-- [ ] Gmail: Connect Gmail on Settings → Sync now → confirm `mode: history` on second sync (`google_connections` still 0)
-- [ ] Masked inbound: create application email → send test mail → All outreach (`inbound_email_events` still 0)
+- [x] Paste Amazon + Microsoft `?pid=` URLs on prod job fetch — Amazon **Digital Content Associate, Prime Video Sports**; Microsoft **Principal Software Engineer** (`source` amazon / microsoft). Did not persist via Analyze.
+- [ ] Gmail: Connect Gmail OAuth starts (Google sign-in for kingsharif.com) — stop at consent; Sync now still needs a connected mailbox
+- [x] Masked address created: `sharif.ahmed.cwc3td@mail.kingsharif.com` (tracking mode **application email**) — confirmed on prod Settings 2026-08-13 (forward to Gmail on)
+- [x] Send test mail to that address → webhook **200**, `inbound_email_events` row stored (subject Testing; unmatched to a job — All outreach fix in PR #3, not on prod yet)
+- [x] Greenhouse job with Apply form (Aechelon RTK internship) — HireIQ Apply + View original + Email tab work; copy-apply-email added in this PR. Chrome extension cannot be loaded in this cloud VM. Live Greenhouse form has First/Last/Email, resume attach, custom questions, Submit + Quick Apply. Test user tracking mode **masked**, forward-to-inbox on.
 
 ### 3. Human-only blockers
 
@@ -49,11 +51,11 @@ Open PR: **merged** — PR #2 → `main` (2026-08-13)
 
 | ID | Task | Scope |
 |----|------|-------|
-| 114 | Gmail sync polish | Done: History API. Next: surface sync mode in UI, handle expired history gracefully in Settings |
-| 117 | Extension polish | Board adapters, broader autofill, agentic apply on more ATS walls |
-| 106 | Visual render QA | Expand layout-check (page overflow, font size); show warnings in Documents export UI |
-| 146 | Resume Builder consolidation | Full single-page master editor — grill IA first ([RESUME-BUILDER.md](./RESUME-BUILDER.md)) |
-| 115 | Forward-to-save email | Inbound webhook for forwarded postings |
+| 114 | Gmail sync polish | Done in code: History API + incremental/full + stale-history copy. Remaining: Connect Gmail on prod + second Sync now |
+| 117 | Extension polish | **v0.9.9** GH/Lever/Ashby/Workday adapters. Remaining: more hosts when a live apply fails. Autofill now uses masked apply email when that mode is on. |
+| 106 | Visual render QA | Export check: page count + body/name font + line-height warnings. Remaining: live preview beside master (optional) |
+| 146 | Resume Builder consolidation | **Done:** one Builder nav, Master scrolling page + Files, Profile/GitHub links in |
+| 115 | Forward-to-save email | **Done:** `save.*@mail.kingsharif.com` + inbound parse → tracker. Remaining: deploy + one forwarded posting smoke |
 | 140 | Mask reply-relay v2 | User ↔ HireIQ ↔ employer reply path |
 
 ### 5. Nice-to-have / v2

@@ -6,6 +6,8 @@ import {
 } from '@/lib/email/process-inbound'
 
 export const runtime = 'nodejs'
+/** Forward-to-save may scrape a job URL before returning. */
+export const maxDuration = 60
 
 /**
  * Resend inbound webhook — subscribe to `email.received`.

@@ -10,6 +10,7 @@
     "noEmit": true,
     "paths": {
       "@hireiq/form-fill": ["../lib/extension/form-fill.ts"],
+      "@hireiq/board": ["../lib/extension/board.ts"],
       "@hireiq/review-choices": ["../lib/extension/review-choices.ts"],
       "@hireiq/location-country": ["../lib/extension/location-country.ts"],
       "@hireiq/entry-level": ["../lib/extension/entry-level.ts"]
