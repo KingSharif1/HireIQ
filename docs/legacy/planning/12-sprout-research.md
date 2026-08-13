@@ -96,13 +96,13 @@ Save / open job → Tailor resume (Claude — usage cost only)
 
 ---
 
-## Product lock proposal (Task 147)
+## Product lock proposal (Task 147 / 148) — updated 2026-08-13
 
-1. **No credits** on HireIQ for auto-apply.
-2. **Primary path:** Chrome extension agentic apply (local), not a HireIQ-hosted browser farm.
-3. **One website CTA:** job detail **Apply with HireIQ** = ensure tailored PDF → deep-link / focus extension on apply URL → agentic run with review gates for sensitive fields.
-4. **Require approval default on** for first ship (match Sprout’s safe setting).
-5. Revisit cloud/unattended apply only if we later productize for many users (then credits or usage pricing make sense).
+1. **Both runtimes:** Chrome extension (free path) **and** hosted Playwright worker (metered).
+2. Hosted v0 on **KVM**; Cloud Run later for scale-to-zero.
+3. Website CTAs: **Apply with extension** vs **Auto-apply on server**.
+4. Pricing draft (not coded): see [PRICING.md](../../PRICING.md).
+5. Full architecture: [AUTO-APPLY.md](../../AUTO-APPLY.md).
 
 ---
 

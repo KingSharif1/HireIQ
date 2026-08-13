@@ -36,6 +36,7 @@ Profile: `components/profile/ProfileHome.tsx` embedded in `BuilderHome`. Legacy 
 - Fallbacks: `chrome.identity` Google OAuth, legacy `hiq_` API tokens (`api_tokens`)
 - ATS account email: `applications.ats_account_email` when employer site needs signup (user creates account; we store email only)
 - Masked tracking: profile API overlays autofill `email` with `masked_email`
+- **Auto-apply (planned):** extension path + hosted Playwright worker — see [AUTO-APPLY.md](./AUTO-APPLY.md) · [PRICING.md](./PRICING.md)
 - Docs: [EXTENSION.md](./EXTENSION.md)
 
 ---

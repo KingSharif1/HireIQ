@@ -157,12 +157,21 @@ Files changed: `016_gmail_sync.sql`, `017_inbound_provider.sql`, `lib/google/*`,
 
 ---
 
-## Task 147 — Apply with HireIQ (tailor → agentic apply, no credits)
+## Task 147 — Apply with HireIQ (extension handoff)
 Status: PENDING  
-Scope: website job CTA + extension handoff; reuse tailor + agentic apply; no credit system  
-Goal: From a tracked job, one primary action: ensure tailored resume → open ATS with extension agentic apply (user-watched / approval default). Match Sprout loop without weekly credit packs — automation runs in the user’s Chrome.  
-Notes: Research lock 2026-08-13 in DECISIONS + `legacy/planning/12-sprout-research.md`. Hard stops: CAPTCHA, LinkedIn/Indeed submit, Workday edge cases → human.  
-Depends on: extension v0.9.9+, masked/Gmail tracking for OTP, Task 140 reply path optional
+Scope: website job CTA + extension handoff; reuse tailor + agentic apply  
+Goal: From a tracked job, **Apply with extension** ensures tailored resume → opens ATS with extension agentic apply (user-watched / approval default).  
+Notes: Hosted/server path is Task **148**. Pricing draft in PRICING.md (not implemented).  
+Depends on: extension v0.9.9+, masked/Gmail tracking for OTP
+
+---
+
+## Task 148 — Hosted server auto-apply (KVM / Cloud Run)
+Status: PENDING  
+Scope: Playwright worker, `apply_runs` queue, website **Auto-apply on server** CTA  
+Goal: Sprout-like unattended apply on HireIQ infra. Prototype on **KVM**; Cloud Run as scale-to-zero option. Meter usage per PRICING.md when customers exist.  
+Notes: Spec in [AUTO-APPLY.md](./AUTO-APPLY.md). Share board/OTP logic with extension. CAPTCHA → `needs_user` in v1.  
+Depends on: Task 147 patterns + tailor PDF availability
 
 ---
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-13 — Dual auto-apply paths + draft pricing (docs)
+
+**What:** Product lock for **extension + hosted** auto-apply. Pricing draft (docs only): tailor **2 for the price of 1** then extra; charge **server** auto-apply; extension autofill free (optional 10-then-pay). Infra note: prototype worker on **KVM**, Cloud Run for scale-to-zero later.
+
+**Files:** `docs/PRICING.md`, `docs/AUTO-APPLY.md`, `DECISIONS.md`, `TASKS.md` (147/148), STATUS, REMAINING-WORK
+
+**Why:** Owner wants Sprout-like server apply and a customer pricing sketch without implementing Stripe yet.
+
+**Next:** Build Task 147 extension handoff; provision KVM when starting Task 148.
+
+---
+
 ## 2026-08-13 — Sprout auto-apply research + Task 147 lock
 
 **What:** Refreshed Sprout AI Apply / credits research. Locked HireIQ approach: **no application credits**; automation stays in the user’s Chrome extension; website CTA will chain tailor → agentic apply (Task 147).
