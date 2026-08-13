@@ -75,3 +75,82 @@
     stroke: #EF4444;
   }
 }
+
+/* Marketing / auth surface — ink + logo teal, scoped so dashboard stays unchanged */
+.marketing {
+  --mk-ink: #070f1a;
+  --mk-deep: #0c1a2e;
+  --mk-panel: rgba(14, 28, 48, 0.72);
+  --mk-teal: #0d9488;
+  --mk-teal-bright: #2dd4bf;
+  --mk-mist: #9aafc2;
+  --mk-paper: #eef2f6;
+  --mk-amber: #d4a574;
+  color: #e8eef5;
+  font-family: var(--font-dm-sans), var(--font-inter), system-ui, sans-serif;
+  background: var(--mk-ink);
+}
+
+.marketing .font-display {
+  font-family: var(--font-syne), var(--font-inter), system-ui, sans-serif;
+}
+
+.marketing-grain {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marketing .animate-mk-drift,
+  .marketing .animate-mk-scan,
+  .marketing .animate-mk-pulse-soft {
+    animation: none !important;
+  }
+}
+
+/* Auth forms on marketing ink surface */
+.marketing .auth-marketing-form input {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #f0f6fa;
+}
+.marketing .auth-marketing-form input::placeholder {
+  color: rgba(154, 175, 194, 0.75);
+}
+.marketing .auth-marketing-form input:focus-visible {
+  outline: none;
+  border-color: rgba(45, 212, 191, 0.55);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.25);
+}
+.marketing .auth-marketing-form a {
+  color: #5eead4;
+}
+.marketing .auth-marketing-form a:hover {
+  color: #99f6e4;
+}
+.marketing .auth-marketing-form .auth-divider-label {
+  background: transparent;
+  color: var(--mk-mist);
+}
+.marketing .auth-marketing-form button[type='submit'],
+.marketing .auth-marketing-form .auth-primary {
+  background: #2dd4bf;
+  color: #042f2e;
+  border: none;
+}
+.marketing .auth-marketing-form button[type='submit']:hover,
+.marketing .auth-marketing-form .auth-primary:hover {
+  background: #5eead4;
+}
+.marketing .auth-marketing-form .auth-google {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #e8eef5;
+}
+.marketing .auth-marketing-form .auth-google:hover {
+  background: rgba(255, 255, 255, 0.08);
+}

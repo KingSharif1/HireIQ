@@ -1,8 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { Zap } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import Image from 'next/image'
+import { motion, useReducedMotion } from 'framer-motion'
+import { MarketingAtmosphere } from '@/components/marketing/MarketingAtmosphere'
 
 interface AuthShellProps {
   title: string
@@ -12,29 +13,34 @@ interface AuthShellProps {
 }
 
 export function AuthShell({ title, description, children, tagline }: AuthShellProps) {
+  const reduce = useReducedMotion()
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="w-full max-w-md space-y-6">
-        <div className="flex flex-col items-center gap-2">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-brand-purple flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" fill="white" />
-            </div>
-            <span className="text-2xl font-bold text-foreground">HireIQ</span>
+    <div className="marketing relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
+      <MarketingAtmosphere />
+
+      <motion.div
+        initial={reduce ? false : { opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+        className="relative z-10 w-full max-w-md space-y-6"
+      >
+        <div className="flex flex-col items-center gap-2 text-center">
+          <Link href="/" className="flex items-center gap-2.5">
+            <Image src="/logo.svg" alt="" width={40} height={40} className="rounded-xl shadow-lg shadow-teal-950/50" />
+            <span className="font-display text-2xl font-semibold tracking-tight text-white">HireIQ</span>
           </Link>
-          {tagline && (
-            <p className="text-muted-foreground text-sm text-center">{tagline}</p>
-          )}
+          {tagline && <p className="max-w-xs text-sm text-[var(--mk-mist)]">{tagline}</p>}
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{title}</CardTitle>
-            <CardDescription>{description}</CardDescription>
-          </CardHeader>
-          <CardContent>{children}</CardContent>
-        </Card>
-      </div>
+        <div className="rounded-2xl border border-white/10 bg-[var(--mk-panel)] p-6 shadow-2xl shadow-black/40 backdrop-blur-xl sm:p-7">
+          <div className="mb-5 space-y-1">
+            <h1 className="font-display text-xl font-semibold text-white">{title}</h1>
+            <p className="text-sm text-[var(--mk-mist)]">{description}</p>
+          </div>
+          <div className="auth-marketing-form space-y-4">{children}</div>
+        </div>
+      </motion.div>
     </div>
   )
 }

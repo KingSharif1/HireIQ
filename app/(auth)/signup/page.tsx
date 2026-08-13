@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { mapSupabaseAuthError } from '@/lib/auth/messages'
 import { googleSignInOAuthOptions } from '@/lib/auth/google-sign-in'
 import { Globe, Zap } from 'lucide-react'
+import { MarketingAtmosphere } from '@/components/marketing/MarketingAtmosphere'
 
 export default function SignupPage() {
   const [firstName, setFirstName] = useState('')
@@ -67,16 +68,18 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <div className="w-full max-w-md text-center space-y-3 rounded-xl border border-border bg-card p-10">
-          <div className="w-14 h-14 rounded-full bg-brand-green/15 flex items-center justify-center mx-auto">
-            <Zap className="w-7 h-7 text-brand-green" />
+      <div className="marketing relative flex min-h-screen items-center justify-center overflow-hidden px-4">
+        <MarketingAtmosphere />
+        <div className="relative z-10 w-full max-w-md space-y-3 rounded-2xl border border-white/10 bg-[var(--mk-panel)] p-10 text-center shadow-2xl backdrop-blur-xl">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-teal-500/20">
+            <Zap className="h-7 w-7 text-teal-300" />
           </div>
-          <h2 className="text-xl font-semibold">Check your email</h2>
-          <p className="text-muted-foreground text-sm">
-            We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account.
+          <h2 className="font-display text-xl font-semibold text-white">Check your email</h2>
+          <p className="text-sm text-[var(--mk-mist)]">
+            We sent a confirmation link to <strong className="text-white">{email}</strong>. Click it to
+            activate your account.
           </p>
-          <Link href="/login" className="text-primary text-sm hover:underline inline-block">
+          <Link href="/login" className="inline-block text-sm text-teal-300 hover:underline">
             Back to sign in
           </Link>
         </div>
@@ -87,13 +90,13 @@ export default function SignupPage() {
   return (
     <AuthShell
       title="Create your account"
-      description="Get started in 30 seconds"
-      tagline="Start getting more interviews — free"
+      description="Get started in under a minute"
+      tagline="Tailor resumes. Track applications. Get interviews."
     >
       <div className="space-y-4">
         <Button
           variant="outline"
-          className="w-full"
+          className="auth-google w-full !border-white/15 !bg-white/5 !text-[#e8eef5] hover:!bg-white/10"
           onClick={handleGoogleSignup}
           disabled={loading}
           type="button"
@@ -104,10 +107,10 @@ export default function SignupPage() {
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-border" />
+            <span className="w-full border-t border-white/10" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">or</span>
+            <span className="auth-divider-label bg-transparent px-2">or</span>
           </div>
         </div>
 
@@ -149,15 +152,15 @@ export default function SignupPage() {
             disabled={loading}
             autoComplete="new-password"
           />
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" className="w-full" disabled={loading}>
+          {error && <p className="text-sm text-red-300">{error}</p>}
+          <Button type="submit" className="auth-primary w-full !bg-teal-400 !text-[#042f2e] shadow-lg shadow-teal-900/30 hover:!bg-teal-300" disabled={loading}>
             {loading ? 'Creating account…' : 'Create free account'}
           </Button>
         </form>
 
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center text-sm text-[var(--mk-mist)]">
           Already have an account?{' '}
-          <Link href="/login" className="text-primary hover:underline">
+          <Link href="/login" className="hover:underline">
             Sign in
           </Link>
         </p>

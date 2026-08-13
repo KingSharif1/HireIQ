@@ -66,12 +66,16 @@ export default function ResetPasswordPage() {
           disabled={loading}
           autoComplete="new-password"
         />
-        {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button type="submit" className="w-full" disabled={loading}>
+        {error && <p className="text-sm text-red-300">{error}</p>}
+        <Button
+          type="submit"
+          className="w-full !bg-teal-400 !text-[#042f2e] shadow-lg shadow-teal-900/30 hover:!bg-teal-300"
+          disabled={loading}
+        >
           {loading ? 'Updating…' : 'Update password'}
         </Button>
-        <p className="text-center text-sm text-muted-foreground">
-          <Link href="/login" className="text-primary hover:underline">
+        <p className="text-center text-sm text-[var(--mk-mist)]">
+          <Link href="/login" className="hover:underline">
             Back to sign in
           </Link>
         </p>

@@ -68,6 +68,8 @@ const config: Config = {
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-syne)', 'var(--font-inter)', 'system-ui', 'sans-serif'],
+        marketing: ['var(--font-dm-sans)', 'var(--font-inter)', 'system-ui', 'sans-serif'],
       },
       keyframes: {
         'accordion-down': {
@@ -78,10 +80,27 @@ const config: Config = {
           from: { height: 'var(--radix-accordion-content-height)' },
           to: { height: '0' },
         },
+        'mk-drift': {
+          '0%, 100%': { transform: 'translate3d(0, 0, 0) scale(1)' },
+          '50%': { transform: 'translate3d(2%, -1.5%, 0) scale(1.04)' },
+        },
+        'mk-scan': {
+          '0%': { top: '12%', opacity: '0' },
+          '8%': { opacity: '1' },
+          '92%': { opacity: '1' },
+          '100%': { top: '88%', opacity: '0' },
+        },
+        'mk-pulse-soft': {
+          '0%, 100%': { opacity: '0.45' },
+          '50%': { opacity: '0.85' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'mk-drift': 'mk-drift 18s ease-in-out infinite',
+        'mk-scan': 'mk-scan 4.5s ease-in-out infinite',
+        'mk-pulse-soft': 'mk-pulse-soft 3.2s ease-in-out infinite',
       },
     },
   },

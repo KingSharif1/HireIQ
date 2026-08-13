@@ -37,10 +37,11 @@ export default function ForgotPasswordPage() {
   if (sent) {
     return (
       <AuthShell title="Check your email" description="Password reset link sent">
-        <p className="text-sm text-muted-foreground">
-          If an account exists for <strong>{email}</strong>, you&apos;ll get a link to reset your password.
+        <p className="text-sm text-[var(--mk-mist)]">
+          If an account exists for <strong className="text-white">{email}</strong>, you&apos;ll get a
+          link to reset your password.
         </p>
-        <Link href="/login" className="text-primary text-sm hover:underline inline-block mt-4">
+        <Link href="/login" className="mt-4 inline-block text-sm hover:underline">
           Back to sign in
         </Link>
       </AuthShell>
@@ -59,13 +60,17 @@ export default function ForgotPasswordPage() {
           disabled={loading}
           autoComplete="email"
         />
-        {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button type="submit" className="w-full" disabled={loading || !email.trim()}>
+        {error && <p className="text-sm text-red-300">{error}</p>}
+        <Button
+          type="submit"
+          className="w-full !bg-teal-400 !text-[#042f2e] shadow-lg shadow-teal-900/30 hover:!bg-teal-300"
+          disabled={loading || !email.trim()}
+        >
           {loading ? 'Sending…' : 'Send reset link'}
         </Button>
         <Link
           href="/login"
-          className="flex items-center justify-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          className="flex items-center justify-center gap-1 text-sm text-[var(--mk-mist)] hover:text-white"
         >
           <ChevronLeft className="w-4 h-4" />
           Back to sign in

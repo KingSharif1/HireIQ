@@ -73,7 +73,7 @@ function LoginForm() {
       <div className="space-y-4">
         <Button
           variant="outline"
-          className="w-full"
+          className="auth-google w-full !border-white/15 !bg-white/5 !text-[#e8eef5] hover:!bg-white/10"
           onClick={handleGoogleLogin}
           disabled={loading}
           type="button"
@@ -84,10 +84,10 @@ function LoginForm() {
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-border" />
+            <span className="w-full border-t border-white/10" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">or</span>
+            <span className="auth-divider-label bg-transparent px-2">or</span>
           </div>
         </div>
 
@@ -111,23 +111,23 @@ function LoginForm() {
             autoComplete="current-password"
           />
           <div className="flex justify-end">
-            <Link href="/forgot-password" className="text-xs text-primary hover:underline">
+            <Link href="/forgot-password" className="text-xs hover:underline">
               Forgot password?
             </Link>
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" className="w-full" disabled={loading}>
+          {error && <p className="text-sm text-red-300">{error}</p>}
+          <Button type="submit" className="auth-primary w-full !bg-teal-400 !text-[#042f2e] shadow-lg shadow-teal-900/30 hover:!bg-teal-300" disabled={loading}>
             {loading ? 'Signing in…' : 'Sign in'}
           </Button>
         </form>
 
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center text-sm text-[var(--mk-mist)]">
           Don&apos;t have an account?{' '}
-          <Link href="/signup" className="text-primary hover:underline">
+          <Link href="/signup" className="hover:underline">
             Sign up free
           </Link>
         </p>
-        <p className="text-center text-xs text-muted-foreground">
+        <p className="text-center text-xs text-[var(--mk-mist)]">
           <Link href="/privacy" className="hover:underline underline-offset-2">
             Privacy Policy
           </Link>

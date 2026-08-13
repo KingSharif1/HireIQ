@@ -101,9 +101,11 @@ Your OAuth consent screen is in **Testing**. Until Google verifies the app (or y
 3. **Test users** → **Add users** → add `sharifzamzam2@gmail.com` (and any other emails you’ll use)
 4. Wait ~1–5 minutes → try **Continue with Google** again
 
-Because we request `gmail.readonly` (restricted), full public launch later needs Google verification / CASA. **For now, Test users is enough.**
+Because we request `gmail.readonly` (**sensitive** scope), public use needs Google app verification + a demo video. CASA only if Google escalates to **restricted** scopes (we do not request those). **For now, Test users is enough** while review runs.
 
-Do **not** need to “Publish” yet for your own testing.
+Full checklist + paste-ready justification: [GOOGLE-VERIFICATION.md](./GOOGLE-VERIFICATION.md).
+
+Do **not** need verification approved yet for your own testing — add Test users.
 
 #### C. Smoke test
 

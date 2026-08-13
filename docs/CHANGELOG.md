@@ -1,5 +1,41 @@
 # Changelog
 
+## 2026-08-12 — Marketing landing + auth visual refresh
+
+**What:** Ink/teal marketing surface (logo-aligned) with Syne + DM Sans, shared atmosphere, animated resume↔job MatchStage, Framer Motion page-load. Login/signup/forgot/reset use the same look.
+
+**Files:** `components/marketing/*`, `components/auth/AuthShell.tsx`, `app/page.tsx`, `app/(auth)/*`, `app/layout.tsx`, `app/globals.css`, `tailwind.config.ts`
+
+**Why:** Stronger first impression + cohesive sign-in; still names HireIQ and explains purpose for Google branding.
+
+**Next:** User reviews locally; commit/deploy when happy.
+
+---
+
+## 2026-08-12 — Google OAuth verification runbook
+
+**What:** Step-by-step branding + sensitive-scope (`gmail.readonly`) submission checklist with paste-ready justification and demo-video script.
+
+**Files:** `docs/GOOGLE-VERIFICATION.md`, `docs/AUTH.md`, `docs/STATUS.md`
+
+**Why:** Site assets are live; remaining work is Google Console + Search Console (human).
+
+**Next:** User verifies domain → fixes Terms URL → re-requests branding → records demo → submits app verification; Test users until approved.
+
+---
+
+## 2026-08-12 — Public HireIQ landing + Terms for Google branding
+
+**What:** Logged-out `/` is a public landing that names **HireIQ** and explains resume tailor + application tracking (+ optional email sync). New `/terms`. Privacy footer links to Terms.
+
+**Files:** `app/page.tsx`, `app/terms/page.tsx`, `app/privacy/page.tsx`
+
+**Why:** Google OAuth branding verification required homepage purpose + app name match; Terms URL should not be the privacy page.
+
+**Next:** Wait for Vercel deploy → Search Console verify `kingsharif.com` / subdomain → set branding Terms to `/terms` → re-request branding verification.
+
+---
+
 ## 2026-08-12 — Task 143: Google login readiness + stale session cleanup
 
 **What:** Proxy clears stale Supabase cookies on `refresh_token_not_found` (stops terminal spam). Skips `getUser` when no auth cookies (less auth API chatter on public pages). Login/signup map “provider not enabled” to a clear message. AUTH.md §3 checklist with exact Supabase callback URI. Extension Google popup error copy points to enable steps / Connect HireIQ.
