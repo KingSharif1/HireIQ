@@ -424,8 +424,18 @@ Files changed: `app/api/jobs/route.ts`, `lib/jobs/description.ts`, `lib/jobs/__t
 
 ---
 
+## Task 147 — Extension agentic apply spec (doc only)
+Status: DONE  
+Scope: `docs/EXTENSION.md`, `docs/DECISIONS.md`, `docs/TASKS.md`  
+Goal: Document v2 agentic apply — multi-step navigation, account creation + OTP tied to `email_tracking_mode` (`gmail` | `masked` | `off`), login override/timeline for masked, autofill-only when off. No code.  
+Result: Added EXTENSION.md § Agentic apply (planned); DECISIONS 2026-08-13 intent lock; panel table updated. Implementation blocked on Gmail sync + masked inbound OTP.  
+Files changed: `docs/EXTENSION.md`, `docs/DECISIONS.md`, `docs/TASKS.md`
+
+---
+
 ## Backlog (Phase 2+)
 
+- **Extension agentic apply** — implement Task 147 spec (navigation, signup by tracking mode, OTP from Gmail or masked inbound)
 - Extension: masked email autofill on apply forms
 - Task 140 — mask reply-relay prefs + reply path
 - Master update soft-keep (24h enrichments) + classify existing vs new

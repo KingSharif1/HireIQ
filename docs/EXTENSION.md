@@ -76,7 +76,7 @@ If the panel doesn’t appear on a job page: open the HireIQ popup once (injects
 | **Save to HireIQ** | Creates job/application; then enables Autofill + shows Saved chip |
 | **Progress** | Bar + N/M ready + %; field checklist + Resume PDF row when upload exists |
 | **Generate resume / cover** | Opens HireIQ website from Autofill Information |
-| **Employer account needed** | If login/signup wall detected — you create the account; paste the email for tracking |
+| **Employer account needed** | Today: user creates account manually. **Planned:** mode-aware agent — see [Agentic apply](#agentic-apply-planned) |
 
 We do **not** create ATS accounts or mask emails for you **today** (v0.9). Sensitive EEOC/salary/conviction fields are skipped client-side and by the drafts API.
 
