@@ -7,6 +7,29 @@ Apply in numeric order on the remote project (`wsbbgznobxhjefaqbniv`). Use Supab
 | 001–018 | `docs/supabase/migrations/00*.sql` | Applied | See STATUS.md |
 | **019** | `019_ats_account_password.sql` | **Applied** (2026-08-13 via Supabase MCP) | Adds `applications.ats_account_password` for extension agentic apply + job timeline portal login |
 | **020** | `020_forward_save_email.sql` | **Applied** (2026-08-13 via Supabase MCP) | `profiles.forward_save_email` unique — forward job postings into the tracker |
+| **021** | `021_apply_runs.sql` | **Applied** (2026-08-13 via Supabase MCP) | `apply_runs` queue for Cloud Run / extension auto-apply (Task 148) |
+
+## Apply 021
+
+```sql
+-- docs/supabase/migrations/021_apply_runs.sql
+-- Creates apply_runs + RLS + GRANT for authenticated
+```
+
+Verify:
+
+```sql
+SELECT column_name
+FROM information_schema.columns
+WHERE table_name = 'apply_runs'
+ORDER BY ordinal_position;
+```
+
+Rollback (only if needed):
+
+```sql
+DROP TABLE IF EXISTS apply_runs;
+```
 
 ## Apply 019
 

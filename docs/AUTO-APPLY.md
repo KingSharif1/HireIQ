@@ -1,8 +1,8 @@
 # Auto-apply architecture (extension + hosted)
 
 **Updated:** 2026-08-13  
-**Status:** Spec / infra plan — extension path partially shipped; hosted worker not built yet.  
-**Pricing:** [PRICING.md](./PRICING.md) (docs only)
+**Status:** Task **148** code shipped (queue + CTA + progress UI + worker image). **Cloud Run deploy** still required for live hosted applies. Extension path partially shipped (Task **147** next).  
+**Pricing:** [PRICING.md](./PRICING.md) (docs only) · **Deploy:** [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md)
 
 HireIQ supports **two ways to apply**, both on **web** (desktop/laptop browser). Mobile is not the primary surface for auto-apply v1.
 
@@ -75,10 +75,26 @@ HireIQ web "Auto-apply with HireIQ"
     → notify + Activity events
 ```
 
-Suggested tables (later migration):
+Suggested tables:
 
-- `apply_runs` — id, user_id, job_id, mode (`extension` | `server`), status, complexity (1|3), error, started_at, finished_at
+- `apply_runs` — **shipped** (migration **021**): id, user_id, job_id, mode (`extension` | `server`), status, complexity (1|3), board, apply_url, submit, error, result, started_at, finished_at
 - Reuse `applications.ats_account_*`, `application_events`
+
+### APIs (Task 148)
+
+| Route | Role |
+|-------|------|
+| `POST /api/apply/jobs/[jobId]/queue` | Auth user → insert `apply_runs` → dispatch `APPLY_WORKER_URL/run` |
+| `GET /api/apply/runs/[runId]` | Poll status |
+| `POST /api/apply/worker/run` | Bearer `APPLY_WORKER_SECRET` → `processApplyRun` (optional; Cloud Run prefers `services/apply-worker`) |
+
+Env: `APPLY_WORKER_URL`, `APPLY_WORKER_SECRET`. Local: `npm run apply:worker` + optional `APPLY_WORKER_INLINE=1` on the Next app.
+
+**Deploy guide:** [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md)
+
+**Default:** fill-only (`submit: false`). CAPTCHA / missing fields → `needs_user`. LinkedIn/Indeed blocked.
+
+**Live progress:** worker writes `apply_runs.result.progress` (steps + filled fields); job detail polls and animates the panel.
 
 ---
 

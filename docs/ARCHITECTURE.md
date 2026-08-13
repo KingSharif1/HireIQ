@@ -36,7 +36,7 @@ Profile: `components/profile/ProfileHome.tsx` embedded in `BuilderHome`. Legacy 
 - Fallbacks: `chrome.identity` Google OAuth, legacy `hiq_` API tokens (`api_tokens`)
 - ATS account email: `applications.ats_account_email` when employer site needs signup (user creates account; we store email only)
 - Masked tracking: profile API overlays autofill `email` with `masked_email`
-- **Auto-apply (planned):** extension path + hosted Playwright worker — see [AUTO-APPLY.md](./AUTO-APPLY.md) · [PRICING.md](./PRICING.md)
+- **Auto-apply:** extension path + hosted Playwright on Cloud Run — [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md). Queue table `apply_runs` (021); worker `services/apply-worker`; job-detail progress UI. Cloud Run deploy still ops.
 - Docs: [EXTENSION.md](./EXTENSION.md)
 
 ---

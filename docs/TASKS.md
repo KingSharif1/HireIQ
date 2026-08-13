@@ -167,11 +167,13 @@ Depends on: extension v0.9.9+, masked/Gmail tracking for OTP
 ---
 
 ## Task 148 — Hosted server auto-apply (Cloud Run)
-Status: PENDING  
+Status: DONE (partial — code + migration live; Cloud Run deploy still ops)  
 Scope: Playwright on **Cloud Run**, `apply_runs` queue, website **Auto-apply with HireIQ** CTA (web-first)  
 Goal: Sprout-like unattended apply from the HireIQ site. Extension optional when already on ATS. Meter per PRICING.md when customers exist.  
-Notes: Spec in [AUTO-APPLY.md](./AUTO-APPLY.md). Learnable board adapters on failure. CAPTCHA → `needs_user`. KVM not required as primary.  
-Depends on: tailor PDF availability; shared board/OTP logic with extension
+Notes: Spec in [AUTO-APPLY.md](./AUTO-APPLY.md) · deploy [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md). Learnable board adapters on failure. CAPTCHA → `needs_user`. KVM not required as primary.  
+Depends on: tailor PDF availability; shared board/OTP logic with extension  
+Result: Migration **021** applied. Queue/status/worker APIs + Playwright fill (dry-run default) + live `result.progress`. Job detail CTA + animated progress panel. `services/apply-worker` Dockerfile. **Remaining ops:** deploy Cloud Run + `APPLY_WORKER_URL` / `APPLY_WORKER_SECRET` on Vercel.  
+Files changed: `021_apply_runs.sql`, `lib/apply/*`, `app/api/apply/*`, `services/apply-worker/*`, `AutoApplyWithHireIQ.tsx`, `JobDetailPage.tsx`, `docs/CLOUD-RUN-APPLY.md`, docs  
 
 ---
 

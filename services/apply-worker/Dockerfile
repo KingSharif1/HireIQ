@@ -1,0 +1,21 @@
+# Match installed playwright major.minor
+FROM mcr.microsoft.com/playwright:v1.60.0-jammy
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=8080
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+COPY package.json package-lock.json ./
+# Install prod deps + playwright/tsx for the worker entry
+RUN npm ci && npm install tsx@4.19.3 --no-save
+
+COPY tsconfig.json next-env.d.ts ./
+COPY lib ./lib
+COPY types ./types
+COPY services/apply-worker ./services/apply-worker
+
+EXPOSE 8080
+
+CMD ["npx", "tsx", "--tsconfig", "tsconfig.json", "services/apply-worker/server.ts"]
