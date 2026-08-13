@@ -2,15 +2,15 @@
 
 **As of:** 2026-08-13  
 **Branch:** `main` · **Production:** https://hireiq.kingsharif.com  
-**Tests:** 211 unit · 11 live URL · extension **v0.9.9** · PR #3 open
+**Tests:** 217 unit · 11 live URL · extension **v0.9.9** · PR #3 open
 
 ## Session handoff
 
 | | |
 |--|--|
-| **Working on** | PR #3 — copy apply email on job detail |
+| **Working on** | PR #3 — masked autofill + forward-to-save (Task 115) |
 | **Blocked** | Gmail OAuth consent · Task 143 Google provider · Chrome extension needs user’s browser |
-| **Next** | Merge PR #3 · reload extension v0.9.9 on Greenhouse apply |
+| **Next** | Merge PR #3 · reload extension v0.9.9 on Greenhouse apply (email = masked address) |
 | **Roadmap** | [REMAINING-WORK.md](./REMAINING-WORK.md) |
 
 ## System snapshot
@@ -30,7 +30,8 @@
 | Tailor stepper | ⛔ Redirected — Job Matcher + tracker replace primary flow |
 | Application tracker | ✓ — Teal list/board; All outreach (134); masked inbound code + DB (139) |
 | Masked apply email (Resend) | ✓ Infra live — `mail.kingsharif.com` receiving; webhook URL prod; needs smoke + `RESEND_FORWARD_FROM` optional |
-| Chrome extension | 🟡 **v0.9.9** · GH/Lever/Ashby/Workday adapters · agentic apply v1 · EXTENSION.md |
+| Forward-to-save (Task 115) | ✓ Address + webhook parse → tracker; needs deploy + one forwarded posting smoke |
+| Chrome extension | 🟡 **v0.9.9** · GH/Lever/Ashby/Workday adapters · agentic apply v1 · masked email now overlays autofill profile · EXTENSION.md |
 | GitHub integration | ✓ Task 105 |
 | Gmail sync | 🟡 **Task 114** | History API incremental; prod OAuth + smoke |
 | Settings | ✓ `/dashboard/settings` — tracking modes, GitHub, password, delete |
@@ -80,7 +81,7 @@ Migrations 001–018 applied remotely; **019 applied** 2026-08-13 — see [supab
 
 1. Merge PR #3, then Connect Gmail on prod Settings → Sync now  
 2. **Task 143** — Enable Google in Supabase ([AUTH.md](./AUTH.md) §3)  
-3. **Task 115** — forward-to-save email (optional)  
+3. After deploy: create **Save jobs by email** address → forward a Greenhouse posting  
 4. **Chrome Store draft** — [CHROME-STORE.md](./CHROME-STORE.md)  
 
 Docs: [REMAINING-WORK.md](./REMAINING-WORK.md) · [EMAIL.md](./EMAIL.md) · [DECISIONS.md](./DECISIONS.md) · [AUTH.md](./AUTH.md) · [EXTENSION.md](./EXTENSION.md)

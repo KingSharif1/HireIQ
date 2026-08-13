@@ -60,3 +60,13 @@ export function resolveApplyIdentity(input: {
     primaryAction: 'autofill-only',
   }
 }
+
+/** Prefer the tracking-mode apply address on ATS forms (masked email when that mode is on). */
+export function overlayApplyEmail<T extends { email: string }>(
+  profile: T,
+  applyEmail: string | null | undefined,
+): T {
+  const email = applyEmail?.trim()
+  if (!email) return profile
+  return { ...profile, email }
+}

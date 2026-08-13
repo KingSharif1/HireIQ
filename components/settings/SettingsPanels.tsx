@@ -9,6 +9,7 @@ import { Loader2, Mail, RefreshCw, Shield, Unlink } from 'lucide-react'
 import { mapGoogleConnectError } from '@/lib/google/oauth'
 import { GitHubConnectPanel } from '@/components/profile/GitHubConnectPanel'
 import { MaskedEmailCard } from '@/components/profile/MaskedEmailCard'
+import { ForwardSaveCard } from '@/components/profile/ForwardSaveCard'
 
 type TrackingMode = 'gmail' | 'masked' | 'off'
 
@@ -265,6 +266,8 @@ export function SettingsIntegrations() {
         )}
 
         {mode === 'masked' && <MaskedEmailCard />}
+
+        <ForwardSaveCard />
 
         {info && <p className="text-xs text-muted-foreground">{info}</p>}
         {error && <p className="text-xs text-destructive">{error}</p>}

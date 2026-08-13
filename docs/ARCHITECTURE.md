@@ -35,6 +35,7 @@ Profile: `components/profile/ProfileHome.tsx` embedded in `BuilderHome`. Legacy 
 - **Preferred auth:** website connect — popup opens `/extension/connect` → one-time `hiqc_` code (`extension_connect_codes`) → extension stores Supabase access/refresh tokens
 - Fallbacks: `chrome.identity` Google OAuth, legacy `hiq_` API tokens (`api_tokens`)
 - ATS account email: `applications.ats_account_email` when employer site needs signup (user creates account; we store email only)
+- Masked tracking: profile API overlays autofill `email` with `masked_email`
 - Docs: [EXTENSION.md](./EXTENSION.md)
 
 ---
@@ -100,10 +101,11 @@ Application tracking
     → Manual inbox reads bounded applications.email_log JSONB through a provider-neutral view model
     → Masked inbound (Resend, live): employer → mail.kingsharif.com → POST /api/webhooks/resend/inbound
       → inbound_email_events + matched email_log → All outreach / job Email (see EMAIL.md)
+    → Forward-to-save (Task 115): `profiles.forward_save_email` → same webhook → extract job URL → saveJobFromUrl → tracker
     → Gmail sync (Task 114, next): Google-connected users, default on / opt-out → same email_log adapters
     → Future Gmail sync uses dedicated message storage, then adapts into the same inbox view model
     → Fixed-job Documents editor: profile_data → inclusion filter → live preview/score → tailored_resumes
-    → Gmail scan / forward-to-save (Phase 2)
+    → Gmail scan (Phase 2 remaining: daily cron)
 ```
 
 ---

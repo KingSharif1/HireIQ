@@ -6,6 +6,7 @@ Apply in numeric order on the remote project (`wsbbgznobxhjefaqbniv`). Use Supab
 |---|------|--------|-------|
 | 001–018 | `docs/supabase/migrations/00*.sql` | Applied | See STATUS.md |
 | **019** | `019_ats_account_password.sql` | **Applied** (2026-08-13 via Supabase MCP) | Adds `applications.ats_account_password` for extension agentic apply + job timeline portal login |
+| **020** | `020_forward_save_email.sql` | **Applied** (2026-08-13 via Supabase MCP) | `profiles.forward_save_email` unique — forward job postings into the tracker |
 
 ## Apply 019
 

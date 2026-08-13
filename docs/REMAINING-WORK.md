@@ -37,7 +37,7 @@ Open PR: **#3** — `cursor/prod-smoke-layout-warnings-d22e` (export check + Bui
 - [ ] Gmail: Connect Gmail OAuth starts (Google sign-in for kingsharif.com) — stop at consent; Sync now still needs a connected mailbox
 - [x] Masked address created: `sharif.ahmed.cwc3td@mail.kingsharif.com` (tracking mode **application email**) — confirmed on prod Settings 2026-08-13 (forward to Gmail on)
 - [x] Send test mail to that address → webhook **200**, `inbound_email_events` row stored (subject Testing; unmatched to a job — All outreach fix in PR #3, not on prod yet)
-- [x] Greenhouse job with Apply form (Aechelon RTK internship) — HireIQ Apply + View original + Email tab work; copy-apply-email added in this PR. Chrome extension cannot be loaded in this cloud VM.
+- [x] Greenhouse job with Apply form (Aechelon RTK internship) — HireIQ Apply + View original + Email tab work; copy-apply-email added in this PR. Chrome extension cannot be loaded in this cloud VM. Live Greenhouse form has First/Last/Email, resume attach, custom questions, Submit + Quick Apply. Test user tracking mode **masked**, forward-to-inbox on.
 
 ### 3. Human-only blockers
 
@@ -52,10 +52,10 @@ Open PR: **#3** — `cursor/prod-smoke-layout-warnings-d22e` (export check + Bui
 | ID | Task | Scope |
 |----|------|-------|
 | 114 | Gmail sync polish | Done in code: History API + incremental/full + stale-history copy. Remaining: Connect Gmail on prod + second Sync now |
-| 117 | Extension polish | **v0.9.9** GH/Lever/Ashby/Workday adapters. Remaining: more hosts when a live apply fails |
+| 117 | Extension polish | **v0.9.9** GH/Lever/Ashby/Workday adapters. Remaining: more hosts when a live apply fails. Autofill now uses masked apply email when that mode is on. |
 | 106 | Visual render QA | Export check: page count + body/name font + line-height warnings. Remaining: live preview beside master (optional) |
 | 146 | Resume Builder consolidation | **Done:** one Builder nav, Master scrolling page + Files, Profile/GitHub links in |
-| 115 | Forward-to-save email | Inbound webhook for forwarded postings |
+| 115 | Forward-to-save email | **Done:** `save.*@mail.kingsharif.com` + inbound parse → tracker. Remaining: deploy + one forwarded posting smoke |
 | 140 | Mask reply-relay v2 | User ↔ HireIQ ↔ employer reply path |
 
 ### 5. Nice-to-have / v2

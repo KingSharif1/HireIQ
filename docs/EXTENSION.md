@@ -121,6 +121,7 @@ When an employer asks the user to **create an account** or **sign in** before ap
 #### `masked` — Masked apply address
 
 - **Apply email:** User’s HireIQ masked inbound address (`profiles.masked_email`).
+- **Autofill:** `GET /api/extension/profile` overlays `profile.email` with that address so Greenhouse/Lever/Ashby/Workday Email fields fill the masked inbox, not Gmail.
 - **Account creation:** Extension registers with the masked email so employer mail lands in our inbound pipeline → forward/log → job timeline.
 - **Verification codes:** Parse from **masked inbound** (Resend webhook / inbound match — same path as employer status mail), not Gmail.
 - **Login override / timeline:** Because the user does not own that inbox directly, the job **Activity / Email** tab (or a dedicated “Portal login” card) must show:

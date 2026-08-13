@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { resolveApplyIdentity } from '@/lib/extension/apply-identity'
+import { overlayApplyEmail, resolveApplyIdentity } from '@/lib/extension/apply-identity'
 
 describe('resolveApplyIdentity', () => {
   it('allows account creation with gmail mode when connected', () => {
@@ -23,6 +23,15 @@ describe('resolveApplyIdentity', () => {
     })
     expect(id.applyEmail).toBe('apply@mail.example.com')
     expect(id.canCreateAccount).toBe(true)
+  })
+
+  it('overlays masked apply email onto the autofill profile', () => {
+    const profile = overlayApplyEmail(
+      { email: 'user@gmail.com', firstName: 'Sharif' },
+      'sharif.apply@mail.example.com',
+    )
+    expect(profile.email).toBe('sharif.apply@mail.example.com')
+    expect(profile.firstName).toBe('Sharif')
   })
 
   it('blocks account creation when tracking is off', () => {

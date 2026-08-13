@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-13 — Task 115: save jobs by forwarding email
+
+**What:** Each user can mint a `save.*@mail.kingsharif.com` address. Forward a posting there and the inbound webhook extracts a job URL, scrapes it, and adds it to Applications (deduped by apply URL). Settings → Integrations shows **Save jobs by email**. Extension autofill now uses the masked apply address when tracking mode is application email.
+
+**Files:** `lib/email/{extract-job-urls,process-forward-save,process-inbound,masked-address}.ts`, `lib/jobs/save-from-url.ts`, `app/api/jobs/route.ts`, `app/api/profile/forward-save-email/route.ts`, `ForwardSaveCard.tsx`, `SettingsPanels.tsx`, `app/api/extension/profile/route.ts`, `lib/extension/apply-identity.ts`, `020_forward_save_email.sql`
+
+**Why:** Spec Module 4 / Task 115. Also, masked tracking was on for the test user but Autofill still filled the Gmail address.
+
+**Next:** Merge PR #3; reload extension v0.9.9 on the Aechelon Greenhouse form and confirm Email is the masked address; forward a Greenhouse URL to the new save address after deploy.
+
+---
+
 ## 2026-08-13 — Copy apply email on job detail
 
 **What:** When tracking mode is application email, job detail shows **Copy apply email** next to Apply, and the Email tab reminds you which address to use on the employer form. Prod smoke: test user already on masked mode with a live Greenhouse apply form.

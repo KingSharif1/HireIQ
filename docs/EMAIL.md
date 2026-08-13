@@ -22,7 +22,7 @@ They paste it (or extension autofills later) on applications. Employer mail → 
 ## Data flow
 
 ```
-User creates address (Profile → Personal)
+User creates address (Settings → Application email)
   → profiles.masked_email UNIQUE
 
 Employer sends mail to masked address
@@ -34,6 +34,12 @@ Employer sends mail to masked address
   → append applications.email_log (source: masked) + email_linked event
   → notification (email_status)
   → optional Resend Send forward (RESEND_FORWARD_FROM)
+
+User creates save address (Settings → Save jobs by email)
+  → profiles.forward_save_email UNIQUE
+User forwards a posting to that address
+  → same inbound webhook
+  → extract job URL (ATS preferred) → saveJobFromUrl → tracker + notification
 ```
 
 ## Env
@@ -79,6 +85,7 @@ Site URL: prefer prod `https://hireiq.kingsharif.com` (localhost still listed in
 |-------|----------|
 | Profile → Personal → **Gmail tracking** | Connect Google (gmail.readonly); sync toggle default on |
 | Profile → Personal → Application email | Create / copy / forward toggle (Task 139) |
+| Settings → Integrations → **Save jobs by email** | Forward a posting to `save.*@mail.kingsharif.com` → tracker (Task 115) |
 | Applications → All outreach | Matched inbound (source HireIQ / later Gmail) |
 | Job → Email tab | Same when matched |
 | Alerts | `email_status` |
@@ -87,7 +94,8 @@ Site URL: prefer prod `https://hireiq.kingsharif.com` (localhost still listed in
 
 **015** — masked inbound: `profiles.masked_email`, `email_forward_*`, `inbound_email_events`  
 **016** — Gmail connect: `profiles.gmail_sync_enabled` (default true), `google_connections` (refresh token + history_id)  
-**017** — `inbound_email_events.provider` + `provider_message_id` (unique per provider)
+**017** — `inbound_email_events.provider` + `provider_message_id` (unique per provider)  
+**020** — `profiles.forward_save_email` (Task 115)
 
 ## Env (Gmail connect)
 

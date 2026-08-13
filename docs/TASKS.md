@@ -166,9 +166,11 @@ Notes: Masked inbound create/forward already shipped (139). v2 = reliable reply 
 ---
 
 ## Task 115 — Forward-to-save email address
-Status: PENDING (Phase 2)  
-Scope: inbound email webhook (Edge Function), per-user address token, jobs pipeline reuse  
-Goal: Forwarded posting → parsed → lands in tracker. Per DESIGN-TEAL-PARITY.md §C2.
+Status: DONE  
+Scope: inbound webhook, `profiles.forward_save_email`, Settings UI, jobs pipeline reuse  
+Goal: Forwarded posting → parsed URL → lands in tracker. Per DESIGN-TEAL-PARITY.md §C2.  
+Result: Dedicated `save.{name}.{token}@mail.kingsharif.com` address. Resend inbound to that mailbox extracts a job URL (ATS preferred), `saveJobFromUrl` inserts/dedupes, notification links to the tracker. Settings → Integrations → **Save jobs by email**. Migration **020** applied.  
+Files changed: `lib/email/{extract-job-urls,process-forward-save,process-inbound,masked-address}.ts`, `lib/jobs/save-from-url.ts`, `app/api/{jobs,profile/forward-save-email,webhooks/resend/inbound}`, `ForwardSaveCard.tsx`, `SettingsPanels.tsx`, migration 020, tests, docs
 
 ---
 

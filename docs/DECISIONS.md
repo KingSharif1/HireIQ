@@ -1,5 +1,22 @@
 # HireIQ Decisions
 
+## 2026-08-13 — Forward-to-save is a dedicated address (Task 115)
+
+**Context:** Spec Module 4 / DESIGN-TEAL-PARITY C2: forward a job posting email → parse → tracker. Masked apply inbox already receives employer mail on the same domain.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Address | Separate `save.{name}.{token}@mail.kingsharif.com` (`profiles.forward_save_email`) |
+| Pipeline | Reuse `saveJobFromUrl` (same as extension save) — scrape, no Claude analyze in the webhook |
+| LinkedIn | Save URL + email body; do not scrape LinkedIn |
+| UX | Settings → Integrations, independent of Gmail vs application-email tracking |
+
+**Tradeoff:** Two HireIQ addresses to remember (apply vs save). Mixing both on the masked inbox would confuse employer replies with job forwards.
+
+**Revisit if:** Users never create the save address and only want “forward anything to my apply email.”
+
+---
 ## 2026-08-13 — Master resume is one scrolling page (Task 146)
 
 **Context:** After consolidating nav, Master was still a 13-section carousel (one panel at a time). User wanted one page.

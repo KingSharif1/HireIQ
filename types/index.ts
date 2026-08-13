@@ -306,6 +306,8 @@ export interface Profile {
   email: string | null
   /** HireIQ apply address (Resend inbound), e.g. name.abc123@mail.example.com */
   masked_email?: string | null
+  /** Forward job posting emails here to save them to the tracker (Task 115). */
+  forward_save_email?: string | null
   email_forward_to?: string | null
   email_forward_enabled?: boolean | null
   /** Default true — opt out of Gmail employer-mail sync when Google is connected. */
