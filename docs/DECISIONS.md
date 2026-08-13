@@ -1,5 +1,26 @@
 # HireIQ Decisions
 
+## 2026-08-13 — Auto-apply without Sprout-style credits (Task 147 intent)
+
+**Context:** User wants “see a job → tailor → AI fills/submits” like Sprout, without paying weekly application credits. Sprout credits (1 or 3⚡) meter **their** cloud automation (Workday, CAPTCHA, multi-step); public pricing starts ~$29.99/wk for 50 apps.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Credits | **None** for HireIQ personal use |
+| Runtime | **Chrome extension** on the user’s machine (not a HireIQ browser farm) |
+| Website role | Tailor + **Apply with HireIQ** handoff into the extension |
+| Safety | Opt-in per job; sensitive fields confirm; LinkedIn/Indeed no auto-submit |
+| CAPTCHA | Pause for human — do not buy solvers for v1 |
+
+**Tradeoff:** Less “set and forget while phone is in pocket” than Sprout’s cloud agents; far cheaper and already aligned with shipped extension agentic apply.
+
+**Revisit if:** Multi-user SaaS needs hosted browsers → then usage metering (credits or $) becomes honest.
+
+**Research:** [legacy/planning/12-sprout-research.md](./legacy/planning/12-sprout-research.md)
+
+---
+
 ## 2026-08-13 — Masked reply sends from HireIQ address (Task 140)
 
 **Context:** Users who apply with a HireIQ address need to answer recruiters without exposing Gmail. Sprout routes replies through the whisperpost identity.
