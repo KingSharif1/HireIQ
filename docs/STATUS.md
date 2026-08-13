@@ -8,10 +8,10 @@
 
 | | |
 |--|--|
-| **Working on** | Task **147** — Apply with HireIQ (research lock; build next) |
-| **Blocked** | Task 143 Google provider · Gmail OAuth · CAPTCHA needs human |
-| **Next** | Job detail **Apply with HireIQ** CTA → tailor PDF → extension agentic apply |
-| **Roadmap** | [REMAINING-WORK.md](./REMAINING-WORK.md) |
+| **Working on** | Dual apply paths + pricing draft (docs) — next build Task **147** extension CTA |
+| **Blocked** | Task 143 Google provider · Gmail OAuth · hosted worker not provisioned yet |
+| **Next** | Task 147 extension handoff · later Task 148 KVM Playwright worker |
+| **Roadmap** | [REMAINING-WORK.md](./REMAINING-WORK.md) · [PRICING.md](./PRICING.md) · [AUTO-APPLY.md](./AUTO-APPLY.md) |
 
 ## System snapshot
 
@@ -36,7 +36,7 @@
 | Gmail sync | 🟡 **Task 114** | History API incremental; prod OAuth + smoke |
 | Settings | ✓ `/dashboard/settings` — tracking modes, GitHub, password, delete |
 | Mask reply-relay | ✓ **Task 140** first slice live (PR #4) — Reply via HireIQ on Email tab |
-| Auto-apply (Sprout-like) | 🔭 **Task 147** — no credits; extension-local agentic apply + website handoff |
+| Auto-apply (Sprout-like) | 🔭 **Dual path** — extension (147) + hosted KVM/Cloud Run (148); pricing draft docs-only |
 
 ## Phase 1 MVP progress (spec order)
 

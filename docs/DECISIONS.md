@@ -1,23 +1,33 @@
 # HireIQ Decisions
 
-## 2026-08-13 — Auto-apply without Sprout-style credits (Task 147 intent)
+## 2026-08-13 — Dual apply paths + draft SaaS pricing (docs only)
 
-**Context:** User wants “see a job → tailor → AI fills/submits” like Sprout, without paying weekly application credits. Sprout credits (1 or 3⚡) meter **their** cloud automation (Workday, CAPTCHA, multi-step); public pricing starts ~$29.99/wk for 50 apps.
+**Context:** Owner wants (1) the Chrome extension **and** (2) a Sprout-like **server** auto-apply (KVM 2 and/or Cloud Run), plus a pricing sketch for future customers. Earlier lock said “extension only / no credits” for personal use — superseded for product direction; personal `billing_exempt` still unlimited while building.
 
 **Locks:**
 | Area | Choice |
 |------|--------|
-| Credits | **None** for HireIQ personal use |
-| Runtime | **Chrome extension** on the user’s machine (not a HireIQ browser farm) |
-| Website role | Tailor + **Apply with HireIQ** handoff into the extension |
-| Safety | Opt-in per job; sensitive fields confirm; LinkedIn/Indeed no auto-submit |
-| CAPTCHA | Pause for human — do not buy solvers for v1 |
+| Runtimes | **Both:** extension (local) + hosted Playwright worker (server) |
+| Hosted v0 | Prefer **small KVM** to prototype; **Cloud Run** as scale-to-zero option later |
+| Charge | Meter **tailor** and **server auto-apply**; extension autofill **free** by default |
+| Tailor pack | **2 for the price of 1**, then pay per extra tailor |
+| Server apply | Always charged when using our browsers (1 vs 3 by portal complexity) |
+| Autofill fallback | Optional **10 free / period** then per-N — only if needed |
+| Code | **Docs only for now** — no Stripe / credit tables in this change |
 
-**Tradeoff:** Less “set and forget while phone is in pocket” than Sprout’s cloud agents; far cheaper and already aligned with shipped extension agentic apply.
+**Tradeoff:** Hosted apply adds real infra cost and ops; extension stays the $0 path. Dual paths share one apply engine where possible.
 
-**Revisit if:** Multi-user SaaS needs hosted browsers → then usage metering (credits or $) becomes honest.
+**Docs:** [PRICING.md](./PRICING.md) · [AUTO-APPLY.md](./AUTO-APPLY.md)
 
-**Research:** [legacy/planning/12-sprout-research.md](./legacy/planning/12-sprout-research.md)
+**Revisit if:** Cloud Run timeouts block Workday; or KVM idle cost > Cloud Run at low volume.
+
+---
+
+## 2026-08-13 — Auto-apply without Sprout-style credits (Task 147 intent) — SUPERSEDED
+
+**Superseded by** dual-path + pricing lock above. Kept for history: extension-first personal use without credits remains valid for `billing_exempt` / free tier autofill.
+
+**Original idea:** Extension-only agentic apply; no application credits for personal HireIQ.
 
 ---
 
