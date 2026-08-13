@@ -18,7 +18,7 @@ No special Supabase `chromiumapp.org` redirect required for this flow.
 
 **Advanced (dev builds only):** Google via `chrome.identity`, or paste a legacy `hiq_` token. Hidden in production builds.
 
-Extension package **v0.9.8**. `externally_connectable` includes `https://hireiq.kingsharif.com/*`. Save-job hosts include `amazon.jobs` and `careers.microsoft.com`; the HireIQ app host is blocked.
+Extension package **v0.9.9**. Board adapters for Greenhouse, Lever, Ashby, and Workday (field maps + submit/continue/resume selectors); other hosts use the generic fallback. `externally_connectable` includes `https://hireiq.kingsharif.com/*`. Save-job hosts include `amazon.jobs` and `careers.microsoft.com`; the HireIQ app host is blocked.
 
 ## Prerequisites
 
@@ -84,7 +84,7 @@ See **[Agentic apply (planned)](#agentic-apply-planned)** below for the v2 visio
 
 ## Agentic apply (v1 — shipped)
 
-> **Status:** MVP shipped in extension v0.9.8+. Multi-step Continue, signup autofill, verification polling tied to `email_tracking_mode`. Full unattended apply on every ATS is still evolving — add rules when a host fails (same pattern as job URL fetching).
+> **Status:** MVP shipped in extension v0.9.9+. Multi-step Continue, signup autofill, verification polling tied to `email_tracking_mode`. Full unattended apply on every ATS is still evolving — add a board adapter rule when a host fails.
 
 ### Goal
 

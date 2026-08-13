@@ -31,6 +31,7 @@ Profile: `components/profile/ProfileHome.tsx` embedded in `BuilderHome`. Legacy 
 ### Chrome extension (Module 6)
 
 - `extension/` — MV3 + Vite/CRXJS; Jobright-style right panel (autofill + save)
+- **Board adapters (v0.9.9):** Greenhouse / Lever / Ashby / Workday field maps + submit/continue/resume selectors; generic fallback otherwise
 - **Preferred auth:** website connect — popup opens `/extension/connect` → one-time `hiqc_` code (`extension_connect_codes`) → extension stores Supabase access/refresh tokens
 - Fallbacks: `chrome.identity` Google OAuth, legacy `hiq_` API tokens (`api_tokens`)
 - ATS account email: `applications.ats_account_email` when employer site needs signup (user creates account; we store email only)

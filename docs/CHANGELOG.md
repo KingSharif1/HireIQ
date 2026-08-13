@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-13 — Extension board adapters (v0.9.9)
+
+**What:** Greenhouse / Lever / Ashby / Workday field maps, submit/continue/resume selectors, and Lever/Ashby full-name fill. Generic fallback unchanged. Extension **v0.9.9**.
+
+**Files:** `lib/extension/board.ts`, `lib/extension/form-fill.ts`, `extension/src/{autofill,detect,submit,file-attach}.ts`, `agentic-nav.ts`, tests, docs
+
+**Why:** Task 117 remaining polish — generic classify missed ATS-specific names (`urls[LinkedIn]`, Workday `data-automation-id`, Ashby `_systemfield_*`).
+
+**Next:** Merge PR #3; Gmail OAuth; more adapters when a host fails.
+
+---
+
 ## 2026-08-13 — Master resume scrolls as one page
 
 **What:** Resume Builder Master shows every profile section on one page. Left nav jumps to anchors; `?section=` deep links still work.

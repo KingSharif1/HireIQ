@@ -5,6 +5,7 @@ import {
   type AutofillProfile,
   type FieldKind,
 } from '@hireiq/form-fill'
+import { getBoardAdapter } from '@hireiq/board'
 import {
   attachFileToInput as attachFileToInputImpl,
   findCoverFileInput as findCoverFileInputImpl,
@@ -108,15 +109,37 @@ function setNativeValue(el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectE
   el.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }))
 }
 
+function pageHostname(): string {
+  try {
+    return typeof location !== 'undefined' ? location.hostname : ''
+  } catch {
+    return ''
+  }
+}
+
+function collectRoot(): ParentNode {
+  const adapter = getBoardAdapter(pageHostname())
+  for (const sel of adapter.formRootSelectors) {
+    const hit = document.querySelector(sel)
+    if (hit && hit.querySelector('input, textarea, select')) return hit
+  }
+  return document
+}
+
 function collectControls(): Array<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement> {
-  return Array.from(document.querySelectorAll('input, textarea, select')).filter(el => {
+  return Array.from(collectRoot().querySelectorAll('input, textarea, select')).filter(el => {
     if (!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement)) {
       return false
     }
     if (el instanceof HTMLInputElement && el.type === 'hidden') return false
     if (el.getAttribute('aria-hidden') === 'true') return false
-    // react-select required sentinel
-    if (el instanceof HTMLInputElement && el.tabIndex < 0 && el.getAttribute('role') !== 'combobox') {
+    // react-select required sentinel — keep Workday file/automation inputs
+    if (
+      el instanceof HTMLInputElement &&
+      el.tabIndex < 0 &&
+      el.getAttribute('role') !== 'combobox' &&
+      !el.getAttribute('data-automation-id')
+    ) {
       return false
     }
     return true
@@ -275,6 +298,7 @@ function metaFor(el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement)
     label: labelFor(el),
     placeholder: el.getAttribute('placeholder') || '',
     autocomplete: el.getAttribute('autocomplete') || '',
+    automationId: el.getAttribute('data-automation-id') || '',
   }
 }
 
@@ -421,7 +445,7 @@ export function collectFieldDescriptors(): FieldDescriptor[] {
     }
 
     const meta = metaFor(el)
-    const kind = classifyField(meta)
+    const kind = classifyField(meta, { hostname: pageHostname() })
     if (kind === 'skip') continue
     let key = fieldKey(el, meta.label, i++)
     if (usedKeys.has(key)) key = `${key}_${i}`

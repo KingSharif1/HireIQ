@@ -85,6 +85,7 @@ describe('valueForKind', () => {
     expect(valueForKind('first_name', profile)).toBe('Sharif')
     expect(valueForKind('linkedin', profile)).toBe('https://www.linkedin.com/in/king-sharif')
     expect(valueForKind('how_heard', profile)).toBe('LinkedIn')
+    expect(valueForKind('full_name', profile)).toBe('Sharif Ahmed')
     expect(valueForKind('unknown', profile)).toBeNull()
   })
 })

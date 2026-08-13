@@ -2,15 +2,15 @@
 
 **As of:** 2026-08-13  
 **Branch:** `main` · **Production:** https://hireiq.kingsharif.com  
-**Tests:** 203 unit · 11 live URL · extension **v0.9.8** · PR #3 open
+**Tests:** 211 unit · 11 live URL · extension **v0.9.9** · PR #3 open
 
 ## Session handoff
 
 | | |
 |--|--|
-| **Working on** | PR #3 — Master resume one-page scroll |
+| **Working on** | PR #3 — Task 117 board adapters |
 | **Blocked** | Gmail OAuth consent · Task 143 Google provider |
-| **Next** | Merge PR #3 · Connect Gmail · Task 117 board adapters |
+| **Next** | Merge PR #3 · Connect Gmail · Task 115 forward-to-save |
 | **Roadmap** | [REMAINING-WORK.md](./REMAINING-WORK.md) |
 
 ## System snapshot
@@ -30,7 +30,7 @@
 | Tailor stepper | ⛔ Redirected — Job Matcher + tracker replace primary flow |
 | Application tracker | ✓ — Teal list/board; All outreach (134); masked inbound code + DB (139) |
 | Masked apply email (Resend) | ✓ Infra live — `mail.kingsharif.com` receiving; webhook URL prod; needs smoke + `RESEND_FORWARD_FROM` optional |
-| Chrome extension | 🟡 **v0.9.8** · agentic apply v1 · Amazon/MS job hosts · EXTENSION.md + CHROME-STORE.md |
+| Chrome extension | 🟡 **v0.9.9** · GH/Lever/Ashby/Workday adapters · agentic apply v1 · EXTENSION.md |
 | GitHub integration | ✓ Task 105 |
 | Gmail sync | 🟡 **Task 114** | History API incremental; prod OAuth + smoke |
 | Settings | ✓ `/dashboard/settings` — tracking modes, GitHub, password, delete |
@@ -80,7 +80,7 @@ Migrations 001–018 applied remotely; **019 applied** 2026-08-13 — see [supab
 
 1. Merge PR #3, then Connect Gmail on prod Settings → Sync now  
 2. **Task 143** — Enable Google in Supabase ([AUTH.md](./AUTH.md) §3)  
-3. **Task 117** — extension board adapters (optional polish)  
+3. **Task 115** — forward-to-save email (optional)  
 4. **Chrome Store draft** — [CHROME-STORE.md](./CHROME-STORE.md)  
 
 Docs: [REMAINING-WORK.md](./REMAINING-WORK.md) · [EMAIL.md](./EMAIL.md) · [DECISIONS.md](./DECISIONS.md) · [AUTH.md](./AUTH.md) · [EXTENSION.md](./EXTENSION.md)

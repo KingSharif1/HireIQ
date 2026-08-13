@@ -195,8 +195,8 @@ Status: IN PROGRESS
 Scope: `extension/` board adapters (GH/Lever/Ashby/Workday + generic fallback), review queue UI  
 Goal: Fill forms from profile + tailored PDF; user batch-reviews and submits while watching. Unknown fields ask the user every time (no answer bank). LinkedIn/Indeed excluded from automation. Per DESIGN-TEAL-PARITY.md §D.  
 Notes: Phase 2 connect/ATS + autofill UX done. Phase 3 **user-watched Submit** shipped (v0.7.0). **v0.8–0.9.5** panel/save-first/choice review/panel IA. Board-specific adapters still optional polish.  
-Result (partial): Website connect + ATS email + autofill UX + Submit + save-first + Questions + Autofill progress with resume gate. LinkedIn/Indeed submit click blocked. **v0.9.8:** save-job hosts include Amazon/Microsoft; prod HireIQ host blocked; richer apply/posting selectors. Board-specific adapters still optional polish.  
-Files changed (v0.9.8): `extension/src/detect.ts`, `lib/extension/job-page.ts`, `extension/package.json`, `extension/manifest.config.ts`
+Result (partial): Website connect + ATS email + autofill UX + Submit + save-first + Questions + Autofill progress with resume gate. LinkedIn/Indeed submit click blocked. **v0.9.8:** Amazon/MS hosts. **v0.9.9:** board adapters for Greenhouse / Lever / Ashby / Workday (field maps + submit/continue/resume selectors); generic fallback for other hosts.  
+Files changed (v0.9.9): `lib/extension/board.ts`, `form-fill.ts`, `extension/src/{autofill,detect,submit,file-attach}.ts`, `agentic-nav.ts`, tests
 
 ---
 

@@ -66,10 +66,12 @@ export async function runAgenticAccountCreation(
     `agentic:${wall.kind}`,
   )
 
-  const submit = findContinueButton(document) ||
+  const foundContinue = findContinueButton(document)
+  const submitEl =
+    foundContinue?.el ||
     (document.querySelector('button[type="submit"], input[type="submit"]') as HTMLElement | null)
-  if (submit) {
-    submit.click()
+  if (submitEl) {
+    submitEl.click()
     await ctx.sleep(2000)
   }
 
@@ -79,8 +81,9 @@ export async function runAgenticAccountCreation(
       const entered = fillVerificationCode(document, codeResult.code)
       if (entered) {
         ctx.onStatus(`Entered verification code from ${ctx.applyIdentity.mode} inbox.`, 'ok')
+        const foundVerify = findContinueButton(document)
         const verifySubmit =
-          findContinueButton(document) ||
+          foundVerify?.el ||
           (document.querySelector('button[type="submit"], input[type="submit"]') as HTMLElement | null)
         verifySubmit?.click()
         await ctx.sleep(1500)

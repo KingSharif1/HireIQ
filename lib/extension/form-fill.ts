@@ -3,6 +3,8 @@
  * Pure — safe for Node tests and Chrome content scripts.
  */
 
+import { classifyBoardField, detectBoard, type BoardKind } from './board'
+
 export type AutofillProfile = {
   firstName: string
   lastName: string
@@ -18,6 +20,7 @@ export type AutofillProfile = {
 export type FieldKind =
   | 'first_name'
   | 'last_name'
+  | 'full_name'
   | 'preferred_name'
   | 'email'
   | 'phone'
@@ -35,6 +38,7 @@ export type FieldMeta = {
   label: string
   placeholder: string
   autocomplete: string
+  automationId?: string
 }
 
 function norm(s: string) {
@@ -42,11 +46,18 @@ function norm(s: string) {
 }
 
 /** Classify a form control from name/id/label/placeholder. */
-export function classifyField(meta: FieldMeta): FieldKind {
+export function classifyField(
+  meta: FieldMeta,
+  opts?: { board?: BoardKind; hostname?: string },
+): FieldKind {
   const type = (meta.type || '').toLowerCase()
   if (type === 'hidden' || type === 'submit' || type === 'button' || type === 'checkbox' || type === 'radio' || type === 'file') {
     return 'skip'
   }
+
+  const board = opts?.board ?? (opts?.hostname ? detectBoard(opts.hostname) : 'generic')
+  const mapped = classifyBoardField(meta, board)
+  if (mapped) return mapped
 
   const blob = norm(
     [meta.name, meta.id, meta.label, meta.placeholder, meta.autocomplete].filter(Boolean).join(' '),
@@ -88,6 +99,10 @@ export function valueForKind(kind: FieldKind, profile: AutofillProfile): string 
       return profile.firstName || null
     case 'last_name':
       return profile.lastName || null
+    case 'full_name': {
+      const combined = [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim()
+      return combined || profile.preferredName || null
+    }
     case 'preferred_name':
       return profile.preferredName || profile.firstName || null
     case 'email':
@@ -149,6 +164,8 @@ export function missingProfilePrompt(kind: FieldKind): string {
       return 'Add your preferred name…'
     case 'country':
       return 'Add your country…'
+    case 'full_name':
+      return 'Add your full name…'
     case 'how_heard':
       return 'How did you hear about this role?'
     default:

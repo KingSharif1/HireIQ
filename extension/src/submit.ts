@@ -2,6 +2,7 @@ import {
   isSubmitAutomationBlocked,
   scoreSubmitLabel,
 } from '../../lib/extension/submit-button'
+import { distinctiveSubmitSelectors } from '../../lib/extension/board'
 
 export { isSubmitAutomationBlocked, scoreSubmitLabel }
 
@@ -24,13 +25,31 @@ export type FoundSubmit = {
 
 /** Find the best visible submit / apply control on the page. */
 export function findSubmitButton(doc: Document = document): FoundSubmit | null {
+  let best: FoundSubmit | null = null
+
+  for (const sel of distinctiveSubmitSelectors()) {
+    for (const node of Array.from(doc.querySelectorAll(sel))) {
+      if (!(node instanceof HTMLElement)) continue
+      if (node instanceof HTMLInputElement && node.type === 'hidden') continue
+      const r = node.getBoundingClientRect()
+      if (r.width < 2 && r.height < 2 && node.offsetParent === null) {
+        // jsdom: still consider in-document distinctive ATS buttons
+      } else if (r.width < 2 && r.height < 2) {
+        continue
+      }
+      if ((node as HTMLButtonElement).disabled) continue
+      const label = controlLabel(node)
+      const score = Math.max(scoreSubmitLabel(label), 90)
+      if (!best || score > best.score) best = { el: node, label: label || sel, score }
+    }
+  }
+
   const nodes = [
     ...doc.querySelectorAll(
       'button, input[type="submit"], input[type="button"], [role="button"], a.button, a[class*="btn"]',
     ),
   ] as HTMLElement[]
 
-  let best: FoundSubmit | null = null
   for (const el of nodes) {
     if (el instanceof HTMLInputElement && el.type === 'hidden') continue
     const r = el.getBoundingClientRect()

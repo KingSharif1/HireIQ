@@ -1,1 +1,1 @@
-import './assets/background.ts-BTCXufy4.js';
+import './assets/background.ts-BcpNy8E0.js';
