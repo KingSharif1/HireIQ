@@ -97,6 +97,28 @@
 
 ---
 
+## 2026-08-13 — Extension agentic apply (intent; doc only)
+
+**Context:** User wants the extension to go beyond single-page autofill: click through multi-step apply flows, create employer accounts when signup walls appear, and complete email verification — with behavior driven by the same **`email_tracking_mode`** as Settings (`gmail` | `masked` | `off`). Job URL fetching is getting a separate “learnable rules” pipeline; extension apply should follow the same pattern (document failures → add ATS rules).
+
+**Intent (soft — not shipped):**
+
+| Area | Choice |
+|------|--------|
+| Navigation | Agent clicks Next/Continue, waits for load, re-scans and autofills each step |
+| `gmail` mode | Create portal account with user Gmail; OTP from **Gmail read-only sync**; continue apply |
+| `masked` mode | Create with **masked inbound email**; OTP from inbound webhook; show **login override + timeline** (email, password, verification events) |
+| `off` mode | **No account creation** (no inbox to verify); autofill + user-watched Submit still OK |
+| LinkedIn / Indeed | No automated submit (unchanged) |
+| Consent | Opt-in per job; audit events for automated actions |
+| Spec | Full narrative in [EXTENSION.md](./EXTENSION.md#agentic-apply-planned) |
+
+**Tradeoff:** Requires stable Gmail sync + masked inbound OTP parsing before build; CASA and credential storage need security review.
+
+**Revisit if:** Task 114 + 139 production-ready → spike Greenhouse agentic path first.
+
+---
+
 **Context:** End users shouldn't fight `chromiumapp.org` redirects or paste tokens. Same HireIQ login (Google or email) should unlock the extension.
 
 **Choice:** Primary flow opens `/extension/connect` in a normal tab → mints one-time `hiqc_` code → `chrome.runtime.sendMessage` (externally_connectable) → extension stores Supabase access/refresh. Fallbacks: Advanced Google via `chrome.identity`, legacy `hiq_` tokens. ATS “needs account”: detect wall, user creates account themselves, store `applications.ats_account_email` — never invent mask emails.
