@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-13 — Task 148: live apply progress UI + Cloud Run setup guide
+
+**What:** Job detail progress panel (steps, % bar, filled-field chips with motion). Worker writes live `result.progress`. Step-by-step Cloud Run deploy doc.
+
+**Files:** `AutoApplyWithHireIQ.tsx`, `lib/apply/{types,server-apply,process-run}.ts`, `docs/CLOUD-RUN-APPLY.md`, AUTO-APPLY
+
+**Why:** Owner asked how to wire Cloud Run, Sprout parity honesty, and a visible apply process (status + motion vs live Chromium stream).
+
+**Next:** Deploy worker; Task 147 extension CTA.
+
+---
+
 ## 2026-08-13 — Task 148: hosted Auto-apply with HireIQ (queue + worker)
 
 **What:** `apply_runs` queue (migration **021**), queue/status/worker APIs, Playwright fill engine (GH/Lever/Ashby-ish, dry-run default), job detail **Auto-apply with HireIQ** CTA, Cloud Run worker package under `services/apply-worker`.

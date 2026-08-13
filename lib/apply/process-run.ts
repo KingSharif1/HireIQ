@@ -2,7 +2,11 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { loadServerApplyContext } from '@/lib/apply/queue'
 import { runServerApply } from '@/lib/apply/server-apply'
 import { setApplicationStatus } from '@/lib/applications/status'
-import type { ApplyRunStatus } from '@/lib/apply/types'
+import {
+  createInitialApplyProgress,
+  type ApplyProgress,
+  type ApplyRunStatus,
+} from '@/lib/apply/types'
 
 /**
  * Claim a queued run (or a specific id) and execute Playwright apply.
@@ -15,6 +19,7 @@ export async function processApplyRun(runId: string): Promise<{
 }> {
   const admin = createAdminClient()
   const now = new Date().toISOString()
+  const initialProgress = createInitialApplyProgress()
 
   const { data: claimed, error: claimError } = await admin
     .from('apply_runs')
@@ -23,10 +28,13 @@ export async function processApplyRun(runId: string): Promise<{
       started_at: now,
       updated_at: now,
       error: null,
+      result: {
+        progress: initialProgress,
+      },
     })
     .eq('id', runId)
     .in('status', ['queued', 'needs_user'])
-    .select('id, user_id, application_id, job_id')
+    .select('id, user_id, application_id, job_id, result')
     .maybeSingle()
 
   if (claimError) {
@@ -45,9 +53,29 @@ export async function processApplyRun(runId: string): Promise<{
     }
   }
 
+  const baseResult = (claimed.result || {}) as Record<string, unknown>
+
+  const writeProgress = async (progress: ApplyProgress) => {
+    await admin
+      .from('apply_runs')
+      .update({
+        result: {
+          ...baseResult,
+          progress,
+          filled: progress.filled,
+          notes: progress.notes,
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', runId)
+  }
+
   try {
     const ctx = await loadServerApplyContext(runId)
-    const outcome = await runServerApply(ctx)
+    const outcome = await runServerApply({
+      ...ctx,
+      onProgress: writeProgress,
+    })
     const finished = new Date().toISOString()
 
     await admin
@@ -56,6 +84,7 @@ export async function processApplyRun(runId: string): Promise<{
         status: outcome.status,
         error: outcome.error ?? null,
         result: {
+          ...baseResult,
           filled: outcome.filled,
           notes: outcome.notes,
           finalUrl: outcome.finalUrl,
@@ -63,6 +92,7 @@ export async function processApplyRun(runId: string): Promise<{
           board: ctx.board,
           jobTitle: ctx.jobTitle,
           company: ctx.company,
+          progress: outcome.progress,
         },
         finished_at: finished,
         updated_at: finished,

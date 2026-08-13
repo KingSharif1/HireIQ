@@ -90,7 +90,11 @@ Suggested tables:
 
 Env: `APPLY_WORKER_URL`, `APPLY_WORKER_SECRET`. Local: `npm run apply:worker` + optional `APPLY_WORKER_INLINE=1` on the Next app.
 
+**Deploy guide:** [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md)
+
 **Default:** fill-only (`submit: false`). CAPTCHA / missing fields → `needs_user`. LinkedIn/Indeed blocked.
+
+**Live progress:** worker writes `apply_runs.result.progress` (steps + filled fields); job detail polls and animates the panel.
 
 ---
 

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { boardFromApplyUrl, estimateApplyComplexity } from '@/lib/apply/types'
+import {
+  boardFromApplyUrl,
+  createInitialApplyProgress,
+  estimateApplyComplexity,
+  parseApplyProgress,
+  patchApplyProgress,
+} from '@/lib/apply/types'
 
 describe('estimateApplyComplexity', () => {
   it('marks Workday as complexity 3', () => {
@@ -41,5 +47,27 @@ describe('boardFromApplyUrl', () => {
     expect(boardFromApplyUrl('https://careers.example.com/jobs/1')).toBe(
       'generic'
     )
+  })
+})
+
+describe('apply progress helpers', () => {
+  it('patches steps and percent', () => {
+    const initial = createInitialApplyProgress()
+    const next = patchApplyProgress(initial, {
+      currentStep: 'identity',
+      stepState: 'active',
+      filled: ['email', 'first_name'],
+      detail: 'Filling…',
+    })
+    expect(next.steps.find(s => s.id === 'open')?.state).toBe('done')
+    expect(next.steps.find(s => s.id === 'identity')?.state).toBe('active')
+    expect(next.filled).toEqual(['email', 'first_name'])
+    expect(next.percent).toBeGreaterThan(20)
+  })
+
+  it('parses progress from result JSON', () => {
+    const progress = createInitialApplyProgress()
+    expect(parseApplyProgress({ progress })).toEqual(progress)
+    expect(parseApplyProgress({})).toBeNull()
   })
 })

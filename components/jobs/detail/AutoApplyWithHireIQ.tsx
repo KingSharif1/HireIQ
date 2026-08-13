@@ -1,9 +1,17 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Loader2, Sparkles } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { Check, Circle, Loader2, PauseCircle, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import type { ApplyRunRow, ApplyRunStatus } from '@/lib/apply/types'
+import {
+  createInitialApplyProgress,
+  parseApplyProgress,
+  type ApplyProgress,
+  type ApplyProgressStep,
+  type ApplyRunRow,
+  type ApplyRunStatus,
+} from '@/lib/apply/types'
 import { cn } from '@/lib/utils'
 
 type Props = {
@@ -11,18 +19,33 @@ type Props = {
   hasApplyUrl: boolean
 }
 
-function statusLabel(status: ApplyRunStatus): string {
+const FIELD_LABELS: Record<string, string> = {
+  first_name: 'First name',
+  last_name: 'Last name',
+  full_name: 'Full name',
+  email: 'Email',
+  phone: 'Phone',
+  linkedin: 'LinkedIn',
+  website: 'Website',
+  resume: 'Resume PDF',
+}
+
+function humanField(id: string): string {
+  return FIELD_LABELS[id] || id.replace(/_/g, ' ')
+}
+
+function statusHeadline(status: ApplyRunStatus): string {
   switch (status) {
     case 'queued':
-      return 'Queued…'
+      return 'Waiting for worker…'
     case 'running':
-      return 'Filling application…'
+      return 'HireIQ is applying'
     case 'applied':
       return 'Submitted'
     case 'needs_user':
       return 'Needs your review'
     case 'failed':
-      return 'Failed'
+      return 'Couldn’t finish'
     case 'cancelled':
       return 'Cancelled'
     default:
@@ -30,27 +53,39 @@ function statusLabel(status: ApplyRunStatus): string {
   }
 }
 
-function statusTone(status: ApplyRunStatus): string {
-  switch (status) {
-    case 'applied':
-      return 'text-emerald-700 dark:text-emerald-400'
-    case 'failed':
-      return 'text-destructive'
-    case 'needs_user':
-      return 'text-amber-700 dark:text-amber-400'
+function StepIcon({ state }: { state: ApplyProgressStep['state'] }) {
+  if (state === 'done') return <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+  if (state === 'active') return <Loader2 className="h-3.5 w-3.5 animate-spin" />
+  if (state === 'blocked') return <X className="h-3.5 w-3.5" strokeWidth={2.5} />
+  if (state === 'skipped') return <PauseCircle className="h-3.5 w-3.5" />
+  return <Circle className="h-3 w-3 opacity-40" />
+}
+
+function stepTone(state: ApplyProgressStep['state']): string {
+  switch (state) {
+    case 'done':
+      return 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+    case 'active':
+      return 'border-sky-500/40 bg-sky-500/10 text-sky-800 dark:text-sky-300'
+    case 'blocked':
+      return 'border-destructive/40 bg-destructive/10 text-destructive'
+    case 'skipped':
+      return 'border-amber-500/35 bg-amber-500/10 text-amber-800 dark:text-amber-300'
     default:
-      return 'text-muted-foreground'
+      return 'border-border/60 bg-muted/40 text-muted-foreground'
   }
 }
 
 /**
- * Job detail primary CTA: queue Cloud Run hosted apply (fill-first / dry-run).
+ * Job detail primary CTA + live apply progress (fields filled, step motion).
  */
 export function AutoApplyWithHireIQ({ jobId, hasApplyUrl }: Props) {
+  const reduceMotion = useReducedMotion()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [run, setRun] = useState<ApplyRunRow | null>(null)
   const [dispatchNote, setDispatchNote] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const stopPoll = useCallback(() => {
@@ -77,17 +112,36 @@ export function AutoApplyWithHireIQ({ jobId, hasApplyUrl }: Props) {
             setBusy(false)
           }
         })()
-      }, 2000)
+      }, 900)
     },
     [stopPoll]
   )
 
   useEffect(() => () => stopPoll(), [stopPoll])
 
+  const progress: ApplyProgress = useMemo(() => {
+    if (!run) return createInitialApplyProgress()
+    const parsed = parseApplyProgress(run.result)
+    if (parsed) return parsed
+    if (run.status === 'queued') {
+      return createInitialApplyProgress()
+    }
+    const filled = Array.isArray(run.result?.filled) ? (run.result.filled as string[]) : []
+    const notes = Array.isArray(run.result?.notes) ? (run.result.notes as string[]) : []
+    return {
+      ...createInitialApplyProgress(),
+      filled,
+      notes,
+      percent: run.status === 'running' ? 15 : 100,
+      currentStep: run.status === 'running' ? 'open' : 'done',
+    }
+  }, [run])
+
   async function startApply() {
     setError(null)
     setDispatchNote(null)
     setBusy(true)
+    setOpen(true)
     try {
       const res = await fetch(`/api/apply/jobs/${jobId}/queue`, {
         method: 'POST',
@@ -106,7 +160,7 @@ export function AutoApplyWithHireIQ({ jobId, hasApplyUrl }: Props) {
       if (body.dispatch && !body.dispatch.dispatched) {
         setDispatchNote(
           body.dispatch.reason ||
-            'Queued — worker not configured yet (set APPLY_WORKER_URL).'
+            'Queued — deploy Cloud Run and set APPLY_WORKER_URL (see docs/CLOUD-RUN-APPLY.md).'
         )
         setBusy(false)
         return
@@ -124,18 +178,10 @@ export function AutoApplyWithHireIQ({ jobId, hasApplyUrl }: Props) {
 
   if (!hasApplyUrl) return null
 
-  const terminal = run && !['queued', 'running'].includes(run.status)
-  const detail =
-    error ||
-    dispatchNote ||
-    (run
-      ? `${statusLabel(run.status)}${run.complexity === 3 ? ' · complex portal' : ''}${
-          terminal && run.error ? ` — ${run.error}` : ''
-        }`
-      : 'Fills the form from your profile (review before submit).')
+  const showPanel = open && (run != null || error != null || dispatchNote != null)
 
   return (
-    <div className="flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end">
+    <div className="flex w-full flex-col items-stretch gap-2 sm:max-w-md sm:items-end">
       <Button
         type="button"
         size="sm"
@@ -150,19 +196,136 @@ export function AutoApplyWithHireIQ({ jobId, hasApplyUrl }: Props) {
         )}
         Auto-apply with HireIQ
       </Button>
-      <p
-        className={cn(
-          'max-w-[18rem] text-[11px] leading-snug sm:text-right',
-          error
-            ? 'text-destructive'
-            : run
-              ? statusTone(run.status)
-              : 'text-muted-foreground'
-        )}
-        aria-live="polite"
-      >
-        {detail}
-      </p>
+
+      {!showPanel ? (
+        <p className="max-w-[18rem] text-[11px] leading-snug text-muted-foreground sm:text-right">
+          Fills the form from your profile, then pauses for review.
+        </p>
+      ) : null}
+
+      <AnimatePresence initial={false}>
+        {showPanel ? (
+          <motion.div
+            key="apply-progress"
+            initial={reduceMotion ? false : { opacity: 0, y: 8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={reduceMotion ? undefined : { opacity: 0, y: 6, scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+            className="w-full overflow-hidden rounded-xl border border-border/80 bg-white/95 shadow-sm dark:bg-card/95"
+            aria-live="polite"
+          >
+            <div className="relative overflow-hidden px-3.5 pb-3.5 pt-3">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_0%_0%,rgba(14,165,233,0.08),transparent_55%),radial-gradient(90%_70%_at_100%_0%,rgba(16,185,129,0.07),transparent_50%)]"
+              />
+              <div className="relative flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold tracking-tight text-foreground">
+                    {run ? statusHeadline(run.status) : 'Auto-apply'}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    {run?.board ? `${run.board} · ` : null}
+                    {run?.complexity === 3 ? 'complex portal · ' : null}
+                    dry run (no submit yet)
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                  aria-label="Dismiss progress"
+                  onClick={() => setOpen(false)}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              <div className="relative mt-3 h-1.5 overflow-hidden rounded-full bg-secondary">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-sky-500 to-emerald-500"
+                  initial={false}
+                  animate={{ width: `${Math.max(4, Math.min(100, progress.percent))}%` }}
+                  transition={
+                    reduceMotion
+                      ? { duration: 0 }
+                      : { type: 'spring', stiffness: 120, damping: 24 }
+                  }
+                />
+              </div>
+              <p className="relative mt-1 text-right text-[10px] tabular-nums text-muted-foreground">
+                {Math.round(progress.percent)}%
+              </p>
+
+              <ol className="relative mt-2 space-y-1.5">
+                {progress.steps.map((step, index) => (
+                  <motion.li
+                    key={step.id}
+                    initial={reduceMotion ? false : { opacity: 0, x: 6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: reduceMotion ? 0 : index * 0.04 }}
+                    className={cn(
+                      'flex items-start gap-2 rounded-lg border px-2 py-1.5 text-[11px] leading-snug transition-colors',
+                      stepTone(step.state)
+                    )}
+                  >
+                    <span className="mt-0.5 shrink-0">
+                      <StepIcon state={step.state} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="font-medium">{step.label}</span>
+                      {step.detail ? (
+                        <span className="mt-0.5 block text-[10px] opacity-80">{step.detail}</span>
+                      ) : null}
+                    </span>
+                  </motion.li>
+                ))}
+              </ol>
+
+              <AnimatePresence initial={false}>
+                {progress.filled.length > 0 ? (
+                  <motion.div
+                    key="filled"
+                    initial={reduceMotion ? false : { opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="relative mt-3"
+                  >
+                    <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                      Filled
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {progress.filled.map((field, i) => (
+                        <motion.span
+                          key={`${field}-${i}`}
+                          initial={reduceMotion ? false : { opacity: 0, scale: 0.85 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ type: 'spring', stiffness: 420, damping: 24 }}
+                          className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 dark:text-emerald-300"
+                        >
+                          <Check className="h-2.5 w-2.5" strokeWidth={3} />
+                          {humanField(field)}
+                        </motion.span>
+                      ))}
+                    </div>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+
+              {error || dispatchNote || run?.error ? (
+                <p
+                  className={cn(
+                    'relative mt-3 text-[11px] leading-snug',
+                    error || run?.status === 'failed'
+                      ? 'text-destructive'
+                      : 'text-muted-foreground'
+                  )}
+                >
+                  {error || dispatchNote || run?.error}
+                </p>
+              ) : null}
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   )
 }

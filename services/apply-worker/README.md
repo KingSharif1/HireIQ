@@ -1,5 +1,7 @@
 # Cloud Run apply worker (Task 148)
 #
+# Full guide: docs/CLOUD-RUN-APPLY.md
+#
 # Build from repo root:
 #   docker build -f services/apply-worker/Dockerfile -t hireiq-apply-worker .
 #
@@ -18,3 +20,4 @@
 #
 # Suggested Cloud Run: 2 vCPU, 2–4 GiB, timeout 300s, max concurrency 1.
 # Default apply is fill-only (submit=false) until you queue with submit:true.
+# Live progress: worker writes apply_runs.result.progress while filling.

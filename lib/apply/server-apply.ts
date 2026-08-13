@@ -1,6 +1,12 @@
 import type { Page } from 'playwright'
 import { getBoardAdapter, type BoardKind } from '@/lib/extension/board'
-import type { ApplyIdentityPayload, ServerApplyContext } from '@/lib/apply/types'
+import {
+  createInitialApplyProgress,
+  patchApplyProgress,
+  type ApplyIdentityPayload,
+  type ApplyProgress,
+  type ServerApplyContext,
+} from '@/lib/apply/types'
 
 export type ServerApplyOutcome = {
   status: 'applied' | 'needs_user' | 'failed'
@@ -9,6 +15,7 @@ export type ServerApplyOutcome = {
   notes: string[]
   finalUrl?: string
   submitted?: boolean
+  progress: ApplyProgress
 }
 
 async function fillFirst(
@@ -60,7 +67,6 @@ function fieldSelectors(board: BoardKind, kind: string): string[] {
             : 'example.com',
   )
 
-  // Prefer board-specific name patterns + generic fallbacks
   const byKind: Record<string, string[]> = {
     first_name: [
       'input[name="job_application[first_name]"]',
@@ -110,19 +116,31 @@ function fieldSelectors(board: BoardKind, kind: string): string[] {
   return byKind[kind] ?? []
 }
 
-async function fillIdentity(page: Page, identity: ApplyIdentityPayload, board: BoardKind) {
+async function fillIdentity(
+  page: Page,
+  identity: ApplyIdentityPayload,
+  board: BoardKind,
+  onField?: (filled: string[]) => void | Promise<void>,
+) {
   const filled: string[] = []
   const fullName = [identity.firstName, identity.lastName].filter(Boolean).join(' ')
 
   if (board === 'lever' || board === 'ashby') {
     await fillFirst(page, fieldSelectors(board, 'full_name'), fullName, 'full_name', filled)
+    await onField?.(filled)
   }
   await fillFirst(page, fieldSelectors(board, 'first_name'), identity.firstName, 'first_name', filled)
+  await onField?.(filled)
   await fillFirst(page, fieldSelectors(board, 'last_name'), identity.lastName, 'last_name', filled)
+  await onField?.(filled)
   await fillFirst(page, fieldSelectors(board, 'email'), identity.email, 'email', filled)
+  await onField?.(filled)
   await fillFirst(page, fieldSelectors(board, 'phone'), identity.phone, 'phone', filled)
+  await onField?.(filled)
   await fillFirst(page, fieldSelectors(board, 'linkedin'), identity.linkedin, 'linkedin', filled)
+  await onField?.(filled)
   await fillFirst(page, fieldSelectors(board, 'website'), identity.website, 'website', filled)
+  await onField?.(filled)
   return filled
 }
 
@@ -167,6 +185,12 @@ async function maybeAttachResume(page: Page, board: BoardKind, pdfUrl: string | 
  */
 export async function runServerApply(ctx: ServerApplyContext): Promise<ServerApplyOutcome> {
   const notes: string[] = []
+  let progress = createInitialApplyProgress()
+  const report = async (next: ApplyProgress) => {
+    progress = next
+    await ctx.onProgress?.(progress)
+  }
+
   const { chromium } = await import('playwright')
 
   const browser = await chromium.launch({
@@ -175,6 +199,14 @@ export async function runServerApply(ctx: ServerApplyContext): Promise<ServerApp
   })
 
   try {
+    await report(
+      patchApplyProgress(progress, {
+        currentStep: 'open',
+        stepState: 'active',
+        detail: 'Launching browser…',
+      })
+    )
+
     const page = await browser.newPage({
       userAgent:
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -184,53 +216,137 @@ export async function runServerApply(ctx: ServerApplyContext): Promise<ServerApp
     await page.goto(ctx.applyUrl, { waitUntil: 'domcontentloaded', timeout: 45_000 })
     await page.waitForTimeout(1500)
 
-    // Greenhouse often has an Apply button above the fold before the form.
+    await report(
+      patchApplyProgress(progress, {
+        currentStep: 'form',
+        stepState: 'active',
+        detail: 'Looking for Apply / form…',
+      })
+    )
+
     const adapter = getBoardAdapter(new URL(ctx.applyUrl).hostname)
     await clickFirst(page, [
       'a[href="#app"]',
       'button:has-text("Apply")',
       'a:has-text("Apply")',
-      ...adapter.applyFieldSelectors.map(s => s), // no-op clicks ignored
+      ...adapter.applyFieldSelectors.map(s => s),
     ])
     await page.waitForTimeout(800)
 
     if (!ctx.identity.email) {
+      progress = patchApplyProgress(progress, {
+        currentStep: 'done',
+        stepState: 'blocked',
+        detail: 'Missing apply email',
+        percent: 100,
+      })
+      await report(progress)
       return {
         status: 'failed',
         error: 'No apply email on profile — set Application email or connect Gmail',
         filled: [],
         notes,
         finalUrl: page.url(),
+        progress,
       }
     }
 
     const captcha = await page.locator('iframe[src*="recaptcha"], .g-recaptcha, [data-callback*="captcha"]').count()
     if (captcha > 0) {
       notes.push('CAPTCHA detected')
+      progress = patchApplyProgress(progress, {
+        currentStep: 'form',
+        stepState: 'blocked',
+        detail: 'CAPTCHA — needs you',
+        notes,
+        percent: 35,
+      })
+      await report(progress)
       return {
         status: 'needs_user',
         error: 'CAPTCHA on this page — finish in your browser or retry later',
         filled: [],
         notes,
         finalUrl: page.url(),
+        progress,
       }
     }
 
-    const filled = await fillIdentity(page, ctx.identity, ctx.board)
-    await maybeAttachResume(page, ctx.board, ctx.resumePdfUrl, notes)
+    await report(
+      patchApplyProgress(progress, {
+        currentStep: 'identity',
+        stepState: 'active',
+        detail: 'Filling name, email, phone…',
+      })
+    )
+
+    const filled = await fillIdentity(page, ctx.identity, ctx.board, async nextFilled => {
+      await report(
+        patchApplyProgress(progress, {
+          currentStep: 'identity',
+          stepState: 'active',
+          filled: [...nextFilled],
+          detail: nextFilled.length
+            ? `Filled ${nextFilled.join(', ')}`
+            : 'Looking for fields…',
+          percent: 30 + Math.min(40, nextFilled.length * 7),
+        })
+      )
+    })
+
+    await report(
+      patchApplyProgress(progress, {
+        currentStep: 'resume',
+        stepState: 'active',
+        filled,
+        detail: ctx.resumePdfUrl ? 'Attaching tailored PDF…' : 'No PDF — skipping upload',
+      })
+    )
+
+    const attached = await maybeAttachResume(page, ctx.board, ctx.resumePdfUrl, notes)
+    if (attached) filled.push('resume')
+
+    await report(
+      patchApplyProgress(progress, {
+        currentStep: 'resume',
+        stepState: attached ? 'done' : 'skipped',
+        filled,
+        notes: [...notes],
+        detail: attached ? 'Resume attached' : notes[notes.length - 1],
+      })
+    )
 
     if (filled.length === 0) {
+      progress = patchApplyProgress(progress, {
+        currentStep: 'identity',
+        stepState: 'blocked',
+        filled,
+        notes: [...notes],
+        detail: 'No fillable fields found',
+        percent: 50,
+      })
+      await report(progress)
       return {
         status: 'needs_user',
         error: 'Could not find fillable application fields on this page',
         filled,
         notes,
         finalUrl: page.url(),
+        progress,
       }
     }
 
     let submitted = false
     if (ctx.submit) {
+      await report(
+        patchApplyProgress(progress, {
+          currentStep: 'submit',
+          stepState: 'active',
+          filled,
+          notes: [...notes],
+          detail: 'Clicking Submit…',
+        })
+      )
       submitted = await clickFirst(page, [
         ...adapter.submitSelectors,
         'button[type="submit"]',
@@ -241,17 +357,45 @@ export async function runServerApply(ctx: ServerApplyContext): Promise<ServerApp
         await page.waitForTimeout(2000)
       } else {
         notes.push('Submit control not found')
+        progress = patchApplyProgress(progress, {
+          currentStep: 'submit',
+          stepState: 'blocked',
+          filled,
+          notes: [...notes],
+          detail: 'Could not find Submit',
+        })
+        await report(progress)
         return {
           status: 'needs_user',
           error: 'Filled the form but could not find Submit',
           filled,
           notes,
           finalUrl: page.url(),
+          progress,
         }
       }
     } else {
       notes.push('Dry run — Submit not clicked (pass submit:true to submit)')
+      await report(
+        patchApplyProgress(progress, {
+          currentStep: 'submit',
+          stepState: 'skipped',
+          filled,
+          notes: [...notes],
+          detail: 'Paused for your review (dry run)',
+        })
+      )
     }
+
+    progress = patchApplyProgress(progress, {
+      currentStep: 'done',
+      stepState: 'done',
+      filled,
+      notes: [...notes],
+      detail: submitted ? 'Submitted' : 'Ready for your review',
+      percent: 100,
+    })
+    await report(progress)
 
     return {
       status: submitted ? 'applied' : 'needs_user',
@@ -259,16 +403,27 @@ export async function runServerApply(ctx: ServerApplyContext): Promise<ServerApp
       notes,
       finalUrl: page.url(),
       submitted,
+      progress,
       error: submitted
         ? undefined
         : 'Form filled. Review on the employer site, or re-queue with submit enabled.',
     }
   } catch (err) {
+    notes.push(err instanceof Error ? err.message : 'Playwright apply failed')
+    progress = patchApplyProgress(progress, {
+      currentStep: progress.currentStep,
+      stepState: 'blocked',
+      notes: [...notes],
+      detail: err instanceof Error ? err.message : 'Failed',
+      markPreviousDone: false,
+    })
+    await report(progress).catch(() => undefined)
     return {
       status: 'failed',
       error: err instanceof Error ? err.message : 'Playwright apply failed',
-      filled: [],
+      filled: progress.filled,
       notes,
+      progress,
     }
   } finally {
     await browser.close()
