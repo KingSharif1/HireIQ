@@ -64,9 +64,10 @@ Files changed: `lib/github/**`, `app/api/github/**`, `components/profile/GitHubC
 
 ## Task 106 — Visual render QA pass (spec §3.5)
 Status: IN PROGRESS  
-Scope: `lib/export/pdf-generator.tsx`, `lib/resume/layout-check.ts`, export routes  
+Scope: `lib/export/pdf-generator.tsx`, `lib/resume/layout-check.ts`, export routes, Documents UI  
 Goal: After tailor, run length + placeholder + section checks; surface flags in UI before export.  
-Result (partial): `runResumeLayoutCheck` blocks PDF/DOCX export on critical issues (missing name, no experience, placeholders). UI surfacing still TODO.
+Result (partial): `runResumeLayoutCheck` blocks PDF/DOCX on critical issues. Documents preview now shows an **Export check** list + PDF/DOCX buttons (disabled when critical). Multi-page warning via optional `pageCount`. Analyzer health checks remain separate.  
+Files changed: `lib/resume/layout-check.ts`, `components/jobs/detail/{LayoutIssuesBanner,DocumentsWorkspace,JobResumeEditor}.tsx`, `lib/api/client.ts`
 
 ---
 
@@ -151,7 +152,7 @@ Scope: Gmail OAuth readonly, scan job, match to tracked applications, notificati
 Goal: When Google is connected, scan/match employer emails to saved/applied jobs; high confidence auto-link, medium/low confirm. Extension Submit timestamps improve matching. Per 2026-08-12 DECISIONS lock.  
 Notes: Not 100% accurate by design. Email/password users nudged to connect Google. Full mask/reply relay = v2 (see Task 139 + EMAIL.md).  
 Blocked by: Google OAuth verification path for `gmail.readonly` in production; needs `GOOGLE_CLIENT_ID`/`SECRET` in env.  
-Result (partial): Migrations **016/017** applied. Connect + opt-out + Sync now + cron batch + shared inbound linker. **History API incremental** shipped 2026-08-13 (`listGmailHistoryChanges` + fallback full scan).  
+Result (partial): Migrations **016/017** applied. Connect + opt-out + Sync now + cron batch + shared inbound linker. **History API incremental** shipped 2026-08-13 (`listGmailHistoryChanges` + fallback full scan). Settings/Gmail panel show **incremental vs full scan** after Sync now.  
 Files changed: `016_gmail_sync.sql`, `017_inbound_provider.sql`, `lib/google/*`, `lib/email/link-inbound.ts`, `process-inbound.ts`, `app/api/google/*`, `app/api/cron/gmail-sync`, `GoogleConnectPanel.tsx`, docs
 
 ---

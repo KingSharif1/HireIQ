@@ -117,8 +117,18 @@ export function SettingsIntegrations() {
       const res = await fetch('/api/google/sync', { method: 'POST' })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Sync failed')
-      const r = json.result as { scanned: number; matched: number; duplicates: number }
-      setInfo(`Synced ${r.scanned} · ${r.matched} matched · ${r.duplicates} already stored`)
+      const r = json.result as {
+        scanned: number
+        matched: number
+        duplicates: number
+        mode?: 'history' | 'full'
+      }
+      const modeLabel = r.mode === 'history' ? 'incremental' : r.mode === 'full' ? 'full scan' : null
+      setInfo(
+        `Synced ${r.scanned} · ${r.matched} matched · ${r.duplicates} already stored${
+          modeLabel ? ` · ${modeLabel}` : ''
+        }`,
+      )
       await load()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Sync failed')

@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { JobResumeEditor } from '@/components/jobs/detail/JobResumeEditor'
 import { ResumePreview } from '@/components/resume/ResumePreview'
+import { DocumentExportActions, LayoutIssuesBanner } from '@/components/jobs/detail/LayoutIssuesBanner'
 import { DEFAULT_RESUME_THEME } from '@/lib/export/theme'
 import { cn, scoreColor } from '@/lib/utils'
 import type { ProfileData, StructuredResume, TailorGapAnswer } from '@/types'
@@ -90,10 +91,18 @@ export function DocumentsWorkspace({
               ) : null}
             </h2>
           </div>
-          <Button type="button" size="sm" onClick={() => onMode('edit')}>
-            Edit resume
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <DocumentExportActions
+              tailoredResumeId={selected.id}
+              fileStem={`resume-v${selected.version}`}
+              resume={selected.structured_data}
+            />
+            <Button type="button" size="sm" onClick={() => onMode('edit')}>
+              Edit resume
+            </Button>
+          </div>
         </div>
+        <LayoutIssuesBanner resume={selected.structured_data} />
         <div className="rounded-xl border border-border bg-card p-3">
           <ResumePreview
             data={selected.structured_data}

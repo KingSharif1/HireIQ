@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-13 — Documents export check + remaining prod smoke
+
+**What:** Documents preview shows layout issues and PDF/DOCX export (blocked on critical). Hide duplicate Portal login on Activity at desktop. Gmail Sync now copy includes incremental vs full scan. Prod: created application email; Amazon/Microsoft fetch-url returned titles; Gmail connect reaches Google OAuth.
+
+**Files:** `components/jobs/detail/{LayoutIssuesBanner,DocumentsWorkspace,JobResumeEditor,ActivityPanel}.tsx`, `lib/resume/layout-check.ts`, `lib/api/client.ts`, `GoogleConnectPanel.tsx`, `SettingsPanels.tsx`, docs
+
+**Why:** Close remaining smoke we can do without Google mailbox access; surface export QA in the live Documents UI.
+
+**Next:** Send a test message to the application alias; finish Gmail OAuth; Task 146.
+
+---
+
 ## 2026-08-13 — Prod smoke: portal login UI
 
 **What:** Logged into production and verified Portal login on job tracker detail (facts rail + Activity tab): email, show/hide password, note. Gmail sync correctly returns 400 until connected. Masked inbound still needs an application alias.

@@ -71,4 +71,10 @@ describe('runResumeLayoutCheck', () => {
     )
     expect(result.issues.some(i => i.id.startsWith('placeholder-exp'))).toBe(true)
   })
+
+  it('warns when preview is more than one page', () => {
+    const result = runResumeLayoutCheck(baseResume(), { pageCount: 2 })
+    expect(result.ok).toBe(true)
+    expect(result.issues.map(i => i.id)).toContain('multi-page')
+  })
 })

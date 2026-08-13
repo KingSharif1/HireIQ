@@ -125,7 +125,7 @@ export function ActivityPanel({
         email={portalEmail}
         password={portalPassword}
         note={portalNote}
-        className="overflow-hidden rounded-xl border border-border bg-card shadow-sm p-4"
+        className="overflow-hidden rounded-xl border border-border bg-card shadow-sm p-4 lg:hidden"
       />
 
       <div className="rounded-xl border border-border bg-white p-4 dark:bg-card sm:p-5">

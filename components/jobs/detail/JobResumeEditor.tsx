@@ -8,6 +8,7 @@ import { DesignerPanel } from '@/components/builder/designer/DesignerPanel'
 import { AnalyzerPanel } from '@/components/builder/AnalyzerPanel'
 import { JobMatcherPanel } from '@/components/builder/JobMatcherPanel'
 import { CoverLetterPanel } from '@/components/builder/CoverLetterPanel'
+import { LayoutIssuesBanner } from '@/components/jobs/detail/LayoutIssuesBanner'
 import { ResumePreview } from '@/components/resume/ResumePreview'
 import { applyInclusion } from '@/lib/profile/inclusion'
 import {
@@ -149,14 +150,15 @@ export function JobResumeEditor({
               {tab === 'analyzer' ? <AnalyzerPanel data={data} /> : null}
             </div>
             <div className="flex-1 min-w-0 min-h-0 flex flex-col bg-neutral-100/80 dark:bg-secondary/20">
-              <div className="flex-1 min-h-0 p-3 md:p-4">
+              <div className="flex-1 min-h-0 space-y-3 overflow-auto p-3 md:p-4">
+                <LayoutIssuesBanner resume={previewData} />
                 <ResumePreview
                   data={previewData}
                   theme={theme}
                   showHealth={false}
                   showTools
                   enablePan
-                  className="h-full"
+                  className="h-full min-h-[480px]"
                 />
               </div>
             </div>

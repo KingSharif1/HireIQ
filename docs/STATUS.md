@@ -8,9 +8,9 @@
 
 | | |
 |--|--|
-| **Working on** | Prod smoke complete for portal login UI |
-| **Blocked** | Gmail sync (not connected) · masked inbound (no alias yet) · Task 143 Google provider |
-| **Next** | Connect Gmail on Settings → Sync now · create application email + send test · Task 146 |
+| **Working on** | Layout export UI (Task 106) + remaining prod smoke |
+| **Blocked** | Gmail OAuth consent (Google password) · inbound test mail to new alias · Task 143 Google provider |
+| **Next** | Send test mail to application alias · complete Gmail connect · Task 146 |
 | **Roadmap** | [REMAINING-WORK.md](./REMAINING-WORK.md) |
 
 ## System snapshot
@@ -45,7 +45,7 @@
 | 3 | Job URL ingestion | ✓ ~90% | Tiered fetch + Amazon/Microsoft live tests |
 | 4 | Gap analysis | ✓ ~90% | 3-tier JSON + UI |
 | 5 | Tailored resume + tracked changes | ✓ ~90% | Accept/decline/edit done |
-| 6 | ATS + visual check | 🟡 65% | Layout check blocks critical export issues (106 partial) |
+| 6 | ATS + visual check | 🟡 75% | Documents Export check + PDF/DOCX; critical issues still block API export |
 | 7 | Application log | ✓ ~92% | Portal login UI; Gmail history sync |
 
 Legend: ✓ done · 🟡 in progress · 🔴 not started · 🔭 planned

@@ -26,7 +26,10 @@ function hasPlaceholder(text: string): boolean {
 }
 
 /** Pre-export sanity checks — length, placeholders, empty sections. */
-export function runResumeLayoutCheck(resume: StructuredResume): LayoutCheckResult {
+export function runResumeLayoutCheck(
+  resume: StructuredResume,
+  options?: { pageCount?: number },
+): LayoutCheckResult {
   const issues: LayoutCheckIssue[] = []
 
   const name = resume.contact?.name?.trim() ?? ''
@@ -89,6 +92,15 @@ export function runResumeLayoutCheck(resume: StructuredResume): LayoutCheckResul
       severity: 'warning',
       title: 'Heavy bullet count',
       detail: `${bulletCount} bullets may overflow a one-page layout — trim lower-priority items.`,
+    })
+  }
+
+  if (options?.pageCount && options.pageCount > 1) {
+    issues.push({
+      id: 'multi-page',
+      severity: 'warning',
+      title: 'Runs past one page',
+      detail: `Preview is ${options.pageCount} pages. Trim content if you need a one-page resume.`,
     })
   }
 

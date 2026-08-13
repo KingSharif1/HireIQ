@@ -71,13 +71,24 @@ export function GoogleConnectPanel() {
       const res = await fetch('/api/google/sync', { method: 'POST' })
       const json = (await res.json()) as {
         error?: string
-        result?: { scanned: number; matched: number; linked: number; duplicates: number }
+        result?: {
+          scanned: number
+          matched: number
+          linked: number
+          duplicates: number
+          mode?: 'history' | 'full'
+        }
       }
       if (!res.ok) throw new Error(json.error || 'Sync failed')
       await loadStatus()
       const r = json.result
       if (r) {
-        setInfo(`Synced ${r.scanned} messages · ${r.matched} matched · ${r.duplicates} already stored`)
+        const modeLabel = r.mode === 'history' ? 'incremental' : r.mode === 'full' ? 'full scan' : null
+        setInfo(
+          `Synced ${r.scanned} messages · ${r.matched} matched · ${r.duplicates} already stored${
+            modeLabel ? ` · ${modeLabel}` : ''
+          }`,
+        )
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Sync failed')

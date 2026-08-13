@@ -33,9 +33,10 @@ Open PR: **merged** — PR #2 → `main` (2026-08-13)
 
 - [x] Portal login UI on tracker detail (seeded creds on Forward Deployed Engineer / harperinsure) — email, masked password, show/reveal, copy, note; also on Activity tab
 - [ ] Extension connect on prod → save job with portal creds (end-to-end from extension, not seed)
-- [ ] Paste Amazon + Microsoft `?pid=` URLs on prod job fetch
-- [ ] Gmail: Connect Gmail on Settings → Sync now → confirm `mode: history` on second sync (`google_connections` still 0)
-- [ ] Masked inbound: create application email → send test mail → All outreach (`inbound_email_events` still 0)
+- [x] Paste Amazon + Microsoft `?pid=` URLs on prod job fetch — Amazon **Digital Content Associate, Prime Video Sports**; Microsoft **Principal Software Engineer** (`source` amazon / microsoft). Did not persist via Analyze.
+- [ ] Gmail: Connect Gmail OAuth starts (Google sign-in for kingsharif.com) — stop at consent; Sync now still needs a connected mailbox
+- [x] Masked address created: `sharif.ahmed.cwc3td@mail.kingsharif.com` (tracking mode **application email**)
+- [ ] Send test mail to that address → All outreach (`inbound_email_events` still 0)
 
 ### 3. Human-only blockers
 
@@ -49,9 +50,9 @@ Open PR: **merged** — PR #2 → `main` (2026-08-13)
 
 | ID | Task | Scope |
 |----|------|-------|
-| 114 | Gmail sync polish | Done: History API. Next: surface sync mode in UI, handle expired history gracefully in Settings |
+| 114 | Gmail sync polish | Done: History API + Settings shows incremental/full after sync. Next: handle expired history copy in Settings |
 | 117 | Extension polish | Board adapters, broader autofill, agentic apply on more ATS walls |
-| 106 | Visual render QA | Expand layout-check (page overflow, font size); show warnings in Documents export UI |
+| 106 | Visual render QA | Documents **Export check** + PDF/DOCX; multi-page warning. Remaining: font-size / overflow from live preview page count |
 | 146 | Resume Builder consolidation | Full single-page master editor — grill IA first ([RESUME-BUILDER.md](./RESUME-BUILDER.md)) |
 | 115 | Forward-to-save email | Inbound webhook for forwarded postings |
 | 140 | Mask reply-relay v2 | User ↔ HireIQ ↔ employer reply path |
