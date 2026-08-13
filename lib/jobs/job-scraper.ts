@@ -161,45 +161,26 @@ async function scrapeAshby(url: string): Promise<{ text: string; company: string
   }
 }
 
-async function scrapeGeneric(url: string): Promise<{ text: string; company: string; title: string }> {
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; HireIQ/1.0)' },
-  })
-  if (!res.ok) throw new Error(`Could not fetch URL (status ${res.status})`)
-
-  const html = await res.text()
-  const { load } = await import('cheerio')
-  const $ = load(html)
-
-  $('script, style, nav, header, footer, aside, [class*="sidebar"], [class*="nav"]').remove()
-
-  const selectors = [
-    '[class*="job-description"]',
-    '[class*="job_description"]',
-    '[data-testid*="job"]',
-    'article',
-    '[role="main"]',
-    'main',
-    '.content',
-    '#content',
-  ]
-
-  let text = ''
-  for (const sel of selectors) {
-    const el = $(sel).first()
-    if (el.length && el.text().trim().length > 200) {
-      text = el.text().replace(/\s+/g, ' ').trim()
-      break
-    }
+async function scrapeGeneric(url: string): Promise<{
+  text: string
+  company: string
+  title: string
+  extractionMethod?: string
+  extractionRuleId?: string
+}> {
+  const { extractJobFromHtmlUrl } = await import('@/lib/jobs/extract-pipeline')
+  const { result } = await extractJobFromHtmlUrl(url)
+  if (!result) {
+    return { text: '', company: '', title: '' }
   }
 
-  if (!text) {
-    text = $('body').text().replace(/\s+/g, ' ').trim().slice(0, 8000)
+  return {
+    text: result.text.slice(0, 8000),
+    company: result.company,
+    title: result.title,
+    extractionMethod: result.method,
+    extractionRuleId: result.ruleId,
   }
-
-  const title = $('h1').first().text().trim() || $('title').text().trim()
-
-  return { text: text.slice(0, 8000), company: '', title }
 }
 
 export async function scrapeJobUrl(url: string): Promise<{
@@ -210,6 +191,8 @@ export async function scrapeJobUrl(url: string): Promise<{
   atsSystem: string
   confidence: 'high' | 'medium' | 'low'
   warning?: string
+  extractionMethod?: string
+  extractionRuleId?: string
 }> {
   if (isLinkedInJobUrl(url)) {
     throw new LinkedInBlockedError()
@@ -223,7 +206,13 @@ export async function scrapeJobUrl(url: string): Promise<{
     warning = AGGREGATOR_WARNING
   }
 
-  let result: { text: string; company: string; title: string }
+  let result: {
+    text: string
+    company: string
+    title: string
+    extractionMethod?: string
+    extractionRuleId?: string
+  }
 
   switch (source) {
     case 'workday':
@@ -246,11 +235,29 @@ export async function scrapeJobUrl(url: string): Promise<{
     throw new Error('Could not extract enough job content from this URL — paste the description instead')
   }
 
+  const genericMeta =
+    source === 'generic' && 'extractionMethod' in result
+      ? {
+          extractionMethod: result.extractionMethod,
+          extractionRuleId: result.extractionRuleId,
+        }
+      : {}
+
+  const genericConfidence =
+    source === 'generic' && 'extractionMethod' in result
+      ? result.extractionMethod === 'html-heuristic' && result.text.length < 500
+        ? 'low'
+        : result.extractionMethod === 'playwright'
+          ? 'medium'
+          : 'high'
+      : confidence
+
   return {
     ...result,
     source,
     atsSystem: source === 'generic' ? '' : source,
-    confidence: warning ? 'medium' : confidence,
+    confidence: warning ? 'medium' : genericConfidence,
     warning,
+    ...genericMeta,
   }
 }

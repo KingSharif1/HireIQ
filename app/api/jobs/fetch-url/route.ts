@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { scrapeJobUrl, LinkedInBlockedError } from '@/lib/jobs/job-scraper'
 
 export const runtime = 'nodejs'
-export const maxDuration = 30
+/** Playwright fallback may add ~15s on JS-heavy career pages. */
+export const maxDuration = 60
 
 export async function POST(request: Request) {
   const supabase = await createClient()
