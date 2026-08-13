@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-13 — Copy apply email on job detail
+
+**What:** When tracking mode is application email, job detail shows **Copy apply email** next to Apply, and the Email tab reminds you which address to use on the employer form. Prod smoke: test user already on masked mode with a live Greenhouse apply form.
+
+**Files:** `JobDetailPage.tsx`, `EmailInbox.tsx`, `app/dashboard/tracker/[jobId]/page.tsx`
+
+**Why:** Settings had the address; Apply opened Greenhouse without a way to copy it onto the Email field.
+
+**Next:** Merge PR #3 so unmatched inbound appears in All outreach; reload extension v0.9.9 on a real apply form.
+
+---
+
 ## 2026-08-13 — Extension board adapters (v0.9.9)
 
 **What:** Greenhouse / Lever / Ashby / Workday field maps, submit/continue/resume selectors, and Lever/Ashby full-name fill. Generic fallback unchanged. Extension **v0.9.9**.

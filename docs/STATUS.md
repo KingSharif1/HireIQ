@@ -8,9 +8,9 @@
 
 | | |
 |--|--|
-| **Working on** | PR #3 — Task 117 board adapters |
-| **Blocked** | Gmail OAuth consent · Task 143 Google provider |
-| **Next** | Merge PR #3 · Connect Gmail · Task 115 forward-to-save |
+| **Working on** | PR #3 — copy apply email on job detail |
+| **Blocked** | Gmail OAuth consent · Task 143 Google provider · Chrome extension needs user’s browser |
+| **Next** | Merge PR #3 · reload extension v0.9.9 on Greenhouse apply |
 | **Roadmap** | [REMAINING-WORK.md](./REMAINING-WORK.md) |
 
 ## System snapshot

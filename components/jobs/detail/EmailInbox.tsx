@@ -22,6 +22,8 @@ export type EmailInboxProps = {
   onSelectThread: (threadId: string) => void
   onLogEmail: (email: LogEmailInput) => void | Promise<void>
   disabled?: boolean
+  /** When set, remind the user to apply with this HireIQ address. */
+  applyEmail?: string | null
 }
 
 const directionStyles = {
@@ -62,6 +64,7 @@ export function EmailInbox({
   onSelectThread,
   onLogEmail,
   disabled = false,
+  applyEmail = null,
 }: EmailInboxProps) {
   const selectedThread = useMemo(
     () => threads.find(thread => thread.id === selectedThreadId) ?? threads[0] ?? null,
@@ -113,6 +116,14 @@ export function EmailInbox({
           <p className="mt-1 text-sm text-muted-foreground">
             Review linked messages or manually log application emails.
           </p>
+          {applyEmail ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Apply with{' '}
+              <span className="font-mono text-foreground">{applyEmail}</span>
+              {' — '}
+              employer replies show up here when we can match the company.
+            </p>
+          ) : null}
         </div>
         <span className="inline-flex w-fit items-center rounded-full border border-border bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
           {threads.length} {threads.length === 1 ? 'thread' : 'threads'}
@@ -124,8 +135,9 @@ export function EmailInbox({
           <Mail className="mx-auto h-7 w-7 text-muted-foreground" aria-hidden="true" />
           <p className="mt-3 text-sm font-medium text-foreground">No emails logged</p>
           <p className="mx-auto mt-1 max-w-md text-xs leading-5 text-muted-foreground">
-            Emails linked to this application will appear here. You can also record a real
-            message with the manual form below.
+            {applyEmail
+              ? `Use ${applyEmail} on the employer form. Replies land here when we can match the company.`
+              : 'Emails linked to this application will appear here. You can also record a real message with the manual form below.'}
           </p>
         </div>
       ) : (

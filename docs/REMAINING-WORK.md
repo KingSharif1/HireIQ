@@ -35,8 +35,9 @@ Open PR: **#3** — `cursor/prod-smoke-layout-warnings-d22e` (export check + Bui
 - [ ] Extension connect on prod → save job with portal creds (end-to-end from extension, not seed)
 - [x] Paste Amazon + Microsoft `?pid=` URLs on prod job fetch — Amazon **Digital Content Associate, Prime Video Sports**; Microsoft **Principal Software Engineer** (`source` amazon / microsoft). Did not persist via Analyze.
 - [ ] Gmail: Connect Gmail OAuth starts (Google sign-in for kingsharif.com) — stop at consent; Sync now still needs a connected mailbox
-- [x] Masked address created: `sharif.ahmed.cwc3td@mail.kingsharif.com` (tracking mode **application email**)
-- [x] Send test mail to that address → webhook **200**, `inbound_email_events` row stored (subject Testing; unmatched to a job — All outreach fix in PR #3)
+- [x] Masked address created: `sharif.ahmed.cwc3td@mail.kingsharif.com` (tracking mode **application email**) — confirmed on prod Settings 2026-08-13 (forward to Gmail on)
+- [x] Send test mail to that address → webhook **200**, `inbound_email_events` row stored (subject Testing; unmatched to a job — All outreach fix in PR #3, not on prod yet)
+- [x] Greenhouse job with Apply form (Aechelon RTK internship) — HireIQ Apply + View original + Email tab work; copy-apply-email added in this PR. Chrome extension cannot be loaded in this cloud VM.
 
 ### 3. Human-only blockers
 
