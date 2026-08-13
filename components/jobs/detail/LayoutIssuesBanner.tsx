@@ -14,8 +14,14 @@ function severityClass(severity: LayoutCheckIssue['severity']): string {
   return 'border-border bg-muted/40 text-muted-foreground'
 }
 
-export function LayoutIssuesBanner({ resume }: { resume: StructuredResume }) {
-  const result = useMemo(() => runResumeLayoutCheck(resume), [resume])
+export function LayoutIssuesBanner({
+  resume,
+  pageCount,
+}: {
+  resume: StructuredResume
+  pageCount?: number
+}) {
+  const result = useMemo(() => runResumeLayoutCheck(resume, { pageCount }), [resume, pageCount])
   if (result.issues.length === 0) return null
 
   const critical = result.issues.filter(issue => issue.severity === 'critical')

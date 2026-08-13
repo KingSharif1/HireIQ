@@ -61,7 +61,7 @@ export function ResumeLibrary({ resumes, tailored }: ResumeLibraryProps) {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button asChild size="sm">
-                <Link href="/dashboard/profile">
+                <Link href="/dashboard/builder?view=master">
                   Edit master
                   <ArrowRight className="size-3.5" />
                 </Link>

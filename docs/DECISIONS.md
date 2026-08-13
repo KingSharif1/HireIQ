@@ -1,5 +1,24 @@
 # HireIQ Decisions
 
+## 2026-08-13 — Resume Builder is one primary surface (Task 146)
+
+**Context:** User asked to continue remaining work without a grill session. Suggested option 1 from RESUME-BUILDER.md.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Primary nav | **One Resume Builder item** — Profile removed from rail |
+| Surface | `/dashboard/builder` with **Master resume** (default) + **Files & versions** |
+| Old Profile URLs | Redirect to ` /dashboard/builder?view=master` (keep OAuth/GitHub callbacks) |
+| Per-job Teal | Stays on Applications → Documents |
+| Home | Applications + Resume Builder (no separate Profile tile) |
+
+**Tradeoff:** Section carousel still exists inside Master; not a single scrolling page. Fewer destinations, same editors.
+
+**Revisit if:** Users miss a dedicated Profile nav or want a scrolling one-pager.
+
+---
+
 ## 2026-08-12 — Resume Builder consolidation (intent; IA not locked yet)
 
 **Context:** After marketing + dashboard polish, user says Applications are fine but Resume Builder feels like too many pages/tabs that should be one better page. Current ship follows 2026-08-09 Profile=master / Builder=library / Teal=job-only.

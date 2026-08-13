@@ -403,8 +403,8 @@ Status: IN PROGRESS
 Scope: `components/builder/**`, `components/profile/**`, `app/dashboard/{builder,profile,resume}/**`, `components/shared/primary-nav.ts` (+ Sidebar/MobileNav), docs; **avoid** Applications/Job Hub unless redirects  
 Goal: Resume Builder looks and acts like one product page — fewer hops/tabs/duplicate doors (library vs Profile section carousel vs upload). Applications stay as-is.  
 Notes: Prior lock (DECISIONS 2026-08-09) split Profile=master / Builder=library / Teal=job Documents. User now wants consolidation. **Grill IA first**, then implement. Brief: [RESUME-BUILDER.md](./RESUME-BUILDER.md).  
-Result (partial): `ResumeLibrary` hero + master profile CTA + stats (2026-08-13). Full single-page editor not started.  
-Files changed: `components/builder/ResumeLibrary.tsx`
+Result (partial): One **Resume Builder** nav. Default **Master resume** editor + **Files & versions** tab. `/dashboard/profile` redirects in. Home Profile tile removed. Section carousel still inside Master.  
+Files changed: `components/builder/BuilderHome.tsx`, `app/dashboard/builder/page.tsx`, `app/dashboard/profile/page.tsx`, `primary-nav.ts`, `HomeTiles.tsx`, redirects
 
 ---
 

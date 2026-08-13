@@ -77,6 +77,7 @@ export function GoogleConnectPanel() {
           linked: number
           duplicates: number
           mode?: 'history' | 'full'
+          historyExpired?: boolean
         }
       }
       if (!res.ok) throw new Error(json.error || 'Sync failed')
@@ -84,10 +85,11 @@ export function GoogleConnectPanel() {
       const r = json.result
       if (r) {
         const modeLabel = r.mode === 'history' ? 'incremental' : r.mode === 'full' ? 'full scan' : null
+        const expired = r.historyExpired ? ' History was stale, so this run scanned the last 14 days. Next sync can be incremental.' : ''
         setInfo(
           `Synced ${r.scanned} messages · ${r.matched} matched · ${r.duplicates} already stored${
             modeLabel ? ` · ${modeLabel}` : ''
-          }`,
+          }.${expired}`,
         )
       }
     } catch (e) {

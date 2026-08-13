@@ -87,15 +87,11 @@ Data flow: upload → parse → seed/pending master → tailor from job → `tai
 
 ---
 
-## Suggested direction for Task 146 (not locked — grill first)
+## Suggested direction for Task 146
 
-Options to interview against:
+**Shipped 2026-08-13:** option 1 — one Resume Builder primary nav (Master resume + Files & versions). See DECISIONS 2026-08-13.
 
-1. **One “Resume” primary nav** — merge Profile + Builder library into one page (docs + master + preview; section nav or scroll, not separate destinations).
-2. **Builder owns master** — Profile becomes account-only (settings/GitHub already partly under Settings); Builder gets preview + content.
-3. **Keep Profile master, kill Builder nav** — library folds into Profile Documents; rename Profile → Resume.
-
-Whatever we pick: **one primary place** to import, edit master, see versions; fewer hops; Teal job tools can stay on Applications or fold later.
+Remaining: optional scroll-all-sections instead of the section carousel; live preview beside master.
 
 Out of scope unless asked: Google OAuth enable, Gmail sync, Chrome Store publish, landing redesign.
 

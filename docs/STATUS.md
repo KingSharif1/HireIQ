@@ -2,15 +2,15 @@
 
 **As of:** 2026-08-13  
 **Branch:** `main` · **Production:** https://hireiq.kingsharif.com  
-**Tests:** 196 unit · 11 live URL · extension **v0.9.7** · PR #2 merged
+**Tests:** 197 unit · 11 live URL · extension **v0.9.7** · PR #3 open
 
 ## Session handoff
 
 | | |
 |--|--|
-| **Working on** | Layout export UI (Task 106) + remaining prod smoke |
-| **Blocked** | Gmail OAuth consent (Google password) · inbound test mail to new alias · Task 143 Google provider |
-| **Next** | Send test mail to application alias · complete Gmail connect · Task 146 |
+| **Working on** | Task 146 one Resume Builder surface + export page-count |
+| **Blocked** | Gmail OAuth consent · inbound test mail · Task 143 Google provider |
+| **Next** | Merge PR #3 · send test mail to application alias · complete Gmail connect |
 | **Roadmap** | [REMAINING-WORK.md](./REMAINING-WORK.md) |
 
 ## System snapshot
@@ -22,7 +22,7 @@
 | Legal / branding | 🟡 Landing + `/privacy` + `/terms` live · Search Console + re-verify branding + submit sensitive-scope verification — see `docs/GOOGLE-VERIFICATION.md` |
 | Resume upload (PDF/DOCX) | ✓ |
 | Resume parse (Claude) | 🟡 — needs tiered skills + low-confidence flags + OCR |
-| Profile / Resume Builder | 🟡 **Task 146** — library hero shipped; full single-page consolidation pending |
+| Profile / Resume Builder | 🟡 **Task 146** — one Builder nav (master + files); section carousel still inside master |
 | Job URL fetch | ✓ ~90% | Amazon/Microsoft + tiered pipeline; legacy MS URLs need Playwright |
 | Job analyze | ✓ |
 | ATS score | ✓ — algorithmic |

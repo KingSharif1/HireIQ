@@ -54,6 +54,7 @@ export function JobResumeEditor({
   const [tab, setTab] = useState<EditorTab>('matcher')
   const [inclusion, setInclusion] = useState<ResumeInclusion>({})
   const [theme, setTheme] = useState<ResumeTheme>(() => mergeResumeTheme(DEFAULT_RESUME_THEME, null))
+  const [pageCount, setPageCount] = useState(1)
 
   const previewData = useMemo(() => applyInclusion(data, inclusion), [data, inclusion])
 
@@ -151,7 +152,7 @@ export function JobResumeEditor({
             </div>
             <div className="flex-1 min-w-0 min-h-0 flex flex-col bg-neutral-100/80 dark:bg-secondary/20">
               <div className="flex-1 min-h-0 space-y-3 overflow-auto p-3 md:p-4">
-                <LayoutIssuesBanner resume={previewData} />
+                <LayoutIssuesBanner resume={previewData} pageCount={pageCount} />
                 <ResumePreview
                   data={previewData}
                   theme={theme}
@@ -159,6 +160,7 @@ export function JobResumeEditor({
                   showTools
                   enablePan
                   className="h-full min-h-[480px]"
+                  onPageCount={setPageCount}
                 />
               </div>
             </div>

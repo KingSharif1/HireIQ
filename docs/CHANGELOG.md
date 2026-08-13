@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-13 — One Resume Builder nav + live page-count export check
+
+**What:** Resume Builder is the only resume destination (Master + Files tabs). Profile URLs redirect. Documents export check uses measured preview page count. Gmail sync copy explains stale History API fallback.
+
+**Files:** `components/builder/BuilderHome.tsx`, `app/dashboard/builder/page.tsx`, `app/dashboard/profile/page.tsx`, `primary-nav.ts`, `HomeTiles.tsx`, `ResumePreview.tsx`, `LayoutIssuesBanner.tsx`, `lib/google/sync.ts`, docs
+
+**Why:** Continue remaining backlog after prod smoke; fewer hops for master resume edits.
+
+**Next:** Merge PR #3; inbound test mail; Gmail OAuth.
+
+---
+
 ## 2026-08-13 — Documents export check + remaining prod smoke
 
 **What:** Documents preview shows layout issues and PDF/DOCX export (blocked on critical). Hide duplicate Portal login on Activity at desktop. Gmail Sync now copy includes incremental vs full scan. Prod: created application email; Amazon/Microsoft fetch-url returned titles; Gmail connect reaches Google OAuth.

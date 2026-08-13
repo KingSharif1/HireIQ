@@ -12,5 +12,5 @@ export default async function ProfileDocumentsPage({
   const q = new URLSearchParams()
   if (section) q.set('section', section)
   else q.set('section', 'resumes')
-  redirect(`/dashboard/profile?${q.toString()}`)
+  redirect(`/dashboard/builder?view=master&${q.toString()}`)
 }

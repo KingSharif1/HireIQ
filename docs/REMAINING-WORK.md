@@ -16,9 +16,9 @@ This is the single checklist for what shipped recently, what’s next, and what 
 | **Portal login UI** | Job detail **Job facts** rail + **Activity** tab show email / password / note when saved. |
 | **Gmail sync** | History API incremental sync when `history_id` exists; falls back to 14-day list scan. |
 | **Export QA** | `runResumeLayoutCheck` blocks PDF/DOCX export on critical layout issues (Task 106 partial). |
-| **Resume Builder** | Library page UX pass — master profile hero, clearer stats and links (Task 146 partial). |
+| **Resume Builder** | One nav item: **Master resume** (default) + **Files & versions**. `/dashboard/profile` redirects. |
 
-Open PR: **merged** — PR #2 → `main` (2026-08-13)
+Open PR: **#3** — `cursor/prod-smoke-layout-warnings-d22e` (export check + Builder consolidation)
 
 ---
 
@@ -52,8 +52,8 @@ Open PR: **merged** — PR #2 → `main` (2026-08-13)
 |----|------|-------|
 | 114 | Gmail sync polish | Done: History API + Settings shows incremental/full after sync. Next: handle expired history copy in Settings |
 | 117 | Extension polish | Board adapters, broader autofill, agentic apply on more ATS walls |
-| 106 | Visual render QA | Documents **Export check** + PDF/DOCX; multi-page warning. Remaining: font-size / overflow from live preview page count |
-| 146 | Resume Builder consolidation | Full single-page master editor — grill IA first ([RESUME-BUILDER.md](./RESUME-BUILDER.md)) |
+| 106 | Visual render QA | Documents Export check uses live preview **page count**; PDF/DOCX. Remaining: font-size heuristics |
+| 146 | Resume Builder consolidation | One Builder nav: Master (default) + Files. Profile redirects in. Remaining: optional scroll-all-sections |
 | 115 | Forward-to-save email | Inbound webhook for forwarded postings |
 | 140 | Mask reply-relay v2 | User ↔ HireIQ ↔ employer reply path |
 

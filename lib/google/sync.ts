@@ -46,6 +46,8 @@ export type GmailSyncResult = {
   errors: string[]
   /** Whether this run used Gmail History API vs full list scan. */
   mode?: 'history' | 'full'
+  /** True when History API said the stored history id was too old. */
+  historyExpired?: boolean
 }
 
 async function processGmailMessageIds(
@@ -180,6 +182,7 @@ export async function syncGmailForUser(userId: string): Promise<GmailSyncResult>
           .eq('user_id', userId)
         return result
       }
+      result.historyExpired = true
     } catch (e) {
       result.errors.push(e instanceof Error ? e.message : 'history_failed')
     }

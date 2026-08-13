@@ -122,12 +122,16 @@ export function SettingsIntegrations() {
         matched: number
         duplicates: number
         mode?: 'history' | 'full'
+        historyExpired?: boolean
       }
       const modeLabel = r.mode === 'history' ? 'incremental' : r.mode === 'full' ? 'full scan' : null
+      const expired = r.historyExpired
+        ? ' History was stale, so this run scanned the last 14 days. Next sync can be incremental.'
+        : ''
       setInfo(
         `Synced ${r.scanned} · ${r.matched} matched · ${r.duplicates} already stored${
           modeLabel ? ` · ${modeLabel}` : ''
-        }`,
+        }.${expired}`,
       )
       await load()
     } catch (e) {
