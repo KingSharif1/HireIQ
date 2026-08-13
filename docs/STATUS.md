@@ -8,10 +8,10 @@
 
 | | |
 |--|--|
-| **Working on** | Dual apply paths + pricing draft (docs) — next build Task **147** extension CTA |
-| **Blocked** | Task 143 Google provider · Gmail OAuth · hosted worker not provisioned yet |
-| **Next** | Task 147 extension handoff · later Task 148 KVM Playwright worker |
-| **Roadmap** | [REMAINING-WORK.md](./REMAINING-WORK.md) · [PRICING.md](./PRICING.md) · [AUTO-APPLY.md](./AUTO-APPLY.md) |
+| **Working on** | Cloud Run auto-apply plan (docs) — web **Auto-apply with HireIQ** |
+| **Blocked** | Task 143 Google · GCP Cloud Run project not wired yet |
+| **Next** | Task 148 Cloud Run worker **or** Task 147 extension assist CTA |
+| **Roadmap** | [AUTO-APPLY.md](./AUTO-APPLY.md) · [PRICING.md](./PRICING.md) |
 
 ## System snapshot
 
@@ -36,7 +36,7 @@
 | Gmail sync | 🟡 **Task 114** | History API incremental; prod OAuth + smoke |
 | Settings | ✓ `/dashboard/settings` — tracking modes, GitHub, password, delete |
 | Mask reply-relay | ✓ **Task 140** first slice live (PR #4) — Reply via HireIQ on Email tab |
-| Auto-apply (Sprout-like) | 🔭 **Dual path** — extension (147) + hosted KVM/Cloud Run (148); pricing draft docs-only |
+| Auto-apply (Sprout-like) | 🔭 **Cloud Run** hosted apply (148) + extension when on-site (147); web-first |
 
 ## Phase 1 MVP progress (spec order)
 

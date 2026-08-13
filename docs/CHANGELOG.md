@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-13 — Cloud Run primary + web Auto-apply with HireIQ
+
+**What:** Hosted apply locks to **Cloud Run** (not the $28 KVM as primary). Product UX: web **Auto-apply with HireIQ** queues the worker; extension helps when already on the ATS page. Documented honest coverage + learnable board adapters.
+
+**Files:** `docs/AUTO-APPLY.md`, `DECISIONS.md`, TASKS/STATUS/REMAINING-WORK, sprout research lock blurb
+
+**Why:** Cloud Run idle ≈ $0 and scales; KVM bills every month. Owner wants HireIQ-main auto-apply on web, not mobile-first.
+
+**Next:** Implement Task 148 Cloud Run worker or Task 147 on-site extension CTA.
+
+---
+
 ## 2026-08-13 — Dual auto-apply paths + draft pricing (docs)
 
 **What:** Product lock for **extension + hosted** auto-apply. Pricing draft (docs only): tailor **2 for the price of 1** then extra; charge **server** auto-apply; extension autofill free (optional 10-then-pay). Infra note: prototype worker on **KVM**, Cloud Run for scale-to-zero later.
