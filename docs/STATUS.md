@@ -8,9 +8,9 @@
 
 | | |
 |--|--|
-| **Working on** | Cloud Run auto-apply plan (docs) — web **Auto-apply with HireIQ** |
+| **Working on** | Task **148** Cloud Run auto-apply (queue + CTA shipped; worker deploy next) |
 | **Blocked** | Task 143 Google · GCP Cloud Run project not wired yet |
-| **Next** | Task 148 Cloud Run worker **or** Task 147 extension assist CTA |
+| **Next** | Deploy apply-worker to Cloud Run · then Task **147** extension assist CTA |
 | **Roadmap** | [AUTO-APPLY.md](./AUTO-APPLY.md) · [PRICING.md](./PRICING.md) |
 
 ## System snapshot
@@ -36,7 +36,7 @@
 | Gmail sync | 🟡 **Task 114** | History API incremental; prod OAuth + smoke |
 | Settings | ✓ `/dashboard/settings` — tracking modes, GitHub, password, delete |
 | Mask reply-relay | ✓ **Task 140** first slice live (PR #4) — Reply via HireIQ on Email tab |
-| Auto-apply (Sprout-like) | 🔭 **Cloud Run** hosted apply (148) + extension when on-site (147); web-first |
+| Auto-apply (Sprout-like) | 🟡 **148** queue+CTA+Playwright engine · Cloud Run deploy pending · **147** extension CTA next |
 
 ## Phase 1 MVP progress (spec order)
 

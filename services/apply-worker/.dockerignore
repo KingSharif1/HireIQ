@@ -1,0 +1,7 @@
+node_modules
+.next
+.git
+.ui-audit
+extension/node_modules
+*.md
+.env*

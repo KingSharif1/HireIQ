@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-13 — Task 148: hosted Auto-apply with HireIQ (queue + worker)
+
+**What:** `apply_runs` queue (migration **021**), queue/status/worker APIs, Playwright fill engine (GH/Lever/Ashby-ish, dry-run default), job detail **Auto-apply with HireIQ** CTA, Cloud Run worker package under `services/apply-worker`.
+
+**Files:** `docs/supabase/migrations/021_apply_runs.sql`, `lib/apply/*`, `app/api/apply/*`, `services/apply-worker/*`, `components/jobs/detail/AutoApplyWithHireIQ.tsx`, `JobDetailPage.tsx`, AUTO-APPLY/TASKS/STATUS/MIGRATIONS
+
+**Why:** Start Task 148 before 147 — web-first Cloud Run apply path.
+
+**Next:** Deploy worker to Cloud Run; set `APPLY_WORKER_URL` + `APPLY_WORKER_SECRET` on Vercel; then Task 147 extension handoff.
+
+---
+
 ## 2026-08-13 — Cloud Run primary + web Auto-apply with HireIQ
 
 **What:** Hosted apply locks to **Cloud Run** (not the $28 KVM as primary). Product UX: web **Auto-apply with HireIQ** queues the worker; extension helps when already on the ATS page. Documented honest coverage + learnable board adapters.

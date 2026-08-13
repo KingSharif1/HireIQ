@@ -167,11 +167,13 @@ Depends on: extension v0.9.9+, masked/Gmail tracking for OTP
 ---
 
 ## Task 148 — Hosted server auto-apply (Cloud Run)
-Status: PENDING  
+Status: IN PROGRESS  
 Scope: Playwright on **Cloud Run**, `apply_runs` queue, website **Auto-apply with HireIQ** CTA (web-first)  
 Goal: Sprout-like unattended apply from the HireIQ site. Extension optional when already on ATS. Meter per PRICING.md when customers exist.  
 Notes: Spec in [AUTO-APPLY.md](./AUTO-APPLY.md). Learnable board adapters on failure. CAPTCHA → `needs_user`. KVM not required as primary.  
-Depends on: tailor PDF availability; shared board/OTP logic with extension
+Depends on: tailor PDF availability; shared board/OTP logic with extension  
+Result (partial): Migration **021** applied. Queue/status/worker APIs + Playwright fill engine (dry-run default). Job detail **Auto-apply with HireIQ** CTA. `services/apply-worker` Dockerfile for Cloud Run. Deploy worker + set `APPLY_WORKER_URL` / `APPLY_WORKER_SECRET` still required for live runs.  
+Files changed: `021_apply_runs.sql`, `lib/apply/*`, `app/api/apply/*`, `services/apply-worker/*`, `AutoApplyWithHireIQ.tsx`, `JobDetailPage.tsx`, docs  
 
 ---
 

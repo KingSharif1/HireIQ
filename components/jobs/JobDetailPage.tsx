@@ -18,6 +18,7 @@ import {
   JobSummaryDescription,
   JobSummaryOverview,
 } from '@/components/jobs/detail/JobSummary'
+import { AutoApplyWithHireIQ } from '@/components/jobs/detail/AutoApplyWithHireIQ'
 import { QuestionsPanel } from '@/components/jobs/detail/QuestionsPanel'
 import { buildActivityFeed } from '@/lib/applications/activity'
 import { buildInboxThreads, emailThreadKey } from '@/lib/applications/email'
@@ -384,11 +385,14 @@ export function JobDetailPage({
               </Button>
             ) : null}
             {safeApplyUrl ? (
-              <Button asChild size="sm">
-                <a href={safeApplyUrl} target="_blank" rel="noreferrer">
-                  Apply
-                </a>
-              </Button>
+              <>
+                <AutoApplyWithHireIQ jobId={item.job.id} hasApplyUrl />
+                <Button asChild variant="outline" size="sm">
+                  <a href={safeApplyUrl} target="_blank" rel="noreferrer">
+                    Open apply page
+                  </a>
+                </Button>
+              </>
             ) : null}
             <div className="sm:hidden">
               <label htmlFor="mobile-application-status" className="sr-only">

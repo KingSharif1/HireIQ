@@ -13,7 +13,8 @@
     "ui:shots": "node docs/scripts/ui-shots.mjs",
     "ui:shots:headed": "node docs/scripts/ui-shots.mjs --headed",
     "extension:build": "npm run build --prefix extension",
-    "extension:dev": "npm run dev --prefix extension"
+    "extension:dev": "npm run dev --prefix extension",
+    "apply:worker": "npx tsx --tsconfig tsconfig.json services/apply-worker/server.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.81",
