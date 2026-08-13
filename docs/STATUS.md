@@ -1,17 +1,16 @@
 # HireIQ Status
 
-**As of:** 2026-08-12  
-**Branch:** `main` (pushed) · **Production:** https://hireiq.kingsharif.com  
-**Tests:** masked-inbound unit suite green; extension **v0.9.6** local builds  
+**As of:** 2026-08-13  
+**Branch:** `cursor/amazon-ms-live-portal-login-d22e` (PR #2) · **Production:** https://hireiq.kingsharif.com  
+**Tests:** 194+ unit · 11 live URL (Amazon/Microsoft added) · extension **v0.9.7**
 
-## Session handoff (next chat)
+## Session handoff
 
 | | |
 |--|--|
-| **Working on** | **Task 146** — Resume Builder UX consolidation |
-| **Leave alone** | Applications / tracker (user says fine); marketing landing (just shipped) |
-| **Brief** | [RESUME-BUILDER.md](./RESUME-BUILDER.md) — routes, pain, pasteable opener |
-| **System one-liner** | HireIQ: tailor resumes + track apps (Next/Supabase) · Builder split across Profile + library + job Teal tabs · next = one coherent Builder page |
+| **Working on** | Merge PR #2 + apply migration 019 |
+| **Next** | Task 143 Google provider (human) · Task 146 Builder full consolidation |
+| **Roadmap** | [REMAINING-WORK.md](./REMAINING-WORK.md) |
 
 ## System snapshot
 
@@ -22,17 +21,17 @@
 | Legal / branding | 🟡 Landing + `/privacy` + `/terms` live · Search Console + re-verify branding + submit sensitive-scope verification — see `docs/GOOGLE-VERIFICATION.md` |
 | Resume upload (PDF/DOCX) | ✓ |
 | Resume parse (Claude) | 🟡 — needs tiered skills + low-confidence flags + OCR |
-| Profile / Resume Builder | 🟡 **Task 146** — works but fragmented (Builder library + Profile sections + upload + job Teal). See [RESUME-BUILDER.md](./RESUME-BUILDER.md) |
-| Job URL fetch | 🟡 — GH/Lever/Ashby/Workday ✓; LinkedIn → paste; aggregator warnings |
+| Profile / Resume Builder | 🟡 **Task 146** — library hero shipped; full single-page consolidation pending |
+| Job URL fetch | ✓ ~90% | Amazon/Microsoft + tiered pipeline; legacy MS URLs need Playwright |
 | Job analyze | ✓ |
 | ATS score | ✓ — algorithmic |
 | Gap analysis | ✓ — still available via APIs; stepper retired from nav |
 | Tailor stepper | ⛔ Redirected — Job Matcher + tracker replace primary flow |
 | Application tracker | ✓ — Teal list/board; All outreach (134); masked inbound code + DB (139) |
 | Masked apply email (Resend) | ✓ Infra live — `mail.kingsharif.com` receiving; webhook URL prod; needs smoke + `RESEND_FORWARD_FROM` optional |
-| Chrome extension | 🟡 **v0.9.6** · docs in EXTENSION.md + CHROME-STORE.md · Store draft OK; Publish gated |
+| Chrome extension | 🟡 **v0.9.7** · agentic apply v1 · EXTENSION.md + CHROME-STORE.md |
 | GitHub integration | ✓ Task 105 |
-| Gmail sync | 🟡 **Task 114** — Settings modes + Google signup scopes; needs smoke after reconnect |
+| Gmail sync | 🟡 **Task 114** | History API incremental; prod OAuth + smoke |
 | Settings | ✓ `/dashboard/settings` — tracking modes, GitHub, password, delete |
 | Mask reply-relay | 🔭 **v2 — Task 140** (deepen 139: reply path, prefs UX) |
 
@@ -42,11 +41,11 @@
 |---|------|--------|-------|
 | 1 | Resume upload + parse | 🟡 80% | Tiered skills, parse confidence flags, OCR fallback |
 | 2 | GitHub connect | ✓ ~85% | OAuth link + repo sync; enable provider + migration 008 |
-| 3 | Job URL ingestion | 🟡 80% | Workday + LinkedIn handling; extension save enriches ATS via scraper (135) |
+| 3 | Job URL ingestion | ✓ ~90% | Tiered fetch + Amazon/Microsoft live tests |
 | 4 | Gap analysis | ✓ ~90% | 3-tier JSON + UI |
 | 5 | Tailored resume + tracked changes | ✓ ~90% | Accept/decline/edit done |
-| 6 | ATS + visual check | 🟡 55% | PDF layout QA pass (Task 106) |
-| 7 | Application log | ✓ ~90% | Schema + Kanban; masked inbound shipped; Gmail sync next (114) |
+| 6 | ATS + visual check | 🟡 65% | Layout check blocks critical export issues (106 partial) |
+| 7 | Application log | ✓ ~92% | Portal login UI; Gmail history sync |
 
 Legend: ✓ done · 🟡 in progress · 🔴 not started · 🔭 planned
 
@@ -74,14 +73,14 @@ Legend: ✓ done · 🟡 in progress · 🔴 not started · 🔭 planned
 | Resend webhook smoke | User | Secret set; redeploy + send test to masked address |
 | Extension panel IA | Eng | Autofill+progress + Questions (DECISIONS 2026-08-12) |
 
-Migrations 001–015 documented; 006–015 applied remotely via MCP.
+Migrations 001–018 applied remotely; **019 pending** — see [supabase/MIGRATIONS.md](./supabase/MIGRATIONS.md).
 
 ## Next recommended tasks
 
-1. **Task 146** — Resume Builder one-page UX ([RESUME-BUILDER.md](./RESUME-BUILDER.md)) — **start here next chat**  
-2. **Task 143** — Enable Google in Supabase (AUTH.md §3); smoke login + extension Connect  
-3. **Chrome Store draft** — icons + screenshots when ready; see [CHROME-STORE.md](./CHROME-STORE.md) (don’t Publish until prod Connect smoke)  
-4. **Smoke Task 139 on prod** — create address → inbound → All outreach  
-5. **Task 114** — Gmail read-only sync (MVP email tracking)  
+1. **Merge PR #2** + apply migration **019**  
+2. **Task 143** — Enable Google in Supabase ([AUTH.md](./AUTH.md) §3)  
+3. **Task 146** — Resume Builder full consolidation ([RESUME-BUILDER.md](./RESUME-BUILDER.md))  
+4. **Smoke** — portal login UI, Gmail history sync, masked inbound on prod  
+5. **Chrome Store draft** — [CHROME-STORE.md](./CHROME-STORE.md)  
 
-Docs: [RESUME-BUILDER.md](./RESUME-BUILDER.md) · [EMAIL.md](./EMAIL.md) · [DECISIONS.md](./DECISIONS.md) · [AUTH.md](./AUTH.md) · [EXTENSION.md](./EXTENSION.md) · [CHROME-STORE.md](./CHROME-STORE.md) · [GOOGLE-VERIFICATION.md](./GOOGLE-VERIFICATION.md)
+Docs: [REMAINING-WORK.md](./REMAINING-WORK.md) · [EMAIL.md](./EMAIL.md) · [DECISIONS.md](./DECISIONS.md) · [AUTH.md](./AUTH.md) · [EXTENSION.md](./EXTENSION.md)

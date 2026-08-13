@@ -43,6 +43,13 @@ export type GmailListedMessage = {
   threadId: string
 }
 
+export type GmailHistoryListResult = {
+  messageIds: string[]
+  latestHistoryId: string | null
+  /** True when Gmail rejected startHistoryId — caller should run a bounded full scan. */
+  expired: boolean
+}
+
 export type GmailParsedMessage = {
   id: string
   threadId: string
@@ -127,6 +134,81 @@ export async function listGmailMessages(
     throw new Error(data.error?.message ?? `Gmail list failed (${res.status})`)
   }
   return data.messages ?? []
+}
+
+export async function getGmailProfile(accessToken: string): Promise<{ historyId: string; emailAddress: string }> {
+  const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+  const data = (await res.json()) as {
+    historyId?: string
+    emailAddress?: string
+    error?: { message?: string }
+  }
+  if (!res.ok || !data.historyId) {
+    throw new Error(data.error?.message ?? `Gmail profile failed (${res.status})`)
+  }
+  return { historyId: data.historyId, emailAddress: data.emailAddress ?? '' }
+}
+
+/** Incremental sync via Gmail History API — only messages added since `startHistoryId`. */
+export async function listGmailHistoryChanges(
+  accessToken: string,
+  startHistoryId: string,
+): Promise<GmailHistoryListResult> {
+  const messageIds = new Set<string>()
+  let pageToken: string | undefined
+  let latestHistoryId: string | null = startHistoryId
+
+  for (;;) {
+    const params = new URLSearchParams({
+      startHistoryId,
+      historyTypes: 'messageAdded',
+      maxResults: '100',
+    })
+    if (pageToken) params.set('pageToken', pageToken)
+
+    const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/history?${params}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    const data = (await res.json()) as {
+      history?: Array<{
+        id?: string
+        messagesAdded?: Array<{ message?: { id?: string } }>
+        messages?: Array<{ id?: string }>
+      }>
+      historyId?: string
+      nextPageToken?: string
+      error?: { message?: string; code?: number }
+    }
+
+    if (res.status === 404) {
+      return { messageIds: [], latestHistoryId: null, expired: true }
+    }
+    if (!res.ok) {
+      throw new Error(data.error?.message ?? `Gmail history failed (${res.status})`)
+    }
+
+    if (data.historyId) latestHistoryId = data.historyId
+
+    for (const record of data.history ?? []) {
+      for (const added of record.messagesAdded ?? []) {
+        if (added.message?.id) messageIds.add(added.message.id)
+      }
+      for (const msg of record.messages ?? []) {
+        if (msg.id) messageIds.add(msg.id)
+      }
+    }
+
+    pageToken = data.nextPageToken
+    if (!pageToken) break
+  }
+
+  return {
+    messageIds: [...messageIds],
+    latestHistoryId,
+    expired: false,
+  }
 }
 
 export async function getGmailMessage(

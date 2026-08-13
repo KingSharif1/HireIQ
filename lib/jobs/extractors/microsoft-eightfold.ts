@@ -94,8 +94,23 @@ export async function resolveMicrosoftPositionId(url: string): Promise<string | 
       const page = await browser.newPage({
         userAgent: FETCH_HEADERS['User-Agent'],
       })
-      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 })
-      await page.waitForTimeout(2_500)
+
+      let pidFromApi: string | null = null
+      page.on('response', async response => {
+        const target = response.url()
+        if (!target.includes('/api/pcsx/position_details')) return
+        try {
+          const match = target.match(/position_id=(\d{10,})/)
+          if (match?.[1]) pidFromApi = match[1]
+        } catch {
+          // ignore parse errors
+        }
+      })
+
+      await page.goto(url, { waitUntil: 'networkidle', timeout: 30_000 })
+      await page.waitForTimeout(1_500)
+
+      if (pidFromApi) return pidFromApi
 
       const finalUrl = page.url()
       const pid = new URL(finalUrl).searchParams.get('pid')

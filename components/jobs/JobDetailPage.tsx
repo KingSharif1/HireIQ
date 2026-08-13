@@ -516,6 +516,9 @@ export function JobDetailPage({
                 notes={notes}
                 onSaveNotes={saveNotes}
                 onAddEvent={addEvent}
+                portalEmail={item.ats_account_email}
+                portalPassword={item.ats_account_password}
+                portalNote={item.ats_account_note}
               />
               <ApplicationAnswers
                 applicationId={item.id}

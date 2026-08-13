@@ -92,6 +92,15 @@ const CASES: LiveCase[] = [
   },
 ]
 
+const LEGACY_MICROSOFT_CASE: LiveCase = {
+  name: 'Microsoft careers legacy URL (Playwright pid resolve)',
+  url: 'https://jobs.careers.microsoft.com/global/en/job/1707455/Software-Engineer-II',
+  minChars: 500,
+  expectSource: 'microsoft',
+  expectMethod: 'ats-api',
+  allowFetchFailure: true,
+}
+
 describe.skipIf(!LIVE)('job fetch — live URLs', () => {
   beforeAll(() => {
     process.env.JOB_FETCH_PLAYWRIGHT = '0'
@@ -130,6 +139,26 @@ describe.skipIf(!LIVE)('job fetch — live URLs', () => {
     )
   }
 })
+
+describe.skipIf(!LIVE || process.env.JOB_FETCH_PLAYWRIGHT !== '1')(
+  'job fetch — Microsoft legacy (Playwright)',
+  () => {
+    beforeAll(() => {
+      process.env.JOB_FETCH_PLAYWRIGHT = '1'
+    })
+
+    it(
+      LEGACY_MICROSOFT_CASE.name,
+      async () => {
+        const result = await scrapeJobUrl(LEGACY_MICROSOFT_CASE.url)
+        expect(result.text.length).toBeGreaterThanOrEqual(LEGACY_MICROSOFT_CASE.minChars)
+        expect(result.source).toBe('microsoft')
+        expect(result.extractionMethod).toBe('ats-api')
+      },
+      60_000,
+    )
+  },
+)
 
 describe('job fetch — live runner helper', () => {
   it('documents how to run live tests', () => {

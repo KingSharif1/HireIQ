@@ -635,14 +635,16 @@ function titleCase(value: string): string {
     .replace(/\b\w/g, character => character.toLocaleUpperCase())
 }
 
-function PortalLoginSection({
+export function PortalLoginSection({
   email,
   password,
   note,
+  className,
 }: {
   email?: string | null
   password?: string | null
   note?: string | null
+  className?: string
 }) {
   const [showPassword, setShowPassword] = useState(false)
   const [copiedField, setCopiedField] = useState<'email' | 'password' | null>(null)
@@ -661,7 +663,7 @@ function PortalLoginSection({
   }
 
   return (
-    <div className="border-t border-border p-4">
+    <div className={cn(className ?? 'border-t border-border p-4')}>
       <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         <KeyRound className="size-3.5" aria-hidden="true" />
         Portal login
