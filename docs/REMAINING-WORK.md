@@ -18,7 +18,7 @@ This is the single checklist for what shipped recently, what’s next, and what 
 | **Export QA** | `runResumeLayoutCheck` blocks PDF/DOCX export on critical layout issues (Task 106 partial). |
 | **Resume Builder** | Library page UX pass — master profile hero, clearer stats and links (Task 146 partial). |
 
-Open PR: [#2 Add Amazon/Microsoft live job fetch + portal login](https://github.com/KingSharif1/HireIQ/pull/2)
+Open PR: **merged** — PR #2 → `main` (2026-08-13)
 
 ---
 
@@ -26,8 +26,8 @@ Open PR: [#2 Add Amazon/Microsoft live job fetch + portal login](https://github.
 
 ### 1. Merge + migrate (human + agent)
 
-- [ ] Merge PR #2 to `main`
-- [ ] Apply migration **019** — see [supabase/MIGRATIONS.md](./supabase/MIGRATIONS.md) (`applications.ats_account_password`)
+- [x] Merge PR #2 to `main` (merged 2026-08-13)
+- [ ] Apply migration **019** — see [supabase/MIGRATIONS.md](./supabase/MIGRATIONS.md) (`applications.ats_account_password`) — **blocked: Supabase MCP OAuth in this cloud agent session**
 
 ### 2. Production smoke
 

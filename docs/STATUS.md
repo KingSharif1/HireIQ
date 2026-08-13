@@ -1,14 +1,15 @@
 # HireIQ Status
 
 **As of:** 2026-08-13  
-**Branch:** `cursor/amazon-ms-live-portal-login-d22e` (PR #2) · **Production:** https://hireiq.kingsharif.com  
-**Tests:** 194+ unit · 11 live URL (Amazon/Microsoft added) · extension **v0.9.7**
+**Branch:** `main` · **Production:** https://hireiq.kingsharif.com  
+**Tests:** 196 unit · 11 live URL · extension **v0.9.7** · PR #2 merged
 
 ## Session handoff
 
 | | |
 |--|--|
-| **Working on** | Merge PR #2 + apply migration 019 |
+| **Working on** | Apply migration 019 via Supabase MCP |
+| **Blocked** | Supabase MCP OAuth in cloud agent — re-auth in agent MCP panel |
 | **Next** | Task 143 Google provider (human) · Task 146 Builder full consolidation |
 | **Roadmap** | [REMAINING-WORK.md](./REMAINING-WORK.md) |
 
