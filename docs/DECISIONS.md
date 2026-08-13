@@ -1,5 +1,28 @@
 # HireIQ Decisions
 
+## 2026-08-13 — Resume Builder/Profile split hard lock
+
+**Context:** User re-grilled Task 146 after the previous Profile=master / Builder=library decision. The desired model is clearer: Profile is still the master resume because it contains everything; Resume Builder is for tailored, job-specific documents the user can edit, save, view, and download.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Master source | **Profile remains master resume** and source of truth for all tailoring. |
+| Builder purpose | **Resume Builder manages tailored resumes**, not master editing. Show a compact Profile/master source card at top. |
+| Empty source | If no uploaded/master source exists, Import resume is the primary CTA. Once source exists, Import remains secondary. |
+| Tailored list | Job-first rows with role/company, version/date/score, and View/Edit/Download. Job title links to original posting when available. |
+| View mode | Read-only PDF-style resume view with compact score/readout side panel and Download/Edit actions. |
+| Edit mode | Focused Content / Design / Analyze tabs with live preview; tailored edits stay local to that job. |
+| Cover letter | Not inside resume editor; it is a separate document under job Documents. |
+| Promote to master | Never silent. New durable facts can be suggested for Profile only through explicit user approval. |
+| Job detail | Useful facts move into header; facts rail hidden by default; top Edit resume / Apply removed; Activity timeline-first; Email tracked-only. |
+
+**Tradeoff:** Keeps existing Profile data model and `tailored_resumes` storage instead of a schema rewrite. Some deeper tailoring diff UX (old bullet unselected / new bullet selected with explanations) remains a follow-up unless existing change-decision data is already present.
+
+**Revisit if:** Users expect to edit master content directly from Builder, or if tailored resume design settings need cross-version templates.
+
+---
+
 ## 2026-08-12 — Resume Builder consolidation (intent; IA not locked yet)
 
 **Context:** After marketing + dashboard polish, user says Applications are fine but Resume Builder feels like too many pages/tabs that should be one better page. Current ship follows 2026-08-09 Profile=master / Builder=library / Teal=job-only.

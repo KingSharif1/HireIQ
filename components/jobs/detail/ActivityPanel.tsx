@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState, type FormEvent } from 'react'
-import { Check, CircleAlert, Clock3, Plus, Save } from 'lucide-react'
+import { Check, CircleAlert, Clock3, Plus, Save, StickyNote } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -55,6 +55,8 @@ export function ActivityPanel({
   const [eventTitle, setEventTitle] = useState('')
   const [eventDetail, setEventDetail] = useState('')
   const [isAdding, setIsAdding] = useState(false)
+  const [notesOpen, setNotesOpen] = useState(false)
+  const [eventOpen, setEventOpen] = useState(false)
   const [eventError, setEventError] = useState<string | null>(null)
 
   const chronologicalItems = useMemo(
@@ -77,6 +79,7 @@ export function ActivityPanel({
     try {
       await onSaveNotes(notesValue)
       setSaveState('saved')
+      setNotesOpen(false)
     } catch {
       setSaveState('error')
     }
@@ -96,6 +99,7 @@ export function ActivityPanel({
       })
       setEventTitle('')
       setEventDetail('')
+      setEventOpen(false)
     } catch {
       setEventError('The event could not be added. Please try again.')
     } finally {
@@ -104,16 +108,84 @@ export function ActivityPanel({
   }
 
   return (
-    <section className="space-y-5" aria-labelledby="activity-panel-title">
-      <header>
-        <h2 id="activity-panel-title" className="text-lg font-semibold text-foreground">
-          Activity
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Keep private notes and a complete history of this application.
-        </p>
+    <section className="space-y-4" aria-labelledby="activity-panel-title">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 id="activity-panel-title" className="text-lg font-semibold text-foreground">
+            Activity
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Timeline-first history for this application, with notes and events tucked away until
+            needed.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant={notesOpen ? 'default' : 'outline'}
+            onClick={() => {
+              setNotesOpen(open => !open)
+              setEventOpen(false)
+            }}
+          >
+            <StickyNote className="h-4 w-4" aria-hidden="true" />
+            Add note
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={eventOpen ? 'default' : 'outline'}
+            onClick={() => {
+              setEventOpen(open => !open)
+              setNotesOpen(false)
+            }}
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Add event
+          </Button>
+        </div>
       </header>
 
+      <div className="rounded-xl border border-border bg-white p-4 dark:bg-card sm:p-5">
+        <h3 className="text-sm font-semibold text-foreground">Timeline</h3>
+        {chronologicalItems.length === 0 ? (
+          <div className="py-10 text-center">
+            <Clock3 className="mx-auto h-6 w-6 text-muted-foreground" aria-hidden="true" />
+            <p className="mt-3 text-sm font-medium text-foreground">No activity yet</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Status changes and events will appear here.
+            </p>
+          </div>
+        ) : (
+          <ol className="relative mt-5 space-y-5 border-l border-border" aria-label="Application activity, newest first">
+            {chronologicalItems.map(item => (
+              <li key={item.id} className="relative pl-6">
+                <span
+                  className={`absolute -left-2 top-0.5 flex h-4 w-4 rounded-full border ${itemStyles[item.kind]}`}
+                  aria-hidden="true"
+                />
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                  <p className="text-sm font-medium text-foreground">{item.title}</p>
+                  <time
+                    dateTime={item.at}
+                    className="shrink-0 text-xs text-muted-foreground"
+                  >
+                    {formatDateTime(item.at)}
+                  </time>
+                </div>
+                {item.detail ? (
+                  <p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+                    {item.detail}
+                  </p>
+                ) : null}
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+
+      {notesOpen ? (
       <div className="rounded-xl border border-border bg-white p-4 dark:bg-card sm:p-5">
         <div className="flex items-center justify-between gap-3">
           <label htmlFor="application-notes" className="text-sm font-semibold text-foreground">
@@ -158,7 +230,9 @@ export function ActivityPanel({
           </Button>
         </div>
       </div>
+      ) : null}
 
+      {eventOpen ? (
       <form
         className="space-y-3 rounded-xl border border-border bg-white p-4 dark:bg-card sm:p-5"
         onSubmit={handleAddEvent}
@@ -211,44 +285,7 @@ export function ActivityPanel({
           </p>
         ) : null}
       </form>
-
-      <div className="rounded-xl border border-border bg-white p-4 dark:bg-card sm:p-5">
-        <h3 className="text-sm font-semibold text-foreground">Timeline</h3>
-        {chronologicalItems.length === 0 ? (
-          <div className="py-10 text-center">
-            <Clock3 className="mx-auto h-6 w-6 text-muted-foreground" aria-hidden="true" />
-            <p className="mt-3 text-sm font-medium text-foreground">No activity yet</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Status changes and events will appear here.
-            </p>
-          </div>
-        ) : (
-          <ol className="relative mt-5 space-y-5 border-l border-border" aria-label="Application activity, newest first">
-            {chronologicalItems.map(item => (
-              <li key={item.id} className="relative pl-6">
-                <span
-                  className={`absolute -left-2 top-0.5 flex h-4 w-4 rounded-full border ${itemStyles[item.kind]}`}
-                  aria-hidden="true"
-                />
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                  <p className="text-sm font-medium text-foreground">{item.title}</p>
-                  <time
-                    dateTime={item.at}
-                    className="shrink-0 text-xs text-muted-foreground"
-                  >
-                    {formatDateTime(item.at)}
-                  </time>
-                </div>
-                {item.detail ? (
-                  <p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
-                    {item.detail}
-                  </p>
-                ) : null}
-              </li>
-            ))}
-          </ol>
-        )}
-      </div>
+      ) : null}
     </section>
   )
 }

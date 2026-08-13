@@ -210,7 +210,7 @@ export function JobSummaryDescription({
         ) : null}
       </header>
 
-      <div className="divide-y divide-border px-4 sm:px-5">
+      <div className="divide-y divide-border px-4">
         <DescriptionSection title="Summary" emptyMessage="No summary was extracted.">
           {view.summary ? (
             <p className="whitespace-pre-wrap text-sm leading-6 text-foreground/90">
@@ -258,9 +258,9 @@ export function JobSummaryDescription({
             aria-hidden="true"
           />
         </summary>
-        <div className="border-t border-border bg-secondary/20 px-4 py-5 sm:px-5">
+        <div className="border-t border-border bg-secondary/20 px-4 py-4">
           {view.fullText ? (
-            <div className="space-y-3 whitespace-pre-wrap text-sm leading-6 text-foreground/90">
+            <div className="space-y-2.5 whitespace-pre-wrap text-sm leading-6 text-foreground/90">
               {view.fullText.split(/\n\n+/).map((paragraph, index) => (
                 <p key={`${index}-${paragraph.slice(0, 24)}`}>{paragraph}</p>
               ))}
@@ -457,7 +457,7 @@ function DescriptionSection({
   children: ReactNode
 }) {
   return (
-    <section className="grid gap-3 py-5 md:grid-cols-[9rem_minmax(0,1fr)]">
+    <section className="grid gap-2.5 py-4 md:grid-cols-[8rem_minmax(0,1fr)]">
       <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       <div>
         {children ||
@@ -473,7 +473,7 @@ function DescriptionList({ items }: { items: readonly string[] }) {
   if (items.length === 0) return null
 
   return (
-    <ul className="space-y-2 text-sm leading-6 text-foreground/90">
+    <ul className="space-y-1.5 text-sm leading-6 text-foreground/90">
       {items.map(item => (
         <li key={item} className="grid grid-cols-[0.375rem_minmax(0,1fr)] gap-2.5">
           <span className="mt-2.5 size-1.5 rounded-full bg-brand-green" aria-hidden="true" />

@@ -56,9 +56,9 @@ export function QuestionsPanel({ answers, tailoredResumeId }: QuestionsPanelProp
   return (
     <section
       aria-labelledby="questions-panel-title"
-      className="rounded-xl border border-border bg-white p-4 text-foreground dark:bg-card sm:p-5"
+      className="rounded-xl border border-border bg-white p-4 text-foreground shadow-sm dark:bg-card"
     >
-      <header className="flex flex-wrap items-start justify-between gap-4">
+      <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="questions-panel-title" className="text-lg font-semibold tracking-tight">
             Questions
@@ -72,8 +72,15 @@ export function QuestionsPanel({ answers, tailoredResumeId }: QuestionsPanelProp
             {answerCount} {answerCount === 1 ? 'answer' : 'answers'}
           </span>
           {answerCount > 0 && tailoredResumeId ? (
-            <Button type="button" size="sm" variant="outline" onClick={() => void suggestForMaster()} disabled={busy}>
-              {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Suggest for master'}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => void suggestForMaster()}
+              disabled={busy}
+            >
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              Suggest for master
             </Button>
           ) : null}
         </div>
@@ -90,23 +97,23 @@ export function QuestionsPanel({ answers, tailoredResumeId }: QuestionsPanelProp
       {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
 
       {answerCount === 0 ? (
-        <div className="mt-5 rounded-lg border border-dashed border-border bg-secondary/20 px-5 py-8 text-center">
+        <div className="mt-4 rounded-lg border border-dashed border-border bg-secondary/20 px-5 py-7 text-center">
           <p className="text-sm font-medium text-foreground">No saved questions yet</p>
           <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
             Questions and answers will appear here after you tailor a resume for this job.
           </p>
         </div>
       ) : (
-        <ol className="mt-5 space-y-2.5">
+        <ol className="mt-4 divide-y divide-border overflow-hidden rounded-lg border border-border">
           {uniqueAnswers.map((item, index) => (
             <li
               key={item.key}
-              className="rounded-lg border border-border bg-background/50 px-3.5 py-3.5 dark:bg-background/20 sm:px-4"
+              className="bg-background/40 px-3.5 py-3 dark:bg-background/20 sm:px-4"
             >
               <div className="flex items-start gap-3">
                 <span
                   aria-hidden="true"
-                  className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-md bg-secondary text-[11px] font-semibold tabular-nums text-muted-foreground"
+                  className="mt-0.5 flex h-6 min-w-6 shrink-0 items-center justify-center rounded-md bg-secondary text-[11px] font-semibold tabular-nums text-muted-foreground"
                 >
                   {index + 1}
                 </span>
@@ -114,7 +121,7 @@ export function QuestionsPanel({ answers, tailoredResumeId }: QuestionsPanelProp
                   <p className="text-sm font-semibold leading-snug text-foreground">
                     {item.question || 'Question not recorded'}
                   </p>
-                  <div className="mt-2.5 border-l-2 border-border pl-3">
+                  <div className="mt-2 border-l-2 border-border pl-3">
                     <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                       Answer
                     </p>

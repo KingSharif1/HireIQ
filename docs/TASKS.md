@@ -14,7 +14,7 @@ Files changed: [list]
 ---
 
 ## Task 100 — Repo docs + clean layout
-Status: DONE  
+Status: DONE
 Scope: `docs/`, root `README.md`, `package.json`, path updates  
 Result: Moved prototype, scripts, supabase, specs into `docs/`. Created ARCHITECTURE, STATUS, TASKS, DECISIONS, CHANGELOG, SPEC. Updated npm script paths.  
 Files changed: `docs/**`, `README.md`, `package.json`, `.gitignore`, `.cursor/rules/verification.mdc`, `app/dashboard/notifications/page.tsx`
@@ -397,12 +397,12 @@ Files changed: `docs/EXTENSION.md`, `docs/CHROME-STORE.md`, `docs/README.md`, `d
 ---
 
 ## Task 146 — Resume Builder UX: one coherent surface
-Status: PENDING  
+Status: DONE
 Scope: `components/builder/**`, `components/profile/**`, `app/dashboard/{builder,profile,resume}/**`, `components/shared/primary-nav.ts` (+ Sidebar/MobileNav), docs; **avoid** Applications/Job Hub unless redirects  
 Goal: Resume Builder looks and acts like one product page — fewer hops/tabs/duplicate doors (library vs Profile section carousel vs upload). Applications stay as-is.  
 Notes: Prior lock (DECISIONS 2026-08-09) split Profile=master / Builder=library / Teal=job Documents. User now wants consolidation. **Grill IA first**, then implement. Brief: [RESUME-BUILDER.md](./RESUME-BUILDER.md).  
-Result:  
-Files changed:  
+Result: Resume Builder now centers on tailored resumes while Profile stays the master source. Builder shows a compact Profile source card with Import as primary only before a master/upload exists; tailored rows are job-first with View/Edit/Download. Job Documents now has a clean read-only resume view, a focused Content/Design/Analyze editor, and Cover Letter as its own document type. Job detail cleanup pass: header carries useful role facts and original-posting link, top Edit resume / Apply actions are removed, the facts rail starts hidden, Activity is timeline-first with compact note/event actions, Application answers only render when saved answers exist, Email shows tracked Gmail/masked messages only, and Questions / Job description spacing is tighter. No DB changes.
+Files changed: `components/builder/ResumeLibrary.tsx`, `app/dashboard/builder/page.tsx`, `components/jobs/detail/DocumentsWorkspace.tsx`, `components/jobs/detail/JobResumeEditor.tsx`, `components/builder/CoverLetterPanel.tsx`, `components/jobs/JobDetailPage.tsx`, `components/jobs/detail/ActivityPanel.tsx`, `components/jobs/detail/EmailInbox.tsx`, `components/jobs/detail/JobSummary.tsx`, `components/jobs/detail/QuestionsPanel.tsx`, `docs/TASKS.md`, `docs/CHANGELOG.md`, `docs/STATUS.md`
 
 ---
 

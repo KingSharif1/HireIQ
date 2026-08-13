@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, ExternalLink, FileText, MapPin, PanelRightOpen } from 'lucide-react'
+import { ArrowLeft, ExternalLink, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ActivityPanel, type AddActivityEventInput } from '@/components/jobs/detail/ActivityPanel'
 import { ApplicationAnswers } from '@/components/jobs/detail/ApplicationAnswers'
@@ -12,7 +12,7 @@ import {
   type DocumentMode,
   type JobDetailTailoredVersion,
 } from '@/components/jobs/detail/DocumentsWorkspace'
-import { EmailInbox, type LogEmailInput } from '@/components/jobs/detail/EmailInbox'
+import { EmailInbox } from '@/components/jobs/detail/EmailInbox'
 import {
   JobFactsRail,
   JobSummaryDescription,
@@ -20,7 +20,7 @@ import {
 } from '@/components/jobs/detail/JobSummary'
 import { QuestionsPanel } from '@/components/jobs/detail/QuestionsPanel'
 import { buildActivityFeed } from '@/lib/applications/activity'
-import { buildInboxThreads, emailThreadKey } from '@/lib/applications/email'
+import { buildInboxThreads } from '@/lib/applications/email'
 import { normalizeFormAnswers } from '@/lib/applications/form-answers'
 import {
   APPLICATION_STATUSES,
@@ -71,6 +71,12 @@ function resolveInitialTab(param: string | null): DetailTab {
   return 'overview'
 }
 
+function resolveInitialDocumentMode(param: string | null, tab: DetailTab): DocumentMode {
+  if (tab !== 'documents') return 'list'
+  if (param === 'preview' || param === 'edit' || param === 'cover') return param
+  return 'list'
+}
+
 export function JobDetailPage({
   item,
   events,
@@ -89,8 +95,9 @@ export function JobDetailPage({
     if (initial === 'email' && !emailTrackingEnabled) return 'overview'
     return initial
   })
+  const initialTab = resolveInitialTab(searchParams.get('tab'))
   const [notes, setNotes] = useState(item.notes ?? '')
-  const [emails, setEmails] = useState<ApplicationEmailLogEntry[]>(item.email_log ?? [])
+  const [emails] = useState<ApplicationEmailLogEntry[]>(item.email_log ?? [])
   const formAnswers = useMemo(
     () => normalizeFormAnswers(item.form_answers),
     [item.form_answers]
@@ -101,11 +108,15 @@ export function JobDetailPage({
   const [profileData, setProfileData] = useState(initialProfile)
   const [versions, setVersions] = useState(tailoredVersions)
   const [selectedDocId, setSelectedDocId] = useState<string | null>(
-    tailoredVersions[0]?.id ?? null
+    tailoredVersions.some(version => version.id === searchParams.get('docId'))
+      ? searchParams.get('docId')
+      : tailoredVersions[0]?.id ?? null
   )
-  const [documentMode, setDocumentMode] = useState<DocumentMode>('list')
+  const [documentMode, setDocumentMode] = useState<DocumentMode>(() =>
+    resolveInitialDocumentMode(searchParams.get('docMode'), initialTab)
+  )
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null)
-  const [railOpen, setRailOpen] = useState(true)
+  const [railOpen, setRailOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const questions = useMemo(() => {
@@ -136,14 +147,29 @@ export function JobDetailPage({
     () => buildActivityFeed(localEvents, emails),
     [localEvents, emails]
   )
-  const threads = useMemo(() => buildInboxThreads(emails), [emails])
+  const trackedEmails = useMemo(
+    () =>
+      emails.filter(
+        email =>
+          email.source === 'gmail' || email.source === 'masked' || email.source === 'forwarded'
+      ),
+    [emails]
+  )
+  const threads = useMemo(() => buildInboxThreads(trackedEmails), [trackedEmails])
   const canShowRail = !(tab === 'documents' && documentMode === 'edit')
   const showRail = canShowRail && railOpen
   const safeApplyUrl = safeHttpUrl(item.job.apply_url)
+  const sourceDomain = getSourceDomain(safeApplyUrl)
+  const headerFacts = buildHeaderFacts({
+    location: item.job.location,
+    remoteType: item.job.remote_type,
+    workType: item.job.extracted_data?.work_type,
+    seniority: item.job.extracted_data?.seniority,
+    sourceDomain,
+  })
 
   async function patchApplication(patch: {
     notes?: string | null
-    email_log?: ApplicationEmailLogEntry[]
   }) {
     setError(null)
     const response = await fetch(`/api/applications/${item.id}`, {
@@ -214,31 +240,6 @@ export function JobDetailPage({
       throw new Error(body.error || 'Failed to add event')
     }
     setLocalEvents(current => [body.event!, ...current])
-  }
-
-  async function logEmail(input: LogEmailInput) {
-    const entry: ApplicationEmailLogEntry = {
-      id: crypto.randomUUID(),
-      subject: input.subject,
-      body: input.body,
-      direction: input.direction,
-      sender: input.sender,
-      recipients: input.recipients,
-      at: new Date().toISOString(),
-      source: 'manual',
-      isRead: true,
-    }
-    const previous = emails
-    const next = [entry, ...emails]
-    setEmails(next)
-    setSelectedThreadId(emailThreadKey(entry.subject))
-    try {
-      await patchApplication({ email_log: next })
-    } catch (cause) {
-      setEmails(previous)
-      setSelectedThreadId(null)
-      throw cause
-    }
   }
 
   function openDocuments(mode: DocumentMode) {
@@ -323,6 +324,15 @@ export function JobDetailPage({
                     {currentScore}% match
                   </span>
                 ) : null}
+                {headerFacts.map(fact => (
+                  <span
+                    key={fact.label}
+                    className="inline-flex items-center gap-1 rounded-md border border-border bg-secondary/55 px-2 py-0.5 text-xs font-medium text-muted-foreground"
+                  >
+                    <span className="text-foreground/70">{fact.label}:</span>
+                    <span className="text-foreground">{fact.value}</span>
+                  </span>
+                ))}
                 {safeApplyUrl ? (
                   <a
                     href={safeApplyUrl}
@@ -331,24 +341,13 @@ export function JobDetailPage({
                     className="inline-flex items-center gap-1 text-xs font-medium text-foreground underline-offset-2 hover:underline"
                   >
                     <ExternalLink className="h-3 w-3" />
-                    View original
+                    View original posting
                   </a>
                 ) : null}
               </div>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => openDocuments('edit')}>
-              <FileText className="h-3.5 w-3.5" />
-              {versions.length ? 'Edit resume' : 'Create resume'}
-            </Button>
-            {safeApplyUrl ? (
-              <Button asChild size="sm">
-                <a href={safeApplyUrl} target="_blank" rel="noreferrer">
-                  Apply
-                </a>
-              </Button>
-            ) : null}
             <div className="sm:hidden">
               <label htmlFor="mobile-application-status" className="sr-only">
                 Application status
@@ -444,18 +443,10 @@ export function JobDetailPage({
         )}
       >
         <div className="min-w-0">
-          {canShowRail && !railOpen ? (
-            <div className="mb-3 hidden justify-end lg:flex">
-              <Button type="button" size="sm" variant="outline" onClick={() => setRailOpen(true)}>
-                <PanelRightOpen className="size-4" />
-                Show job details
-              </Button>
-            </div>
-          ) : null}
           {tab === 'overview' ? (
             <div className="space-y-4">
               <JobSummaryOverview
-              score={currentScore}
+                score={currentScore}
                 status={currentStatus}
                 documentCount={versions.length}
                 description={item.job.description}
@@ -514,11 +505,13 @@ export function JobDetailPage({
                 onSaveNotes={saveNotes}
                 onAddEvent={addEvent}
               />
-              <ApplicationAnswers
-                applicationId={item.id}
-                jobId={item.job_id}
-                initialAnswers={formAnswers}
-              />
+              {formAnswers.length > 0 ? (
+                <ApplicationAnswers
+                  applicationId={item.id}
+                  jobId={item.job_id}
+                  initialAnswers={formAnswers}
+                />
+              ) : null}
             </div>
           ) : null}
 
@@ -527,7 +520,6 @@ export function JobDetailPage({
               threads={threads}
               selectedThreadId={selectedThreadId}
               onSelectThread={setSelectedThreadId}
-              onLogEmail={logEmail}
             />
           ) : null}
         </div>
@@ -562,4 +554,41 @@ function safeHttpUrl(value: string | null | undefined): string | null {
   } catch {
     return null
   }
+}
+
+function getSourceDomain(value: string | null): string | null {
+  if (!value) return null
+  try {
+    return new URL(value).hostname.replace(/^www\./i, '')
+  } catch {
+    return null
+  }
+}
+
+function buildHeaderFacts({
+  location,
+  remoteType,
+  workType,
+  seniority,
+  sourceDomain,
+}: {
+  location: string | null | undefined
+  remoteType: string | null | undefined
+  workType: string | null | undefined
+  seniority: string | null | undefined
+  sourceDomain: string | null
+}): { label: string; value: string }[] {
+  const facts: { label: string; value: string }[] = []
+  if (sourceDomain) facts.push({ label: 'Source', value: sourceDomain })
+  if (location) facts.push({ label: 'Location', value: location })
+  const resolvedWorkType = workType || remoteType
+  if (resolvedWorkType) facts.push({ label: 'Work type', value: titleCase(resolvedWorkType) })
+  if (seniority) facts.push({ label: 'Level', value: titleCase(seniority) })
+  return facts
+}
+
+function titleCase(value: string): string {
+  return value
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, character => character.toLocaleUpperCase())
 }

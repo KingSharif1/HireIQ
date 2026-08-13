@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-08-13 — Task 146: Job detail cleanup pass
+
+**What:** Cleaned the tracker job detail page: the header now carries role facts (status, match, source domain, work type/level/location when known) plus View original posting; top Edit resume / Apply buttons are gone; the facts rail starts hidden; Activity is timeline-first with compact Add note / Add event reveals; Application answers only appears when saved answers exist; Email shows Gmail / masked-email tracked messages only; Questions and Job description are denser and cleaner.
+
+**Files:** `components/jobs/JobDetailPage.tsx`, `components/jobs/detail/{ActivityPanel,EmailInbox,JobSummary,QuestionsPanel}.tsx`, `docs/{TASKS,CHANGELOG,STATUS}.md`
+
+**Why:** Keep Applications detail focused and professional while preserving the data model and keeping resume actions inside Documents.
+
+**Next:** Continue non-job-detail Task 146 follow-ups or Task 143 Google enablement.
+
+---
+
+## 2026-08-13 — Task 146: Resume Builder tailored documents
+
+**What:** Resume Builder now presents a compact Profile/master source card, keeps Import primary only when no source exists, and lists tailored resumes by job with View/Edit/Download actions. Job Documents now has a clean read-only PDF-style resume view, a focused Content / Design / Analyze editor, and Cover Letter as its own job document type.
+
+**Files:** `components/builder/ResumeLibrary.tsx`, `app/dashboard/builder/page.tsx`, `components/jobs/detail/DocumentsWorkspace.tsx`, `components/jobs/detail/JobResumeEditor.tsx`, `components/builder/CoverLetterPanel.tsx`, `components/jobs/JobDetailPage.tsx`, docs.
+
+**Why:** Keep Profile as the master/source of truth while making Resume Builder the place for tailored application resumes, with fewer awkward tabs and hops.
+
+**Next:** UI smoke Builder + job Documents; then continue Task 143 Google enablement.
+
+---
+
 ## 2026-08-12 — Handoff: Resume Builder next (Task 146)
 
 **What:** Documented current Builder/Profile/job-Teal split, pain (too many pages/tabs), and Task 146 for a one-surface Resume Builder. Applications left alone.

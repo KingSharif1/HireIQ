@@ -1,17 +1,17 @@
 # HireIQ Status
 
-**As of:** 2026-08-12  
+**As of:** 2026-08-13
 **Branch:** `main` (pushed) · **Production:** https://hireiq.kingsharif.com  
-**Tests:** masked-inbound unit suite green; extension **v0.9.6** local builds  
+**Tests:** 174 passing (`npm run test`); `npx tsc --noEmit`; UI shots passed for dashboard/tracker/detail
 
 ## Session handoff (next chat)
 
 | | |
 |--|--|
-| **Working on** | **Task 146** — Resume Builder UX consolidation |
-| **Leave alone** | Applications / tracker (user says fine); marketing landing (just shipped) |
-| **Brief** | [RESUME-BUILDER.md](./RESUME-BUILDER.md) — routes, pain, pasteable opener |
-| **System one-liner** | HireIQ: tailor resumes + track apps (Next/Supabase) · Builder split across Profile + library + job Teal tabs · next = one coherent Builder page |
+| **Working on** | **Task 146 complete** — Resume Builder tailored-document pass + scoped job detail cleanup |
+| **Leave alone** | No further Applications redesign unless specifically requested; marketing landing (just shipped) |
+| **Brief** | Builder treats Profile as master source; job detail header/activity/email are cleaned up without DB changes |
+| **System one-liner** | HireIQ: tailor resumes + track apps (Next/Supabase) · Builder = tailored resume library · Profile remains master source |
 
 ## System snapshot
 
@@ -22,13 +22,13 @@
 | Legal / branding | 🟡 Landing + `/privacy` + `/terms` live · Search Console + re-verify branding + submit sensitive-scope verification — see `docs/GOOGLE-VERIFICATION.md` |
 | Resume upload (PDF/DOCX) | ✓ |
 | Resume parse (Claude) | 🟡 — needs tiered skills + low-confidence flags + OCR |
-| Profile / Resume Builder | 🟡 **Task 146** — works but fragmented (Builder library + Profile sections + upload + job Teal). See [RESUME-BUILDER.md](./RESUME-BUILDER.md) |
+| Profile / Resume Builder | ✓ **Task 146 pass** — Profile remains master; Builder source card + job-first tailored list; job Documents has read-only PDF view, focused editor, and cover-letter document |
 | Job URL fetch | 🟡 — GH/Lever/Ashby/Workday ✓; LinkedIn → paste; aggregator warnings |
 | Job analyze | ✓ |
 | ATS score | ✓ — algorithmic |
 | Gap analysis | ✓ — still available via APIs; stepper retired from nav |
 | Tailor stepper | ⛔ Redirected — Job Matcher + tracker replace primary flow |
-| Application tracker | ✓ — Teal list/board; All outreach (134); masked inbound code + DB (139) |
+| Application tracker | ✓ — Teal list/board; All outreach (134); masked inbound code + DB (139); job detail cleanup pass complete (facts in header, rail hidden by default, timeline-first Activity, tracked-only Email) |
 | Masked apply email (Resend) | ✓ Infra live — `mail.kingsharif.com` receiving; webhook URL prod; needs smoke + `RESEND_FORWARD_FROM` optional |
 | Chrome extension | 🟡 **v0.9.6** · docs in EXTENSION.md + CHROME-STORE.md · Store draft OK; Publish gated |
 | GitHub integration | ✓ Task 105 |
@@ -78,8 +78,8 @@ Migrations 001–015 documented; 006–015 applied remotely via MCP.
 
 ## Next recommended tasks
 
-1. **Task 146** — Resume Builder one-page UX ([RESUME-BUILDER.md](./RESUME-BUILDER.md)) — **start here next chat**  
-2. **Task 143** — Enable Google in Supabase (AUTH.md §3); smoke login + extension Connect  
+1. **Task 143** — Enable Google in Supabase (AUTH.md §3); smoke login + extension Connect
+2. Optional UI smoke for Task 146 on Builder + job Documents once test credentials/browser are available
 3. **Chrome Store draft** — icons + screenshots when ready; see [CHROME-STORE.md](./CHROME-STORE.md) (don’t Publish until prod Connect smoke)  
 4. **Smoke Task 139 on prod** — create address → inbound → All outreach  
 5. **Task 114** — Gmail read-only sync (MVP email tracking)  
