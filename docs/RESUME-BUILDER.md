@@ -1,6 +1,6 @@
 # Resume Builder — current map + next-session brief
 
-**As of:** 2026-08-12 · **Next task:** [Task 146](./TASKS.md)  
+**As of:** 2026-08-13 · **Next task:** [Task 146](./TASKS.md) remaining = optional scroll-all-sections  
 **Prod:** https://hireiq.kingsharif.com · **Commit baseline:** `3c1d4f4` (+ STATUS `1b08bd2`)
 
 Use this file as the **starting brief** for a new chat whose only job is making Resume Builder look and act like one coherent product surface.
@@ -35,9 +35,9 @@ Prior lock ([DECISIONS 2026-08-09](./DECISIONS.md)): Profile = master; Builder =
 
 | Route | Role |
 |-------|------|
-| `/dashboard/builder` | Library: import CTA, uploaded resumes, past job versions → Profile / tracker |
-| `/dashboard/builder/master` | Redirect → Profile (or tracker if `jobId`) |
-| `/dashboard/profile` | Master resume: section nav + one editor panel + Save |
+| `/dashboard/builder` | **Master resume** (default) + **Files & versions** |
+| `/dashboard/builder/master` | Redirect → Builder master (or tracker if `jobId`) |
+| `/dashboard/profile` | Redirect → `/dashboard/builder?view=master` |
 | `/dashboard/profile/documents` | Legacy redirect → Profile documents section |
 | `/dashboard/profile/professional` | Legacy redirect → Profile professional sections |
 | `/dashboard/resume/upload` | Upload / parse flow |

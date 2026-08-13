@@ -5,6 +5,7 @@ const BLOCKED_HOSTS = [
   '127.0.0.1',
   'hireiq.app',
   'www.hireiq.app',
+  'hireiq.kingsharif.com',
 ]
 
 const JOB_HOST_HINTS = [
@@ -21,6 +22,8 @@ const JOB_HOST_HINTS = [
   'jobs.lever.co',
   'wellfound.com',
   'angel.co',
+  'amazon.jobs',
+  'careers.microsoft.com',
 ]
 
 const JOB_PATH_HINTS = [
@@ -45,12 +48,23 @@ export type JobDetectResult = {
 export function detectPageKind(doc: Document = document): 'posting' | 'apply' | 'unknown' {
   const hasApplyForm = Boolean(
     doc.querySelector(
-      'form#application-form, form[action*="apply"], #application_form, input[name="first_name"], input[name="resume"], input[type="file"][name*="resume" i]',
+      [
+        'form#application-form',
+        'form[action*="apply"]',
+        '#application_form',
+        '#ashby-portal-root form',
+        '[data-testid="application-form"]',
+        '[data-automation-id="jobPostingPage"] form',
+        'input[name="first_name"]',
+        'input[name="resume"]',
+        'input[type="file"][name*="resume" i]',
+      ].join(', '),
     ),
   )
   const hasLongJd =
-    (doc.querySelector('#content, .job__description, [data-job-description], .job-description')
-      ?.textContent || '').length > 400
+    (doc.querySelector(
+      '#content, .job__description, [data-job-description], .job-description, [data-qa="job-description"], .posting-page',
+    )?.textContent || '').length > 400
   if (hasApplyForm) return 'apply'
   if (hasLongJd) return 'posting'
   return 'unknown'

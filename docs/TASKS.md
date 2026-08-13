@@ -66,7 +66,7 @@ Files changed: `lib/github/**`, `app/api/github/**`, `components/profile/GitHubC
 Status: IN PROGRESS  
 Scope: `lib/export/pdf-generator.tsx`, `lib/resume/layout-check.ts`, export routes, Documents UI  
 Goal: After tailor, run length + placeholder + section checks; surface flags in UI before export.  
-Result (partial): `runResumeLayoutCheck` blocks PDF/DOCX on critical issues. Documents preview now shows an **Export check** list + PDF/DOCX buttons (disabled when critical). Multi-page warning via optional `pageCount`. Analyzer health checks remain separate.  
+Result (partial): `runResumeLayoutCheck` blocks PDF/DOCX on critical issues. Documents preview shows **Export check** + PDF/DOCX (disabled when critical). Multi-page warning via measured `pageCount`. Font-size heuristics warn when body is <9pt or >12pt, name >28pt, or line-height >1.65. Analyzer health checks remain separate.  
 Files changed: `lib/resume/layout-check.ts`, `components/jobs/detail/{LayoutIssuesBanner,DocumentsWorkspace,JobResumeEditor}.tsx`, `lib/api/client.ts`
 
 ---
@@ -152,7 +152,7 @@ Scope: Gmail OAuth readonly, scan job, match to tracked applications, notificati
 Goal: When Google is connected, scan/match employer emails to saved/applied jobs; high confidence auto-link, medium/low confirm. Extension Submit timestamps improve matching. Per 2026-08-12 DECISIONS lock.  
 Notes: Not 100% accurate by design. Email/password users nudged to connect Google. Full mask/reply relay = v2 (see Task 139 + EMAIL.md).  
 Blocked by: Google OAuth verification path for `gmail.readonly` in production; needs `GOOGLE_CLIENT_ID`/`SECRET` in env.  
-Result (partial): Migrations **016/017** applied. Connect + opt-out + Sync now + cron batch + shared inbound linker. **History API incremental** shipped 2026-08-13 (`listGmailHistoryChanges` + fallback full scan). Settings/Gmail panel show **incremental vs full scan** after Sync now.  
+Result (partial): Migrations **016/017** applied. Connect + opt-out + Sync now + cron batch + shared inbound linker. **History API incremental** shipped 2026-08-13 (`listGmailHistoryChanges` + fallback full scan). Settings/Gmail panel show **incremental vs full scan** after Sync now, including stale-history fallback copy. Remaining: prod OAuth connect + second Sync now smoke.  
 Files changed: `016_gmail_sync.sql`, `017_inbound_provider.sql`, `lib/google/*`, `lib/email/link-inbound.ts`, `process-inbound.ts`, `app/api/google/*`, `app/api/cron/gmail-sync`, `GoogleConnectPanel.tsx`, docs
 
 ---
@@ -195,8 +195,8 @@ Status: IN PROGRESS
 Scope: `extension/` board adapters (GH/Lever/Ashby/Workday + generic fallback), review queue UI  
 Goal: Fill forms from profile + tailored PDF; user batch-reviews and submits while watching. Unknown fields ask the user every time (no answer bank). LinkedIn/Indeed excluded from automation. Per DESIGN-TEAL-PARITY.md §D.  
 Notes: Phase 2 connect/ATS + autofill UX done. Phase 3 **user-watched Submit** shipped (v0.7.0). **v0.8–0.9.5** panel/save-first/choice review/panel IA. Board-specific adapters still optional polish.  
-Result (partial): Website connect + ATS email + autofill UX + Submit + save-first + Questions + Autofill progress with resume gate. LinkedIn/Indeed submit click blocked.  
-Files changed (v0.9.5): `extension/src/content.ts`, `extension/package.json`, `extension/manifest.config.ts`, `docs/EXTENSION.md`
+Result (partial): Website connect + ATS email + autofill UX + Submit + save-first + Questions + Autofill progress with resume gate. LinkedIn/Indeed submit click blocked. **v0.9.8:** save-job hosts include Amazon/Microsoft; prod HireIQ host blocked; richer apply/posting selectors. Board-specific adapters still optional polish.  
+Files changed (v0.9.8): `extension/src/detect.ts`, `lib/extension/job-page.ts`, `extension/package.json`, `extension/manifest.config.ts`
 
 ---
 
@@ -403,8 +403,8 @@ Status: IN PROGRESS
 Scope: `components/builder/**`, `components/profile/**`, `app/dashboard/{builder,profile,resume}/**`, `components/shared/primary-nav.ts` (+ Sidebar/MobileNav), docs; **avoid** Applications/Job Hub unless redirects  
 Goal: Resume Builder looks and acts like one product page — fewer hops/tabs/duplicate doors (library vs Profile section carousel vs upload). Applications stay as-is.  
 Notes: Prior lock (DECISIONS 2026-08-09) split Profile=master / Builder=library / Teal=job Documents. User now wants consolidation. **Grill IA first**, then implement. Brief: [RESUME-BUILDER.md](./RESUME-BUILDER.md).  
-Result (partial): One **Resume Builder** nav. Default **Master resume** editor + **Files & versions** tab. `/dashboard/profile` redirects in. Home Profile tile removed. Section carousel still inside Master.  
-Files changed: `components/builder/BuilderHome.tsx`, `app/dashboard/builder/page.tsx`, `app/dashboard/profile/page.tsx`, `primary-nav.ts`, `HomeTiles.tsx`, redirects
+Result (partial): One **Resume Builder** nav. Default **Master resume** editor + **Files & versions** tab. `/dashboard/profile` redirects in (preserves `section` + GitHub/Google error query). Suggestion/GitHub/extension links point at Builder master. Section carousel still inside Master — remaining: optional scroll-all-sections.  
+Files changed: `components/builder/BuilderHome.tsx`, `app/dashboard/builder/page.tsx`, `app/dashboard/profile/page.tsx`, `primary-nav.ts`, `HomeTiles.tsx`, GitHub OAuth callbacks, `lib/notifications.ts`, redirects
 
 ---
 

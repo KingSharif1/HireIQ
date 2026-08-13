@@ -17,11 +17,23 @@ function severityClass(severity: LayoutCheckIssue['severity']): string {
 export function LayoutIssuesBanner({
   resume,
   pageCount,
+  fonts,
 }: {
   resume: StructuredResume
   pageCount?: number
+  fonts?: { bodyFontSize?: number; nameFontSize?: number; lineHeight?: number }
 }) {
-  const result = useMemo(() => runResumeLayoutCheck(resume, { pageCount }), [resume, pageCount])
+  const bodyFontSize = fonts?.bodyFontSize
+  const nameFontSize = fonts?.nameFontSize
+  const lineHeight = fonts?.lineHeight
+  const result = useMemo(
+    () =>
+      runResumeLayoutCheck(resume, {
+        pageCount,
+        fonts: { bodyFontSize, nameFontSize, lineHeight },
+      }),
+    [resume, pageCount, bodyFontSize, nameFontSize, lineHeight],
+  )
   if (result.issues.length === 0) return null
 
   const critical = result.issues.filter(issue => issue.severity === 'critical')

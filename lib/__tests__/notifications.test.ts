@@ -29,6 +29,12 @@ describe('buildTailorCompleteNotification', () => {
   })
 })
 
+describe('profileSectionLink', () => {
+  it('deep-links into Resume Builder master', () => {
+    expect(profileSectionLink('experience')).toBe('/dashboard/builder?view=master&section=experience')
+  })
+})
+
 describe('buildSuggestionNotification', () => {
   it('uses plural copy and profile deep link', () => {
     const row = buildSuggestionNotification('user-1', 'SE @ Acme', 'tailor-abc', 2, 'experience')

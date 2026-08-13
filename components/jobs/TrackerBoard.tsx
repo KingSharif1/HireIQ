@@ -120,7 +120,7 @@ export function TrackerBoard({
                           className="text-[10px] font-medium text-muted-foreground hover:text-foreground"
                           onClick={e => e.stopPropagation()}
                         >
-                          Match
+                          Tailor
                         </Link>
                         {item.score != null ? (
                           <span className={cn('text-[11px] font-semibold tabular-nums', scoreColor(item.score))}>

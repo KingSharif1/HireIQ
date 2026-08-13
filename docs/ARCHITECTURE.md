@@ -1,6 +1,6 @@
 # HireIQ Architecture
 
-**Last updated:** 2026-08-12  
+**Last updated:** 2026-08-13  
 **Spec:** [SPEC.md](./SPEC.md) v1.0  
 **Production:** https://hireiq.kingsharif.com (Vercel · GitHub `KingSharif1/HireIQ`)
 
@@ -13,20 +13,20 @@ Two pillars only:
 
 Cover letter, outreach, and interview prep exist in the codebase but are **out of Phase 1 scope** per the new spec.
 
-### Primary navigation (IA — under revisit, Task 146)
+### Primary navigation (Task 146 — one Resume Builder)
 
 | Place | Route | Notes |
 |-------|--------|-------|
 | Dashboard | `/dashboard` | Hub tiles (teal shell) |
-| Applications | `/dashboard/tracker` | Teal tracker — **user says fine; leave alone** |
-| Resume Builder | `/dashboard/builder` | Library only today; master edits bounce to Profile |
-| Profile | `/dashboard/profile` | Section-nav master (13 sections, one at a time) |
+| Applications | `/dashboard/tracker` | Teal tracker — leave alone |
+| Resume Builder | `/dashboard/builder` | **Master resume** (default) + **Files & versions** |
+| Profile | `/dashboard/profile` | Redirect → Builder master (keeps `section` / OAuth error query) |
 
 Shell: `components/shared/{DashboardShell,Sidebar,MobileNav,primary-nav.ts}`.
 
-**Fragmentation (why Task 146):** Builder library + Profile section carousel + `/resume/upload` + per-job Teal tabs on Applications → Documents. Full map: [RESUME-BUILDER.md](./RESUME-BUILDER.md).
+Master editor is still a section carousel inside Builder. Per-job Teal tabs stay on Applications → Documents. Full map: [RESUME-BUILDER.md](./RESUME-BUILDER.md).
 
-Profile: `components/profile/ProfileHome.tsx` (+ shared save/nav/panel). Legacy `/profile/documents`, `/profile/professional`, `/builder/master` redirect. Builder library: `components/builder/ResumeLibrary.tsx`. Job Teal chrome: `JobResumeEditor` (Content / Designer / Matcher).
+Profile: `components/profile/ProfileHome.tsx` embedded in `BuilderHome`. Legacy `/profile/documents`, `/profile/professional`, `/builder/master` redirect. Files tab: `ResumeLibrary`. Job Teal chrome: `JobResumeEditor`.
 
 ### Chrome extension (Module 6)
 

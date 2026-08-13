@@ -206,7 +206,15 @@ function DocumentsPreview({
           </Button>
         </div>
       </div>
-      <LayoutIssuesBanner resume={selected.structured_data} pageCount={pageCount} />
+      <LayoutIssuesBanner
+        resume={selected.structured_data}
+        pageCount={pageCount}
+        fonts={{
+          bodyFontSize: DEFAULT_RESUME_THEME.bodyFontSize,
+          nameFontSize: DEFAULT_RESUME_THEME.nameFontSize,
+          lineHeight: DEFAULT_RESUME_THEME.lineHeight,
+        }}
+      />
       <div className="rounded-xl border border-border bg-card p-3">
         <ResumePreview
           data={selected.structured_data}

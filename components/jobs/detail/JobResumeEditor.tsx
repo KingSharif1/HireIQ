@@ -152,7 +152,15 @@ export function JobResumeEditor({
             </div>
             <div className="flex-1 min-w-0 min-h-0 flex flex-col bg-neutral-100/80 dark:bg-secondary/20">
               <div className="flex-1 min-h-0 space-y-3 overflow-auto p-3 md:p-4">
-                <LayoutIssuesBanner resume={previewData} pageCount={pageCount} />
+                <LayoutIssuesBanner
+                  resume={previewData}
+                  pageCount={pageCount}
+                  fonts={{
+                    bodyFontSize: theme.bodyFontSize,
+                    nameFontSize: theme.nameFontSize,
+                    lineHeight: theme.lineHeight,
+                  }}
+                />
                 <ResumePreview
                   data={previewData}
                   theme={theme}

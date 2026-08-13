@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-08-13 — Font-size export checks + Amazon/MS save hosts
+
+**What:** Export check warns on body/name font size and loose line height. Extension + server job-URL gate allow `amazon.jobs` / `careers.microsoft.com` and block prod `hireiq.kingsharif.com`. Tracker empty-score CTA says Tailor. Profile/GitHub/suggestion links go to Resume Builder master (and keep `github_error` on redirect). Extension **v0.9.8**.
+
+**Files:** `lib/resume/layout-check.ts`, `LayoutIssuesBanner.tsx`, `lib/extension/job-page.ts`, `extension/src/detect.ts`, `TrackerList.tsx`, `TrackerBoard.tsx`, `lib/notifications.ts`, GitHub OAuth callbacks, docs
+
+**Why:** Close Task 106 font heuristics and leftover Profile doors after Builder consolidation.
+
+**Next:** Merge PR #3; Task 146 optional scroll-all-sections; Gmail OAuth.
+
+---
+
+## 2026-08-13 — Unmatched inbound in All outreach
+
+**What:** Application-address mail that doesn’t match a company still appears in All outreach (Unmatched). Prod webhook stored the inbound smoke message.
+
+**Files:** `lib/applications/outreach.ts`, `ApplicationsTracker.tsx`, `OutreachList.tsx`, `app/dashboard/tracker/page.tsx`
+
+**Why:** Smoke mail was received but hidden because All outreach only read job `email_log`.
+
+**Next:** Merge PR #3; Gmail OAuth.
+
+---
+
 ## 2026-08-13 — One Resume Builder nav + live page-count export check
 
 **What:** Resume Builder is the only resume destination (Master + Files tabs). Profile URLs redirect. Documents export check uses measured preview page count. Gmail sync copy explains stale History API fallback.

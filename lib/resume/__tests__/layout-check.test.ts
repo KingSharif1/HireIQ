@@ -77,4 +77,31 @@ describe('runResumeLayoutCheck', () => {
     expect(result.ok).toBe(true)
     expect(result.issues.map(i => i.id)).toContain('multi-page')
   })
+
+  it('warns when body font is too large or too small', () => {
+    const large = runResumeLayoutCheck(baseResume(), { fonts: { bodyFontSize: 16 } })
+    expect(large.ok).toBe(true)
+    expect(large.issues.map(i => i.id)).toContain('body-font-size')
+
+    const tiny = runResumeLayoutCheck(baseResume(), { fonts: { bodyFontSize: 8 } })
+    expect(tiny.issues.map(i => i.id)).toContain('body-font-size')
+  })
+
+  it('warns when name size or line height is extreme', () => {
+    const result = runResumeLayoutCheck(baseResume(), {
+      fonts: { nameFontSize: 36, lineHeight: 1.8 },
+    })
+    expect(result.issues.map(i => i.id)).toEqual(
+      expect.arrayContaining(['name-font-size', 'line-height']),
+    )
+  })
+
+  it('does not warn on typical 10pt / 22pt / 1.4 theme', () => {
+    const result = runResumeLayoutCheck(baseResume(), {
+      fonts: { bodyFontSize: 10, nameFontSize: 22, lineHeight: 1.4 },
+    })
+    expect(result.issues.map(i => i.id)).not.toEqual(
+      expect.arrayContaining(['body-font-size', 'name-font-size', 'line-height']),
+    )
+  })
 })

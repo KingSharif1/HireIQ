@@ -15,8 +15,8 @@ This is the single checklist for what shipped recently, what’s next, and what 
 | **Extension agentic apply v1** | Continue/signup flows, OTP from Gmail or masked inbound, portal creds saved on application. |
 | **Portal login UI** | Job detail **Job facts** rail + **Activity** tab show email / password / note when saved. |
 | **Gmail sync** | History API incremental sync when `history_id` exists; falls back to 14-day list scan. |
-| **Export QA** | `runResumeLayoutCheck` blocks PDF/DOCX export on critical layout issues (Task 106 partial). |
-| **Resume Builder** | One nav item: **Master resume** (default) + **Files & versions**. `/dashboard/profile` redirects. |
+| **Export QA** | `runResumeLayoutCheck` blocks PDF/DOCX on critical issues; warns on page count + font-size/line-height (Task 106). |
+| **Resume Builder** | One nav item: **Master resume** (default) + **Files & versions**. `/dashboard/profile` redirects (keeps GitHub error query). |
 
 Open PR: **#3** — `cursor/prod-smoke-layout-warnings-d22e` (export check + Builder consolidation)
 
@@ -50,10 +50,10 @@ Open PR: **#3** — `cursor/prod-smoke-layout-warnings-d22e` (export check + Bui
 
 | ID | Task | Scope |
 |----|------|-------|
-| 114 | Gmail sync polish | Done: History API + Settings shows incremental/full after sync. Next: handle expired history copy in Settings |
-| 117 | Extension polish | Board adapters, broader autofill, agentic apply on more ATS walls |
-| 106 | Visual render QA | Documents Export check uses live preview **page count**; PDF/DOCX. Remaining: font-size heuristics |
-| 146 | Resume Builder consolidation | One Builder nav: Master (default) + Files. Profile redirects in. Remaining: optional scroll-all-sections |
+| 114 | Gmail sync polish | Done in code: History API + incremental/full + stale-history copy. Remaining: Connect Gmail on prod + second Sync now |
+| 117 | Extension polish | v0.9.8 Amazon/MS hosts + detectPageKind. Remaining: board adapters, broader autofill |
+| 106 | Visual render QA | Export check: page count + body/name font + line-height warnings. Remaining: live preview beside master (optional) |
+| 146 | Resume Builder consolidation | One Builder nav: Master (default) + Files. Profile/GitHub links in. Remaining: optional scroll-all-sections |
 | 115 | Forward-to-save email | Inbound webhook for forwarded postings |
 | 140 | Mask reply-relay v2 | User ↔ HireIQ ↔ employer reply path |
 
