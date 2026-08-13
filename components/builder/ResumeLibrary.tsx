@@ -1,9 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { FileText, Upload, User, Briefcase, Plus } from 'lucide-react'
+import { ArrowRight, Briefcase, FileText, PenLine, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import type { ResumeRow } from '@/lib/profile/resume-row'
 
@@ -23,62 +22,80 @@ interface ResumeLibraryProps {
 }
 
 /**
- * Teal-style Resume Builder landing — library of uploads + past job versions.
- * Same `resumes` set as Profile Documents (two doors). Master edits → Profile.
+ * Resume Builder home — import uploads, edit master profile, open per-job versions.
  */
 export function ResumeLibrary({ resumes, tailored }: ResumeLibraryProps) {
+  const hasUploads = resumes.length > 0
+  const primaryResume = resumes.find(r => r.is_primary) ?? resumes[0]
+
   return (
-    <div className="mx-auto max-w-3xl w-full px-4 sm:px-6 lg:px-8 py-8">
-      <header className="mb-8">
-        <h1 className="text-2xl font-semibold text-foreground">Resume Builder</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Import resumes, open past job versions, or edit your master on Profile.
+    <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+      <header className="mb-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          Documents
+        </p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">Resume Builder</h1>
+        <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
+          One place to import files, maintain your master profile, and jump to tailored versions for
+          each application.
         </p>
       </header>
 
-      <div className="flex flex-wrap gap-2 mb-8">
-        <Button asChild>
-          <Link href="/dashboard/resume/upload">
-            <Upload className="w-4 h-4" />
-            Import resume
-          </Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link href="/dashboard/profile">
-            <User className="w-4 h-4" />
-            Edit master profile
-          </Link>
-        </Button>
+      <div className="mb-8 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <div className="border-b border-border bg-secondary/30 px-5 py-4 sm:px-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-brand-green/25 bg-brand-green/10 text-brand-green">
+                <PenLine className="size-4" aria-hidden="true" />
+              </span>
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Master profile</h2>
+                <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
+                  {hasUploads
+                    ? primaryResume
+                      ? `Primary source: ${primaryResume.title}`
+                      : 'Your uploaded resumes feed the master profile used for tailoring.'
+                    : 'Import a resume to seed your master profile, then refine sections on Profile.'}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild size="sm">
+                <Link href="/dashboard/profile">
+                  Edit master
+                  <ArrowRight className="size-3.5" />
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/dashboard/resume/upload">
+                  <Upload className="size-3.5" />
+                  Import
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+        <div className="grid gap-px bg-border sm:grid-cols-2">
+          <LibraryStat label="Uploaded resumes" value={String(resumes.length)} />
+          <LibraryStat label="Job versions" value={String(tailored.length)} />
+        </div>
       </div>
 
       <section className="mb-10">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             Your resumes
           </h2>
-          <Link
-            href="/dashboard/profile?section=resumes"
-            className="text-xs text-muted-foreground hover:text-foreground no-underline"
-          >
-            Also in Profile → Documents
-          </Link>
         </div>
 
         {resumes.length === 0 ? (
-          <div
-            className={cn(
-              'rounded-md border border-dashed border-border px-4 py-10 text-center'
-            )}
-          >
-            <FileText className="w-8 h-8 mx-auto text-muted-foreground/60 mb-3" strokeWidth={1.5} />
-            <p className="text-sm text-muted-foreground mb-4">
+          <div className="rounded-xl border border-dashed border-border px-4 py-10 text-center">
+            <FileText className="mx-auto mb-3 size-8 text-muted-foreground/60" strokeWidth={1.5} />
+            <p className="text-sm text-muted-foreground">
               No resumes yet. Import one to seed your master profile.
             </p>
-            <Button asChild size="sm">
-              <Link href="/dashboard/resume/upload">
-                <Plus className="w-4 h-4" />
-                Import resume
-              </Link>
+            <Button asChild size="sm" className="mt-4">
+              <Link href="/dashboard/resume/upload">Import resume</Link>
             </Button>
           </div>
         ) : (
@@ -93,45 +110,46 @@ export function ResumeLibrary({ resumes, tailored }: ResumeLibraryProps) {
       </section>
 
       <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           Past job versions
         </h2>
         {tailored.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Tailored resumes for applications will show up here. Tailor from an application in the tracker.
+          <p className="text-sm leading-6 text-muted-foreground">
+            Tailored resumes for applications appear here after you tailor from the tracker.
           </p>
         ) : (
           <ul className="flex flex-col gap-2">
             {tailored.map(row => (
               <li key={row.id}>
                 <Link
-                  href={`/dashboard/tracker/${row.job_id}`}
+                  href={`/dashboard/tracker/${row.job_id}?tab=documents`}
                   className={cn(
-                    'flex items-center gap-3 rounded-md border border-border bg-white dark:bg-card',
-                    'px-4 py-3 transition-colors hover:border-foreground/40 no-underline'
+                    'flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3',
+                    'no-underline transition-colors hover:border-foreground/25 hover:bg-secondary/20',
                   )}
                 >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted">
-                    <Briefcase className="h-4 w-4 text-foreground/80" strokeWidth={1.5} />
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-secondary">
+                    <Briefcase className="size-4 text-foreground/80" strokeWidth={1.5} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-medium text-foreground truncate">
+                    <span className="block truncate text-sm font-medium text-foreground">
                       {row.job_title || 'Untitled role'}
                       {row.company ? (
                         <span className="font-normal text-muted-foreground"> · {row.company}</span>
                       ) : null}
                     </span>
-                    <span className="block text-xs text-muted-foreground mt-0.5">
-                      {new Date(row.created_at).toLocaleDateString()}
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      Open documents tab
+                      {row.tailored_score != null || row.match_score != null ? (
+                        <span>
+                          {' '}
+                          · Match{' '}
+                          {row.tailored_score ?? row.match_score}%
+                        </span>
+                      ) : null}
                     </span>
                   </span>
-                  {(row.tailored_score ?? row.match_score) != null && (
-                    <Badge
-                      variant={(row.tailored_score ?? row.match_score)! >= 70 ? 'success' : 'warning'}
-                    >
-                      {row.tailored_score ?? row.match_score}%
-                    </Badge>
-                  )}
+                  <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
                 </Link>
               </li>
             ))}
@@ -142,40 +160,38 @@ export function ResumeLibrary({ resumes, tailored }: ResumeLibraryProps) {
   )
 }
 
+function LibraryStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-card px-5 py-4 sm:px-6">
+      <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">{value}</p>
+    </div>
+  )
+}
+
 function LibraryResumeRow({ resume }: { resume: ResumeRow }) {
   return (
-    <div
+    <Link
+      href={`/dashboard/resume/${resume.id}`}
       className={cn(
-        'flex items-center gap-3 rounded-md border border-border bg-white dark:bg-card',
-        'px-4 py-3 transition-colors hover:border-foreground/40'
+        'flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3',
+        'no-underline transition-colors hover:border-foreground/25 hover:bg-secondary/20',
       )}
     >
-      <Link
-        href={`/dashboard/resume/${resume.id}`}
-        className="flex items-center gap-3 flex-1 min-w-0 no-underline"
-      >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand-purple/10">
-          <FileText className="h-4 w-4 text-brand-purple" strokeWidth={1.5} />
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-secondary">
+        <FileText className="size-4 text-foreground/80" strokeWidth={1.5} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium text-foreground">{resume.title}</span>
+        <span className="mt-0.5 block text-xs text-muted-foreground">
+          {resume.is_primary ? 'Primary · ' : ''}
+          {resume.ats_format_score != null ? `ATS ${resume.ats_format_score}% · ` : ''}
+          Added {new Date(resume.created_at).toLocaleDateString()}
         </span>
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2">
-            <span className="text-sm font-medium text-foreground truncate">{resume.title}</span>
-            {resume.is_primary && (
-              <Badge variant="default" className="text-[10px]">
-                Primary
-              </Badge>
-            )}
-          </span>
-          {resume.ats_format_score != null && (
-            <span className="block text-xs text-muted-foreground mt-0.5">
-              Format score: {resume.ats_format_score}%
-            </span>
-          )}
-        </span>
-      </Link>
-      <Button asChild size="sm" variant="outline" className="flex-shrink-0">
-        <Link href="/dashboard/profile">Open master</Link>
-      </Button>
-    </div>
+      </span>
+      <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
+    </Link>
   )
 }

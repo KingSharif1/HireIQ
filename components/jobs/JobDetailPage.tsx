@@ -474,6 +474,9 @@ export function JobDetailPage({
                 remoteType={item.job.remote_type}
                 applyUrl={safeApplyUrl}
                 extracted={item.job.extracted_data}
+                portalEmail={item.ats_account_email}
+                portalPassword={item.ats_account_password}
+                portalNote={item.ats_account_note}
                 activity={activityItems}
                 onSeeAllActivity={() => setTab('activity')}
               />
@@ -513,6 +516,9 @@ export function JobDetailPage({
                 notes={notes}
                 onSaveNotes={saveNotes}
                 onAddEvent={addEvent}
+                portalEmail={item.ats_account_email}
+                portalPassword={item.ats_account_password}
+                portalNote={item.ats_account_note}
               />
               <ApplicationAnswers
                 applicationId={item.id}
@@ -542,6 +548,9 @@ export function JobDetailPage({
                 remoteType={item.job.remote_type}
                 applyUrl={safeApplyUrl}
                 extracted={item.job.extracted_data}
+                portalEmail={item.ats_account_email}
+                portalPassword={item.ats_account_password}
+                portalNote={item.ats_account_note}
                 activity={activityItems}
                 onSeeAllActivity={() => setTab('activity')}
                 onCollapseRail={() => setRailOpen(false)}

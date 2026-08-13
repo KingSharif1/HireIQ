@@ -63,9 +63,10 @@ Files changed: `lib/github/**`, `app/api/github/**`, `components/profile/GitHubC
 ---
 
 ## Task 106 — Visual render QA pass (spec §3.5)
-Status: PENDING  
-Scope: `lib/export/pdf-generator.tsx`, new `lib/resume/layout-check.ts`  
-Goal: After tailor, run length + placeholder + section checks; surface flags in UI before export.
+Status: IN PROGRESS  
+Scope: `lib/export/pdf-generator.tsx`, `lib/resume/layout-check.ts`, export routes  
+Goal: After tailor, run length + placeholder + section checks; surface flags in UI before export.  
+Result (partial): `runResumeLayoutCheck` blocks PDF/DOCX export on critical issues (missing name, no experience, placeholders). UI surfacing still TODO.
 
 ---
 
@@ -150,7 +151,7 @@ Scope: Gmail OAuth readonly, scan job, match to tracked applications, notificati
 Goal: When Google is connected, scan/match employer emails to saved/applied jobs; high confidence auto-link, medium/low confirm. Extension Submit timestamps improve matching. Per 2026-08-12 DECISIONS lock.  
 Notes: Not 100% accurate by design. Email/password users nudged to connect Google. Full mask/reply relay = v2 (see Task 139 + EMAIL.md).  
 Blocked by: Google OAuth verification path for `gmail.readonly` in production; needs `GOOGLE_CLIENT_ID`/`SECRET` in env.  
-Result (partial): Migrations **016/017** applied. Connect + opt-out + Sync now + cron batch + shared inbound linker. History API incremental still TODO (currently newer_than:14d list).  
+Result (partial): Migrations **016/017** applied. Connect + opt-out + Sync now + cron batch + shared inbound linker. **History API incremental** shipped 2026-08-13 (`listGmailHistoryChanges` + fallback full scan).  
 Files changed: `016_gmail_sync.sql`, `017_inbound_provider.sql`, `lib/google/*`, `lib/email/link-inbound.ts`, `process-inbound.ts`, `app/api/google/*`, `app/api/cron/gmail-sync`, `GoogleConnectPanel.tsx`, docs
 
 ---
@@ -397,12 +398,12 @@ Files changed: `docs/EXTENSION.md`, `docs/CHROME-STORE.md`, `docs/README.md`, `d
 ---
 
 ## Task 146 — Resume Builder UX: one coherent surface
-Status: PENDING  
+Status: IN PROGRESS  
 Scope: `components/builder/**`, `components/profile/**`, `app/dashboard/{builder,profile,resume}/**`, `components/shared/primary-nav.ts` (+ Sidebar/MobileNav), docs; **avoid** Applications/Job Hub unless redirects  
 Goal: Resume Builder looks and acts like one product page — fewer hops/tabs/duplicate doors (library vs Profile section carousel vs upload). Applications stay as-is.  
 Notes: Prior lock (DECISIONS 2026-08-09) split Profile=master / Builder=library / Teal=job Documents. User now wants consolidation. **Grill IA first**, then implement. Brief: [RESUME-BUILDER.md](./RESUME-BUILDER.md).  
-Result:  
-Files changed:  
+Result (partial): `ResumeLibrary` hero + master profile CTA + stats (2026-08-13). Full single-page editor not started.  
+Files changed: `components/builder/ResumeLibrary.tsx`
 
 ---
 

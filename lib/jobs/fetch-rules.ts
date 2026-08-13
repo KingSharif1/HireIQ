@@ -33,6 +33,22 @@ export const HOST_FETCH_RULES: HostFetchRule[] = [
       'Apple careers SPA renders a spinner in #jobdetails-wrapper; full JD lives in window.__staticRouterHydrationData.loaderData.jobDetails.jobsData (added 2026-08-13).',
     addedAt: '2026-08-13',
   },
+  {
+    id: 'amazon-jobs-open-graph',
+    hostPattern: /(^|\.)amazon\.jobs$/i,
+    type: 'json-ld',
+    notes:
+      'Amazon.jobs embeds the full posting in og:description meta tags; no public single-job JSON API (added 2026-08-13).',
+    addedAt: '2026-08-13',
+  },
+  {
+    id: 'microsoft-eightfold-pcsx',
+    hostPattern: /(^|\.)?(jobs|apply)\.careers\.microsoft\.com$/i,
+    type: 'html-selectors',
+    notes:
+      'Microsoft careers (Eightfold PCSX) serves job JSON via apply.careers.microsoft.com/api/pcsx/position_details?position_id=… (added 2026-08-13).',
+    addedAt: '2026-08-13',
+  },
 ]
 
 export function matchHostRule(url: string): HostFetchRule | null {

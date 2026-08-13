@@ -108,7 +108,7 @@ Separate from Supabase “Sign in with Google” — this flow requests `gmail.r
 | Profile → Sync now | `POST /api/google/sync` (session) |
 | Cron / ops | `GET|POST /api/cron/gmail-sync` with `Authorization: Bearer $CRON_SECRET` |
 
-Scans `newer_than:14d` (excludes chats/promos/social), matches open applications via existing inbound scorer, writes `email_log` with `source: gmail`.
+Scans incrementally via Gmail **History API** when `google_connections.history_id` is set; otherwise `newer_than:14d` full scan (excludes chats/promos/social). On expired history, falls back to full scan and refreshes `history_id` from profile.
 
 ## Smoke checklist (prod)
 

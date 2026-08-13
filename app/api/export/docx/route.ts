@@ -46,6 +46,20 @@ export async function POST(request: Request) {
     decisions
   )
 
+  if (type !== 'cover') {
+    const { runResumeLayoutCheck } = await import('@/lib/resume/layout-check')
+    const layout = runResumeLayoutCheck(exportData)
+    if (!layout.ok) {
+      return NextResponse.json(
+        {
+          error: 'Fix resume layout issues before exporting',
+          layoutIssues: layout.issues.filter(issue => issue.severity === 'critical'),
+        },
+        { status: 422 },
+      )
+    }
+  }
+
   if (type === 'cover') {
     if (!tailored.cover_letter) {
       return NextResponse.json({ error: 'No cover letter to export' }, { status: 400 })

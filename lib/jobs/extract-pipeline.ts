@@ -1,6 +1,7 @@
 import { extractFromHydration } from '@/lib/jobs/extractors/hydration'
 import { extractFromHtmlHeuristic } from '@/lib/jobs/extractors/html-heuristic'
 import { extractFromJsonLd } from '@/lib/jobs/extractors/json-ld'
+import { extractFromOpenGraph } from '@/lib/jobs/extractors/open-graph'
 import {
   extractFromRenderedHtml,
   fetchRenderedHtml,
@@ -24,7 +25,13 @@ function score(result: ExtractionResult): number {
   let s = result.text.length
   if (result.confidence === 'high') s += 500
   else if (result.confidence === 'medium') s += 200
-  if (result.method === 'json-ld' || result.method === 'hydration-json') s += 300
+  if (
+    result.method === 'json-ld' ||
+    result.method === 'open-graph' ||
+    result.method === 'hydration-json'
+  ) {
+    s += 300
+  }
   return s
 }
 
@@ -42,6 +49,7 @@ async function runFastExtractors(
 
   const steps: Array<{ method: ExtractionResult['method']; run: () => ExtractionResult | null }> = [
     { method: 'json-ld', run: () => extractFromJsonLd(html) },
+    { method: 'open-graph', run: () => extractFromOpenGraph(html) },
     { method: 'hydration-json', run: () => extractFromHydration(html, url) },
     { method: 'html-heuristic', run: () => extractFromHtmlHeuristic(html) },
   ]

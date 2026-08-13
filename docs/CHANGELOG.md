@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-13 — Amazon/Microsoft fetch, portal login, Gmail history, export QA
+
+**What:** Open Graph + Microsoft Eightfold PCSX job fetch; portal credentials on job detail (facts rail + Activity); Gmail History API incremental sync; resume layout check before PDF/DOCX export; Resume Builder library UX pass; `REMAINING-WORK.md` + migration 019 docs.
+
+**Files:** `lib/jobs/extractors/{open-graph,microsoft-eightfold}.ts`, `lib/google/{gmail,sync}.ts`, `lib/resume/layout-check.ts`, `components/jobs/detail/{JobSummary,ActivityPanel}.tsx`, `components/builder/ResumeLibrary.tsx`, `app/api/export/{pdf,docx}/route.ts`, `docs/REMAINING-WORK.md`, `docs/supabase/MIGRATIONS.md`, live tests
+
+**Why:** Close gaps from job-fetch + agentic apply MVP; ordered roadmap for remaining work.
+
+**Next:** Merge PR #2, apply migration 019, human Google provider enable.
+
+---
+
 ## 2026-08-12 — Handoff: Resume Builder next (Task 146)
 
 **What:** Documented current Builder/Profile/job-Teal split, pain (too many pages/tabs), and Task 146 for a one-surface Resume Builder. Applications left alone.

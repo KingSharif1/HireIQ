@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { describe, it, expect, vi } from 'vitest'
 import { extractFromHydration } from '@/lib/jobs/extractors/hydration'
 import { extractFromJsonLd } from '@/lib/jobs/extractors/json-ld'
+import { extractFromOpenGraph } from '@/lib/jobs/extractors/open-graph'
 import { extractJobFromHtmlUrl } from '@/lib/jobs/extract-pipeline'
 
 const FIXTURE_DIR = join(__dirname, 'fixtures')
@@ -45,6 +46,33 @@ describe('extractFromJsonLd', () => {
     expect(result?.title).toBe('Backend Engineer')
     expect(result?.company).toBe('Acme Corp')
     expect(result?.text).toContain('Build reliable APIs')
+  })
+})
+
+describe('extractFromOpenGraph', () => {
+  it('reads substantive og:description and title', () => {
+    const html = `
+      <html><head>
+        <meta property="og:title" content="Digital Content Associate, Prime Video Sports" />
+        <meta property="og:description" content="${'Are you interested in shaping the future of live sports broadcasting? '.repeat(8)}" />
+        <meta property="og:site_name" content="Amazon.jobs" />
+      </head><body></body></html>
+    `
+    const result = extractFromOpenGraph(html)
+    expect(result?.method).toBe('open-graph')
+    expect(result?.title).toContain('Digital Content Associate')
+    expect(result?.company).toBe('Amazon.jobs')
+    expect(result?.text.length).toBeGreaterThan(200)
+  })
+
+  it('ignores generic Microsoft og descriptions', () => {
+    const html = `
+      <html><head>
+        <meta property="og:title" content="Careers at Microsoft" />
+        <meta property="og:description" content="See all open jobs at Microsoft" />
+      </head><body></body></html>
+    `
+    expect(extractFromOpenGraph(html)).toBeNull()
   })
 })
 
