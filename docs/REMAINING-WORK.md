@@ -31,10 +31,11 @@ Open PR: **merged** — PR #2 → `main` (2026-08-13)
 
 ### 2. Production smoke
 
-- [ ] Extension connect on prod → save job with portal creds → confirm **Portal login** on tracker detail
+- [x] Portal login UI on tracker detail (seeded creds on Forward Deployed Engineer / harperinsure) — email, masked password, show/reveal, copy, note; also on Activity tab
+- [ ] Extension connect on prod → save job with portal creds (end-to-end from extension, not seed)
 - [ ] Paste Amazon + Microsoft `?pid=` URLs on prod job fetch
-- [ ] Gmail: connect Google → Sync now → confirm `mode: history` on second sync (API response)
-- [ ] Masked inbound: send test mail to application address → All outreach
+- [ ] Gmail: Connect Gmail on Settings → Sync now → confirm `mode: history` on second sync (`google_connections` still 0)
+- [ ] Masked inbound: create application email → send test mail → All outreach (`inbound_email_events` still 0)
 
 ### 3. Human-only blockers
 

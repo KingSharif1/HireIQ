@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-13 — Prod smoke: portal login UI
+
+**What:** Logged into production and verified Portal login on job tracker detail (facts rail + Activity tab): email, show/hide password, note. Gmail sync correctly returns 400 until connected. Masked inbound still needs an application alias.
+
+**Files:** docs only (`STATUS.md`, `REMAINING-WORK.md`)
+
+**Why:** Close the portal-login smoke that was blocked on credentials.
+
+**Next:** Connect Gmail + create application email for remaining smokes.
+
+---
+
 ## 2026-08-13 — Amazon/Microsoft fetch, portal login, Gmail history, export QA
 
 **What:** Open Graph + Microsoft Eightfold PCSX job fetch; portal credentials on job detail (facts rail + Activity); Gmail History API incremental sync; resume layout check before PDF/DOCX export; Resume Builder library UX pass; `REMAINING-WORK.md` + migration 019 docs.

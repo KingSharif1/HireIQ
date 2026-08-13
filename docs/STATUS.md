@@ -8,9 +8,9 @@
 
 | | |
 |--|--|
-| **Working on** | Prod smoke (portal login, Gmail sync, masked inbound) |
-| **Blocked** | Task 143 Google provider enable (human) |
-| **Next** | Task 143 Google provider (human) · Task 146 Builder full consolidation |
+| **Working on** | Prod smoke complete for portal login UI |
+| **Blocked** | Gmail sync (not connected) · masked inbound (no alias yet) · Task 143 Google provider |
+| **Next** | Connect Gmail on Settings → Sync now · create application email + send test · Task 146 |
 | **Roadmap** | [REMAINING-WORK.md](./REMAINING-WORK.md) |
 
 ## System snapshot
@@ -78,10 +78,10 @@ Migrations 001–018 applied remotely; **019 applied** 2026-08-13 — see [supab
 
 ## Next recommended tasks
 
-1. **Merge PR #2** + apply migration **019**  
-2. **Task 143** — Enable Google in Supabase ([AUTH.md](./AUTH.md) §3)  
-3. **Task 146** — Resume Builder full consolidation ([RESUME-BUILDER.md](./RESUME-BUILDER.md))  
-4. **Smoke** — portal login UI, Gmail history sync, masked inbound on prod  
+1. **Task 143** — Enable Google in Supabase ([AUTH.md](./AUTH.md) §3)  
+2. Connect Gmail on prod Settings → Sync now (History API smoke)  
+3. Create application email + send test inbound  
+4. **Task 146** — Resume Builder full consolidation ([RESUME-BUILDER.md](./RESUME-BUILDER.md))  
 5. **Chrome Store draft** — [CHROME-STORE.md](./CHROME-STORE.md)  
 
 Docs: [REMAINING-WORK.md](./REMAINING-WORK.md) · [EMAIL.md](./EMAIL.md) · [DECISIONS.md](./DECISIONS.md) · [AUTH.md](./AUTH.md) · [EXTENSION.md](./EXTENSION.md)
