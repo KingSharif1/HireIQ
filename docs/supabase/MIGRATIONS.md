@@ -5,7 +5,7 @@ Apply in numeric order on the remote project (`wsbbgznobxhjefaqbniv`). Use Supab
 | # | File | Status | Notes |
 |---|------|--------|-------|
 | 001–018 | `docs/supabase/migrations/00*.sql` | Applied | See STATUS.md |
-| **019** | `019_ats_account_password.sql` | **Pending** | Adds `applications.ats_account_password` for extension agentic apply + job timeline portal login |
+| **019** | `019_ats_account_password.sql` | **Applied** (2026-08-13 via Supabase MCP) | Adds `applications.ats_account_password` for extension agentic apply + job timeline portal login |
 
 ## Apply 019
 

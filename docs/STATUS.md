@@ -8,8 +8,8 @@
 
 | | |
 |--|--|
-| **Working on** | Apply migration 019 via Supabase MCP |
-| **Blocked** | Supabase MCP OAuth in cloud agent — re-auth in agent MCP panel |
+| **Working on** | Prod smoke (portal login, Gmail sync, masked inbound) |
+| **Blocked** | Task 143 Google provider enable (human) |
 | **Next** | Task 143 Google provider (human) · Task 146 Builder full consolidation |
 | **Roadmap** | [REMAINING-WORK.md](./REMAINING-WORK.md) |
 
