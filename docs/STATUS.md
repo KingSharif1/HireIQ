@@ -9,7 +9,7 @@
 | | |
 |--|--|
 | **Working on** | Task 146 one Resume Builder surface + export page-count |
-| **Blocked** | Gmail OAuth consent · inbound test mail · Task 143 Google provider |
+| **Blocked** | Gmail OAuth consent · Task 143 Google provider |
 | **Next** | Merge PR #3 · send test mail to application alias · complete Gmail connect |
 | **Roadmap** | [REMAINING-WORK.md](./REMAINING-WORK.md) |
 

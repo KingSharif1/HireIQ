@@ -36,7 +36,7 @@ Open PR: **#3** — `cursor/prod-smoke-layout-warnings-d22e` (export check + Bui
 - [x] Paste Amazon + Microsoft `?pid=` URLs on prod job fetch — Amazon **Digital Content Associate, Prime Video Sports**; Microsoft **Principal Software Engineer** (`source` amazon / microsoft). Did not persist via Analyze.
 - [ ] Gmail: Connect Gmail OAuth starts (Google sign-in for kingsharif.com) — stop at consent; Sync now still needs a connected mailbox
 - [x] Masked address created: `sharif.ahmed.cwc3td@mail.kingsharif.com` (tracking mode **application email**)
-- [ ] Send test mail to that address → All outreach (`inbound_email_events` still 0)
+- [x] Send test mail to that address → webhook **200**, `inbound_email_events` row stored (subject Testing; unmatched to a job — All outreach fix in PR #3)
 
 ### 3. Human-only blockers
 

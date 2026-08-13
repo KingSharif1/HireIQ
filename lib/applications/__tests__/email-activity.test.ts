@@ -94,4 +94,21 @@ describe('buildOutreachFeed', () => {
     expect(filterOutreachFeed(feed, { query: 'acme' })).toHaveLength(2)
     expect(filterOutreachFeed(feed, { query: 'reply' })).toHaveLength(1)
   })
+
+  it('includes unmatched inbound that was not linked to a job', () => {
+    const feed = buildOutreachFeed([], [
+      {
+        id: 'inb-1',
+        from_address: 'recruiter@example.com',
+        subject: 'Testing',
+        body_preview: 'Yoooo',
+        created_at: '2026-08-13T15:56:19.000Z',
+      },
+    ])
+    expect(feed).toHaveLength(1)
+    expect(feed[0].subject).toBe('Testing')
+    expect(feed[0].jobId).toBeNull()
+    expect(feed[0].company).toBe('example.com')
+    expect(feed[0].preview).toContain('Yoooo')
+  })
 })
