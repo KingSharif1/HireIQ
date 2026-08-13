@@ -58,7 +58,7 @@ Open PR: **#3** — **merged 2026-08-13** to `main` (Vercel production deploy)
 | 106 | Visual render QA | Export check: page count + body/name font + line-height warnings. Remaining: live preview beside master (optional) |
 | 146 | Resume Builder consolidation | **Done:** one Builder nav, Master scrolling page + Files, Profile/GitHub links in |
 | 115 | Forward-to-save email | **Done:** `save.*@mail.kingsharif.com` + inbound parse → tracker. Remaining: deploy + one forwarded posting smoke |
-| 140 | Mask reply-relay v2 | User ↔ HireIQ ↔ employer reply path |
+| 140 | Mask reply-relay v2 | **Partial:** Reply via HireIQ on job Email tab (from masked address). Remaining: prod send smoke; All outreach reply; `RESEND_FORWARD_FROM` |
 
 ### 5. Nice-to-have / v2
 

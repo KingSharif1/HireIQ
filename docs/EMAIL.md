@@ -10,7 +10,7 @@
 |------|------|
 | **Task 114 — Gmail sync** | **MVP** employer-status tracking for Google-connected users (default on / opt-out) |
 | **Task 139 — Masked apply** | Apply address + inbound log + optional forward — live now; paste-on-apply, email/password users, Gmail opted out |
-| **Task 140 — Mask reply-relay** | **v2** deepen 139: clearer prefs + reply path (user ↔ HireIQ ↔ employer) |
+| **Task 140 — Mask reply-relay** | **v2** deepen 139: reply from job Email tab via masked address (first slice shipped); fuller prefs + unmatched-thread reply still open |
 
 Agents: do not delete 139 while building 114 — both feed `email_log` / All outreach.
 
@@ -85,6 +85,7 @@ Site URL: prefer prod `https://hireiq.kingsharif.com` (localhost still listed in
 |-------|----------|
 | Profile → Personal → **Gmail tracking** | Connect Google (gmail.readonly); sync toggle default on |
 | Profile → Personal → Application email | Create / copy / forward toggle (Task 139) |
+| Job → Email tab → **Reply via HireIQ** | Sends from masked address to employer (Task 140) |
 | Settings → Integrations → **Save jobs by email** | Forward a posting to `save.*@mail.kingsharif.com` → tracker (Task 115) |
 | Applications → All outreach | Matched inbound (source HireIQ / later Gmail) |
 | Job → Email tab | Same when matched |
