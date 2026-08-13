@@ -15,6 +15,8 @@ type LiveCase = {
   expectBlocked?: boolean
   titleIncludes?: string
   expectMethod?: string
+  allowLowConfidence?: boolean
+  allowFetchFailure?: boolean
 }
 
 const CASES: LiveCase[] = [
@@ -53,10 +55,18 @@ const CASES: LiveCase[] = [
     titleIncludes: 'Software Engineer',
   },
   {
-    name: 'Stripe careers (redirects to Greenhouse)',
+    name: 'Stripe careers (gh_jid Greenhouse embed)',
     url: 'https://stripe.com/jobs/search?gh_jid=8077887',
     minChars: 200,
     expectSource: 'greenhouse',
+  },
+  {
+    name: 'Indeed aggregator (warning, medium confidence)',
+    url: 'https://www.indeed.com/viewjob?jk=abc123def456',
+    minChars: 0,
+    expectSource: 'aggregator',
+    allowLowConfidence: true,
+    allowFetchFailure: true,
   },
   {
     name: 'LinkedIn blocked',
@@ -80,12 +90,25 @@ describe.skipIf(!LIVE)('job fetch — live URLs', () => {
           return
         }
 
-        const result = await scrapeJobUrl(c.url)
-        expect(result.text.length).toBeGreaterThanOrEqual(c.minChars)
-        if (c.expectSource) expect(result.source).toBe(c.expectSource)
-        if (c.titleIncludes) expect(result.title).toContain(c.titleIncludes)
-        if (c.expectMethod) expect(result.extractionMethod).toBe(c.expectMethod)
-        expect(result.confidence).not.toBe('low')
+        try {
+          const result = await scrapeJobUrl(c.url)
+          expect(result.text.length).toBeGreaterThanOrEqual(c.minChars)
+          if (c.expectSource) expect(result.source).toBe(c.expectSource)
+          if (c.titleIncludes) expect(result.title).toContain(c.titleIncludes)
+          if (c.expectMethod) expect(result.extractionMethod).toBe(c.expectMethod)
+          if (c.expectSource === 'aggregator') {
+            expect(result.warning).toBeTruthy()
+            expect(result.confidence).toBe('medium')
+          } else if (!c.allowLowConfidence) {
+            expect(result.confidence).not.toBe('low')
+          }
+        } catch (err) {
+          if (c.allowFetchFailure) {
+            expect(err).toBeInstanceOf(Error)
+            return
+          }
+          throw err
+        }
       },
       45_000,
     )
