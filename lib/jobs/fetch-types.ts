@@ -2,6 +2,7 @@ export type ExtractionMethod =
   | 'ats-api'
   | 'host-rule'
   | 'json-ld'
+  | 'open-graph'
   | 'hydration-json'
   | 'html-heuristic'
   | 'playwright'

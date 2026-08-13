@@ -4,6 +4,8 @@ export type JobUrlKind =
   | 'greenhouse'
   | 'lever'
   | 'ashby'
+  | 'amazon'
+  | 'microsoft'
   | 'aggregator'
   | 'generic'
 
@@ -103,12 +105,63 @@ export function parseGreenhouseUrl(url: string): { boardToken: string; jobId: st
   return null
 }
 
+export function parseAmazonJobsUrl(url: string): { jobId: string } | null {
+  try {
+    const u = new URL(url.trim())
+    if (!/(^|\.)amazon\.jobs$/i.test(u.hostname)) return null
+    const match = u.pathname.match(/\/jobs\/(\d+)\//i)
+    if (!match) return null
+    return { jobId: match[1]! }
+  } catch {
+    return null
+  }
+}
+
+export type MicrosoftCareersUrlParts = {
+  positionId?: string
+  legacyJobId?: string
+}
+
+export function parseMicrosoftCareersUrl(url: string): MicrosoftCareersUrlParts | null {
+  try {
+    const u = new URL(url.trim())
+    const host = u.hostname.toLowerCase()
+    const isMicrosoftCareers =
+      host === 'jobs.careers.microsoft.com' ||
+      host === 'apply.careers.microsoft.com' ||
+      host.endsWith('.careers.microsoft.com')
+
+    if (!isMicrosoftCareers) return null
+
+    const pid = u.searchParams.get('pid')
+    if (pid && /^\d{10,}$/.test(pid)) {
+      return { positionId: pid }
+    }
+
+    const pathMatch = u.pathname.match(/\/job\/(\d+)\//i)
+    if (pathMatch) {
+      return { legacyJobId: pathMatch[1]! }
+    }
+
+    const careersJobMatch = u.pathname.match(/\/careers\/job\/(\d{10,})/i)
+    if (careersJobMatch) {
+      return { positionId: careersJobMatch[1]! }
+    }
+
+    return {}
+  } catch {
+    return null
+  }
+}
+
 export function detectJobUrlKind(url: string): JobUrlKind {
   if (isLinkedInJobUrl(url)) return 'linkedin'
   if (parseWorkdayUrl(url)) return 'workday'
   if (parseGreenhouseUrl(url)) return 'greenhouse'
   if (url.includes('lever.co')) return 'lever'
   if (url.includes('ashbyhq.com')) return 'ashby'
+  if (parseAmazonJobsUrl(url)) return 'amazon'
+  if (parseMicrosoftCareersUrl(url)) return 'microsoft'
   if (isAggregatorJobUrl(url)) return 'aggregator'
   return 'generic'
 }

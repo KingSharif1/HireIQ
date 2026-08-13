@@ -9,7 +9,14 @@ import {
   LINKEDIN_PASTE_MESSAGE,
 } from '@/lib/jobs/url-detect'
 
-export type JobSource = 'greenhouse' | 'lever' | 'ashby' | 'workday' | 'generic'
+export type JobSource =
+  | 'greenhouse'
+  | 'lever'
+  | 'ashby'
+  | 'workday'
+  | 'amazon'
+  | 'microsoft'
+  | 'generic'
 
 export class LinkedInBlockedError extends Error {
   readonly code = 'LINKEDIN_BLOCKED' as const
@@ -26,6 +33,8 @@ function detectSource(url: string): JobSource {
   if (kind === 'greenhouse') return 'greenhouse'
   if (kind === 'lever') return 'lever'
   if (kind === 'ashby') return 'ashby'
+  if (kind === 'amazon') return 'amazon'
+  if (kind === 'microsoft') return 'microsoft'
   return 'generic'
 }
 
@@ -184,6 +193,81 @@ async function scrapeGeneric(url: string): Promise<{
   }
 }
 
+async function scrapeAmazon(url: string): Promise<{
+  text: string
+  company: string
+  title: string
+  extractionMethod?: string
+}> {
+  const { extractFromOpenGraph } = await import('@/lib/jobs/extractors/open-graph')
+  const res = await fetch(url, {
+    headers: {
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      Accept: 'text/html,application/xhtml+xml',
+    },
+  })
+  if (res.ok) {
+    const html = await res.text()
+    const og = extractFromOpenGraph(html)
+    if (og && og.text.length >= 100) {
+      return {
+        text: og.text.slice(0, 8000),
+        company: og.company || 'Amazon',
+        title: og.title,
+        extractionMethod: og.method,
+      }
+    }
+  }
+
+  const generic = await scrapeGeneric(url)
+  if (generic.text.length >= 100) {
+    return { ...generic, company: generic.company || 'Amazon' }
+  }
+  throw new Error('Could not extract Amazon job content — paste the description instead')
+}
+
+async function scrapeMicrosoft(url: string): Promise<{
+  text: string
+  company: string
+  title: string
+  extractionMethod?: string
+  extractionRuleId?: string
+}> {
+  const { parseMicrosoftCareersUrl } = await import('@/lib/jobs/url-detect')
+  const {
+    fetchMicrosoftPosition,
+    resolveMicrosoftPositionId,
+  } = await import('@/lib/jobs/extractors/microsoft-eightfold')
+
+  const parsed = parseMicrosoftCareersUrl(url)
+  if (!parsed) throw new Error('Could not parse Microsoft careers URL')
+
+  let positionId = parsed.positionId
+  if (!positionId && parsed.legacyJobId) {
+    positionId = (await resolveMicrosoftPositionId(url)) ?? undefined
+  }
+
+  if (!positionId) {
+    throw new Error(
+      'Could not resolve this Microsoft careers link — try the apply.careers.microsoft.com URL or paste the description',
+    )
+  }
+
+  const result = await fetchMicrosoftPosition(positionId)
+  if (!result) {
+    throw new Error('Microsoft careers API returned no job content — paste the description instead')
+  }
+
+  return {
+    text: result.text,
+    company: result.company,
+    title: result.title,
+    extractionMethod: result.method,
+    extractionRuleId: result.ruleId,
+  }
+}
+
 export async function scrapeJobUrl(url: string): Promise<{
   text: string
   company: string
@@ -228,11 +312,17 @@ export async function scrapeJobUrl(url: string): Promise<{
     case 'ashby':
       result = await scrapeAshby(url)
       break
+    case 'amazon':
+      result = await scrapeAmazon(url)
+      break
+    case 'microsoft':
+      result = await scrapeMicrosoft(url)
+      break
     default:
       result = await scrapeGeneric(url)
   }
 
-  if (result.text.trim().length < 100 && source === 'generic') {
+  if (result.text.trim().length < 100 && (source === 'generic' || source === 'amazon')) {
     throw new Error('Could not extract enough job content from this URL — paste the description instead')
   }
 

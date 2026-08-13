@@ -1,6 +1,7 @@
 import { extractFromHydration } from '@/lib/jobs/extractors/hydration'
 import { extractFromHtmlHeuristic } from '@/lib/jobs/extractors/html-heuristic'
 import { extractFromJsonLd } from '@/lib/jobs/extractors/json-ld'
+import { extractFromOpenGraph } from '@/lib/jobs/extractors/open-graph'
 import type { ExtractionResult } from '@/lib/jobs/fetch-types'
 
 const DEFAULT_TIMEOUT_MS = 15_000
@@ -56,6 +57,7 @@ export async function fetchRenderedHtml(url: string): Promise<string | null> {
 export function extractFromRenderedHtml(html: string, url: string): ExtractionResult | null {
   return (
     extractFromJsonLd(html) ||
+    extractFromOpenGraph(html) ||
     extractFromHydration(html, url) ||
     extractFromHtmlHeuristic(html)
   )

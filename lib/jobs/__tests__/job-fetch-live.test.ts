@@ -74,6 +74,22 @@ const CASES: LiveCase[] = [
     minChars: 0,
     expectBlocked: true,
   },
+  {
+    name: 'Amazon careers (Open Graph)',
+    url: 'https://www.amazon.jobs/en/jobs/10500800/digital-content-associate-prime-video-sports',
+    minChars: 500,
+    expectSource: 'amazon',
+    expectMethod: 'open-graph',
+    titleIncludes: 'Digital Content Associate',
+  },
+  {
+    name: 'Microsoft careers (Eightfold PCSX API)',
+    url: 'https://apply.careers.microsoft.com/careers?pid=1970393556944855',
+    minChars: 500,
+    expectSource: 'microsoft',
+    expectMethod: 'ats-api',
+    titleIncludes: 'Principal Software Engineer',
+  },
 ]
 
 describe.skipIf(!LIVE)('job fetch — live URLs', () => {
