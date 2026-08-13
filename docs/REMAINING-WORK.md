@@ -27,7 +27,7 @@ Open PR: **merged** — PR #2 → `main` (2026-08-13)
 ### 1. Merge + migrate (human + agent)
 
 - [x] Merge PR #2 to `main` (merged 2026-08-13)
-- [ ] Apply migration **019** — see [supabase/MIGRATIONS.md](./supabase/MIGRATIONS.md) (`applications.ats_account_password`) — **blocked: Supabase MCP OAuth in this cloud agent session**
+- [x] Apply migration **019** — applied 2026-08-13 (`applications.ats_account_password`)
 
 ### 2. Production smoke
 

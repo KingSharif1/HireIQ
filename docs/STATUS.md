@@ -74,7 +74,7 @@ Legend: ✓ done · 🟡 in progress · 🔴 not started · 🔭 planned
 | Resend webhook smoke | User | Secret set; redeploy + send test to masked address |
 | Extension panel IA | Eng | Autofill+progress + Questions (DECISIONS 2026-08-12) |
 
-Migrations 001–018 applied remotely; **019 pending** — see [supabase/MIGRATIONS.md](./supabase/MIGRATIONS.md).
+Migrations 001–018 applied remotely; **019 applied** 2026-08-13 — see [supabase/MIGRATIONS.md](./supabase/MIGRATIONS.md).
 
 ## Next recommended tasks
 
