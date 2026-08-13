@@ -2,15 +2,15 @@
 
 **As of:** 2026-08-13  
 **Branch:** `main` · **Production:** https://hireiq.kingsharif.com  
-**Tests:** 217 unit · 11 live URL · extension **v0.9.9** · PR #3 open
+**Tests:** 217 unit · 11 live URL · extension **v0.9.9** · PR #3 merged + deployed
 
 ## Session handoff
 
 | | |
 |--|--|
-| **Working on** | PR #3 — masked autofill + forward-to-save (Task 115) |
-| **Blocked** | Gmail OAuth consent · Task 143 Google provider · Chrome extension needs user’s browser |
-| **Next** | Merge PR #3 · reload extension v0.9.9 on Greenhouse apply (email = masked address) |
+| **Working on** | PR #3 **merged + deployed** — smoke save-by-email + extension masked autofill |
+| **Blocked** | Task 143 Google provider · Gmail OAuth consent · Chrome extension needs user’s browser |
+| **Next** | Create save address on Settings · reload extension v0.9.9 · enable Google login |
 | **Roadmap** | [REMAINING-WORK.md](./REMAINING-WORK.md) |
 
 ## System snapshot

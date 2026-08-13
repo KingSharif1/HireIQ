@@ -18,7 +18,7 @@ This is the single checklist for what shipped recently, what’s next, and what 
 | **Export QA** | `runResumeLayoutCheck` blocks PDF/DOCX on critical issues; warns on page count + font-size/line-height (Task 106). |
 | **Resume Builder** | One nav: **Master resume** (all sections, one page) + **Files & versions**. `/dashboard/profile` redirects. |
 
-Open PR: **#3** — `cursor/prod-smoke-layout-warnings-d22e` (export check + Builder consolidation)
+Open PR: **#3** — **merged 2026-08-13** to `main` (Vercel production deploy)
 
 ---
 
@@ -28,6 +28,8 @@ Open PR: **#3** — `cursor/prod-smoke-layout-warnings-d22e` (export check + Bui
 
 - [x] Merge PR #2 to `main` (merged 2026-08-13)
 - [x] Apply migration **019** — applied 2026-08-13 (`applications.ats_account_password`)
+- [x] Merge PR **#3** to `main` (merged 2026-08-13) — copy apply email, unmatched outreach, Builder, board adapters, masked autofill, Task 115
+- [x] Apply migration **020** — applied 2026-08-13 (`profiles.forward_save_email`)
 
 ### 2. Production smoke
 
