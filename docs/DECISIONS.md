@@ -1,5 +1,22 @@
 # HireIQ Decisions
 
+## 2026-08-13 — Masked reply sends from HireIQ address (Task 140)
+
+**Context:** Users who apply with a HireIQ address need to answer recruiters without exposing Gmail. Sprout routes replies through the whisperpost identity.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Compose | Job **Email** tab → **Reply via HireIQ** under a thread with a received message |
+| From | `profiles.masked_email` (display name from profile) |
+| Mode gate | Only when `email_tracking_mode === 'masked'` |
+| Store | Append sent row to `applications.email_log` (`source: masked`) |
+
+**Tradeoff:** Requires Resend **sending** on `mail.kingsharif.com` (not only receiving). Users on Gmail tracking mode keep replying from Gmail itself.
+
+**Revisit if:** Need reply from All outreach for unmatched mail, or SMTP reply-all when the user answers the forward copy in Gmail.
+
+---
 ## 2026-08-13 — Forward-to-save is a dedicated address (Task 115)
 
 **Context:** Spec Module 4 / DESIGN-TEAL-PARITY C2: forward a job posting email → parse → tracker. Masked apply inbox already receives employer mail on the same domain.

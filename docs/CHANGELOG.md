@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-13 — Task 140: reply via HireIQ application email
+
+**What:** From a job’s Email tab, reply to an employer message and HireIQ sends it from your masked application address (Resend). The sent message lands in the same thread. Settings copy explains the reply path.
+
+**Files:** `lib/email/send-masked-reply.ts`, `app/api/applications/[id]/email/reply/route.ts`, `EmailInbox.tsx`, `JobDetailPage.tsx`, `MaskedEmailCard.tsx`, tests, docs
+
+**Why:** Task 140 first slice — Sprout-style reply without exposing personal Gmail. Needs `RESEND_API_KEY` and sending enabled on `mail.kingsharif.com`.
+
+**Next:** Smoke a real reply on prod; optional inbound→forward copy (`RESEND_FORWARD_FROM`); thread linking for unmatched All outreach replies.
+
+---
+
 ## 2026-08-13 — Task 115: save jobs by forwarding email
 
 **What:** Each user can mint a `save.*@mail.kingsharif.com` address. Forward a posting there and the inbound webhook extracts a job URL, scrapes it, and adds it to Applications (deduped by apply URL). Settings → Integrations shows **Save jobs by email**. Extension autofill now uses the masked apply address when tracking mode is application email.

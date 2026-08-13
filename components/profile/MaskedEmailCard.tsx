@@ -129,7 +129,8 @@ export function MaskedEmailCard() {
           <h3 className="text-sm font-medium text-foreground">Application email</h3>
           <p className="text-xs text-muted-foreground mt-0.5 max-w-prose">
             Use this address when you apply. Employer replies land in Applications → All outreach
-            (and the job Email tab when we can match the company).
+            (and the job Email tab when we can match the company). Reply from the job Email tab —
+            HireIQ sends as this address so the employer never sees your personal inbox.
           </p>
         </div>
       </div>

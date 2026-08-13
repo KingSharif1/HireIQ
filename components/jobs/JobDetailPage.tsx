@@ -12,7 +12,7 @@ import {
   type DocumentMode,
   type JobDetailTailoredVersion,
 } from '@/components/jobs/detail/DocumentsWorkspace'
-import { EmailInbox, type LogEmailInput } from '@/components/jobs/detail/EmailInbox'
+import { EmailInbox, type LogEmailInput, type ReplyEmailInput } from '@/components/jobs/detail/EmailInbox'
 import {
   JobFactsRail,
   JobSummaryDescription,
@@ -254,6 +254,26 @@ export function JobDetailPage({
       setSelectedThreadId(null)
       throw cause
     }
+  }
+
+  async function replyEmail(input: ReplyEmailInput) {
+    const response = await fetch(`/api/applications/${item.id}/email/reply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+    const body = (await response.json().catch(() => ({}))) as {
+      entry?: ApplicationEmailLogEntry
+      error?: string
+    }
+    if (!response.ok || !body.entry) {
+      throw new Error(body.error || 'Failed to send reply')
+    }
+    setEmails(current => {
+      if (current.some(e => e.id === body.entry!.id)) return current
+      return [body.entry!, ...current]
+    })
+    setSelectedThreadId(emailThreadKey(body.entry.subject))
   }
 
   function openDocuments(mode: DocumentMode) {
@@ -555,7 +575,9 @@ export function JobDetailPage({
               selectedThreadId={selectedThreadId}
               onSelectThread={setSelectedThreadId}
               onLogEmail={logEmail}
+              onReplyEmail={applyEmail ? replyEmail : undefined}
               applyEmail={applyEmail}
+              applicationId={item.id}
             />
           ) : null}
         </div>

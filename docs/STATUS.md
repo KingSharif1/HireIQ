@@ -8,9 +8,9 @@
 
 | | |
 |--|--|
-| **Working on** | PR #3 **merged + deployed** — smoke save-by-email + extension masked autofill |
+| **Working on** | Task **140** — reply via HireIQ application email |
 | **Blocked** | Task 143 Google provider · Gmail OAuth consent · Chrome extension needs user’s browser |
-| **Next** | Create save address on Settings · reload extension v0.9.9 · enable Google login |
+| **Next** | Merge reply-relay PR · smoke Send reply on a matched inbound · enable Google login |
 | **Roadmap** | [REMAINING-WORK.md](./REMAINING-WORK.md) |
 
 ## System snapshot
@@ -35,7 +35,7 @@
 | GitHub integration | ✓ Task 105 |
 | Gmail sync | 🟡 **Task 114** | History API incremental; prod OAuth + smoke |
 | Settings | ✓ `/dashboard/settings` — tracking modes, GitHub, password, delete |
-| Mask reply-relay | 🔭 **v2 — Task 140** (deepen 139: reply path, prefs UX) |
+| Mask reply-relay | 🟡 **Task 140** — Reply via HireIQ on job Email tab (first slice) |
 
 ## Phase 1 MVP progress (spec order)
 
