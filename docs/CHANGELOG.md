@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-12 — Cinematic landing: tailor + extension scroll story
+
+**What:** Hero with architectural grid + HireIQ-first thesis; sticky scrollytelling demos (tailor workbench → Chrome autofill → tracker). Stronger purpose copy for Google branding.
+
+**Files:** `components/marketing/LandingPage.tsx`, `components/marketing/ProductScrollStory.tsx`
+
+**Why:** Prior landing felt static; user wants Windsurf/Sentry-level motion that shows the product.
+
+**Next:** User sets Terms URL to `/terms` in Google Branding → re-verify.
+
+---
+
 ## 2026-08-12 — Marketing landing + auth visual refresh
 
 **What:** Ink/teal marketing surface (logo-aligned) with Syne + DM Sans, shared atmosphere, animated resume↔job MatchStage, Framer Motion page-load. Login/signup/forgot/reset use the same look.
