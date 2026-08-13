@@ -4,6 +4,8 @@ export type JobUrlKind =
   | 'greenhouse'
   | 'lever'
   | 'ashby'
+  | 'amazon'
+  | 'microsoft'
   | 'aggregator'
   | 'generic'
 
@@ -82,12 +84,84 @@ export function buildWorkdayApiUrl(parts: WorkdayUrlParts): string {
   return `${parts.origin}/wday/cxs/${parts.tenant}/${parts.board}/job/${parts.jobPath}`
 }
 
+export function parseGreenhouseUrl(url: string): { boardToken: string; jobId: string } | null {
+  const pathMatch = url.match(/greenhouse\.io\/([^/]+)\/jobs\/(\d+)/)
+  if (pathMatch) {
+    return { boardToken: pathMatch[1]!, jobId: pathMatch[2]! }
+  }
+
+  try {
+    const u = new URL(url.trim())
+    const ghJid = u.searchParams.get('gh_jid')
+    if (ghJid && /^\d+$/.test(ghJid)) {
+      const host = u.hostname.replace(/^www\./, '')
+      const boardToken = host.split('.')[0]
+      if (boardToken) return { boardToken, jobId: ghJid }
+    }
+  } catch {
+    return null
+  }
+
+  return null
+}
+
+export function parseAmazonJobsUrl(url: string): { jobId: string } | null {
+  try {
+    const u = new URL(url.trim())
+    if (!/(^|\.)amazon\.jobs$/i.test(u.hostname)) return null
+    const match = u.pathname.match(/\/jobs\/(\d+)\//i)
+    if (!match) return null
+    return { jobId: match[1]! }
+  } catch {
+    return null
+  }
+}
+
+export type MicrosoftCareersUrlParts = {
+  positionId?: string
+  legacyJobId?: string
+}
+
+export function parseMicrosoftCareersUrl(url: string): MicrosoftCareersUrlParts | null {
+  try {
+    const u = new URL(url.trim())
+    const host = u.hostname.toLowerCase()
+    const isMicrosoftCareers =
+      host === 'jobs.careers.microsoft.com' ||
+      host === 'apply.careers.microsoft.com' ||
+      host.endsWith('.careers.microsoft.com')
+
+    if (!isMicrosoftCareers) return null
+
+    const pid = u.searchParams.get('pid')
+    if (pid && /^\d{10,}$/.test(pid)) {
+      return { positionId: pid }
+    }
+
+    const pathMatch = u.pathname.match(/\/job\/(\d+)\//i)
+    if (pathMatch) {
+      return { legacyJobId: pathMatch[1]! }
+    }
+
+    const careersJobMatch = u.pathname.match(/\/careers\/job\/(\d{10,})/i)
+    if (careersJobMatch) {
+      return { positionId: careersJobMatch[1]! }
+    }
+
+    return {}
+  } catch {
+    return null
+  }
+}
+
 export function detectJobUrlKind(url: string): JobUrlKind {
   if (isLinkedInJobUrl(url)) return 'linkedin'
   if (parseWorkdayUrl(url)) return 'workday'
-  if (url.includes('greenhouse.io')) return 'greenhouse'
+  if (parseGreenhouseUrl(url)) return 'greenhouse'
   if (url.includes('lever.co')) return 'lever'
   if (url.includes('ashbyhq.com')) return 'ashby'
+  if (parseAmazonJobsUrl(url)) return 'amazon'
+  if (parseMicrosoftCareersUrl(url)) return 'microsoft'
   if (isAggregatorJobUrl(url)) return 'aggregator'
   return 'generic'
 }

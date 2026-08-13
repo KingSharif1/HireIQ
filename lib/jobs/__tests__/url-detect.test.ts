@@ -4,7 +4,10 @@ import {
   detectJobUrlKind,
   isLinkedInJobUrl,
   isAggregatorJobUrl,
+  parseAmazonJobsUrl,
+  parseMicrosoftCareersUrl,
   parseWorkdayUrl,
+  parseGreenhouseUrl,
 } from '@/lib/jobs/url-detect'
 
 describe('url-detect', () => {
@@ -37,6 +40,39 @@ describe('url-detect', () => {
     expect(detectJobUrlKind('https://www.linkedin.com/jobs/view/1')).toBe('linkedin')
     expect(detectJobUrlKind('https://acme.wd1.myworkdayjobs.com/en-US/External/job/City/Role_R1')).toBe('workday')
     expect(detectJobUrlKind('https://boards.greenhouse.io/acme/jobs/1')).toBe('greenhouse')
+    expect(detectJobUrlKind('https://stripe.com/jobs/search?gh_jid=8077887')).toBe('greenhouse')
     expect(detectJobUrlKind('https://www.indeed.com/viewjob?jk=x')).toBe('aggregator')
+    expect(
+      detectJobUrlKind(
+        'https://www.amazon.jobs/en/jobs/10500800/digital-content-associate-prime-video-sports'
+      )
+    ).toBe('amazon')
+    expect(
+      detectJobUrlKind('https://apply.careers.microsoft.com/careers?pid=1970393556944855')
+    ).toBe('microsoft')
+  })
+
+  it('parses Amazon and Microsoft careers URLs', () => {
+    expect(
+      parseAmazonJobsUrl(
+        'https://www.amazon.jobs/en/jobs/10500800/digital-content-associate-prime-video-sports'
+      )
+    ).toEqual({ jobId: '10500800' })
+
+    expect(parseMicrosoftCareersUrl('https://apply.careers.microsoft.com/careers?pid=1970393556944855')).toEqual({
+      positionId: '1970393556944855',
+    })
+    expect(
+      parseMicrosoftCareersUrl(
+        'https://jobs.careers.microsoft.com/global/en/job/1707455/Software-Engineer-II'
+      )
+    ).toEqual({ legacyJobId: '1707455' })
+  })
+
+  it('parses Greenhouse embed URLs with gh_jid', () => {
+    expect(parseGreenhouseUrl('https://stripe.com/jobs/search?gh_jid=8077887')).toEqual({
+      boardToken: 'stripe',
+      jobId: '8077887',
+    })
   })
 })

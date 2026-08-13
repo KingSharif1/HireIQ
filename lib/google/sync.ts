@@ -3,6 +3,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { linkInboundEmailForUser } from '@/lib/email/link-inbound'
 import {
   getGmailMessage,
+  getGmailProfile,
+  listGmailHistoryChanges,
   listGmailMessages,
   looksLikeNoiseGmail,
   refreshGoogleAccessToken,
@@ -42,6 +44,65 @@ export type GmailSyncResult = {
   skipped: number
   duplicates: number
   errors: string[]
+  /** Whether this run used Gmail History API vs full list scan. */
+  mode?: 'history' | 'full'
+  /** True when History API said the stored history id was too old. */
+  historyExpired?: boolean
+}
+
+async function processGmailMessageIds(
+  accessToken: string,
+  messageIds: string[],
+  userId: string,
+  mailbox: string,
+  result: GmailSyncResult,
+): Promise<string | null> {
+  let latestHistoryId: string | null = null
+
+  for (const messageId of messageIds) {
+    result.scanned += 1
+    try {
+      const msg = await getGmailMessage(accessToken, messageId)
+      if (msg.historyId) latestHistoryId = msg.historyId
+      if (looksLikeNoiseGmail(msg, mailbox)) {
+        result.skipped += 1
+        continue
+      }
+
+      const linked = await linkInboundEmailForUser({
+        userId,
+        notify: true,
+        email: {
+          provider: 'gmail',
+          providerMessageId: msg.id,
+          mailbox,
+          fromAddress: msg.from,
+          toAddresses: msg.to.length ? msg.to : [mailbox],
+          subject: msg.subject,
+          bodyText: msg.bodyText || undefined,
+          bodyPreview: msg.snippet,
+          messageId: msg.messageId,
+          at: msg.internalDate
+            ? new Date(Number(msg.internalDate)).toISOString()
+            : new Date().toISOString(),
+          rawMeta: { threadId: msg.threadId },
+        },
+      })
+
+      if (linked.reason === 'duplicate') {
+        result.duplicates += 1
+        continue
+      }
+      if (linked.ok) {
+        result.linked += 1
+        if (linked.matched) result.matched += 1
+      }
+    } catch (e) {
+      result.errors.push(e instanceof Error ? e.message : 'message_failed')
+    }
+  }
+
+  return latestHistoryId
 }
 
 export async function syncGmailForUser(userId: string): Promise<GmailSyncResult> {
@@ -89,7 +150,44 @@ export async function syncGmailForUser(userId: string): Promise<GmailSyncResult>
     }
   }
 
-  let listed
+  const mailbox = connection.google_email
+
+  let listed: { id: string; threadId: string }[] = []
+  let latestHistoryId: string | null = connection.history_id
+  let syncMode: GmailSyncResult['mode'] = 'full'
+
+  if (connection.history_id) {
+    try {
+      const history = await listGmailHistoryChanges(accessToken, connection.history_id)
+      if (!history.expired) {
+        syncMode = 'history'
+        if (history.latestHistoryId) latestHistoryId = history.latestHistoryId
+        if (history.messageIds.length > 0) {
+          const msgHistoryId = await processGmailMessageIds(
+            accessToken,
+            history.messageIds,
+            userId,
+            mailbox,
+            result,
+          )
+          if (msgHistoryId) latestHistoryId = msgHistoryId
+        }
+        result.mode = syncMode
+        await admin
+          .from('google_connections')
+          .update({
+            synced_at: new Date().toISOString(),
+            history_id: latestHistoryId,
+          })
+          .eq('user_id', userId)
+        return result
+      }
+      result.historyExpired = true
+    } catch (e) {
+      result.errors.push(e instanceof Error ? e.message : 'history_failed')
+    }
+  }
+
   try {
     listed = await listGmailMessages(accessToken, { maxResults: 40 })
   } catch (e) {
@@ -99,51 +197,26 @@ export async function syncGmailForUser(userId: string): Promise<GmailSyncResult>
     }
   }
 
-  let latestHistoryId: string | null = connection.history_id
-  const mailbox = connection.google_email
+  const messageIds = listed.map(item => item.id)
+  const msgHistoryId = await processGmailMessageIds(
+    accessToken,
+    messageIds,
+    userId,
+    mailbox,
+    result,
+  )
+  if (msgHistoryId) latestHistoryId = msgHistoryId
 
-  for (const item of listed) {
-    result.scanned += 1
+  if (!latestHistoryId) {
     try {
-      const msg = await getGmailMessage(accessToken, item.id)
-      if (msg.historyId) latestHistoryId = msg.historyId
-      if (looksLikeNoiseGmail(msg, mailbox)) {
-        result.skipped += 1
-        continue
-      }
-
-      const linked = await linkInboundEmailForUser({
-        userId,
-        notify: true,
-        email: {
-          provider: 'gmail',
-          providerMessageId: msg.id,
-          mailbox,
-          fromAddress: msg.from,
-          toAddresses: msg.to.length ? msg.to : [mailbox],
-          subject: msg.subject,
-          bodyText: msg.bodyText || undefined,
-          bodyPreview: msg.snippet,
-          messageId: msg.messageId,
-          at: msg.internalDate
-            ? new Date(Number(msg.internalDate)).toISOString()
-            : new Date().toISOString(),
-          rawMeta: { threadId: msg.threadId },
-        },
-      })
-
-      if (linked.reason === 'duplicate') {
-        result.duplicates += 1
-        continue
-      }
-      if (linked.ok) {
-        result.linked += 1
-        if (linked.matched) result.matched += 1
-      }
-    } catch (e) {
-      result.errors.push(e instanceof Error ? e.message : 'message_failed')
+      const gmailProfile = await getGmailProfile(accessToken)
+      latestHistoryId = gmailProfile.historyId
+    } catch {
+      // keep null — next sync will full-scan again
     }
   }
+
+  result.mode = syncMode
 
   await admin
     .from('google_connections')

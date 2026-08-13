@@ -5,10 +5,18 @@ import {
   isLinkedInJobUrl,
   isAggregatorJobUrl,
   parseWorkdayUrl,
+  parseGreenhouseUrl,
   LINKEDIN_PASTE_MESSAGE,
 } from '@/lib/jobs/url-detect'
 
-export type JobSource = 'greenhouse' | 'lever' | 'ashby' | 'workday' | 'generic'
+export type JobSource =
+  | 'greenhouse'
+  | 'lever'
+  | 'ashby'
+  | 'workday'
+  | 'amazon'
+  | 'microsoft'
+  | 'generic'
 
 export class LinkedInBlockedError extends Error {
   readonly code = 'LINKEDIN_BLOCKED' as const
@@ -25,6 +33,8 @@ function detectSource(url: string): JobSource {
   if (kind === 'greenhouse') return 'greenhouse'
   if (kind === 'lever') return 'lever'
   if (kind === 'ashby') return 'ashby'
+  if (kind === 'amazon') return 'amazon'
+  if (kind === 'microsoft') return 'microsoft'
   return 'generic'
 }
 
@@ -77,10 +87,10 @@ async function scrapeWorkday(url: string): Promise<{ text: string; company: stri
 }
 
 async function scrapeGreenhouse(url: string): Promise<{ text: string; company: string; title: string }> {
-  const match = url.match(/greenhouse\.io\/([^/]+)\/jobs\/(\d+)/)
-  if (!match) throw new Error('Could not parse Greenhouse URL')
+  const parsed = parseGreenhouseUrl(url)
+  if (!parsed) throw new Error('Could not parse Greenhouse URL')
 
-  const [, boardToken, jobId] = match
+  const { boardToken, jobId } = parsed
   const apiUrl = `https://boards-api.greenhouse.io/v1/boards/${boardToken}/jobs/${jobId}`
   const res = await fetch(apiUrl, { headers: { 'User-Agent': 'HireIQ/1.0' } })
   if (!res.ok) throw new Error('Failed to fetch Greenhouse job')
@@ -161,45 +171,101 @@ async function scrapeAshby(url: string): Promise<{ text: string; company: string
   }
 }
 
-async function scrapeGeneric(url: string): Promise<{ text: string; company: string; title: string }> {
+async function scrapeGeneric(url: string): Promise<{
+  text: string
+  company: string
+  title: string
+  extractionMethod?: string
+  extractionRuleId?: string
+}> {
+  const { extractJobFromHtmlUrl } = await import('@/lib/jobs/extract-pipeline')
+  const { result } = await extractJobFromHtmlUrl(url)
+  if (!result) {
+    return { text: '', company: '', title: '' }
+  }
+
+  return {
+    text: result.text.slice(0, 8000),
+    company: result.company,
+    title: result.title,
+    extractionMethod: result.method,
+    extractionRuleId: result.ruleId,
+  }
+}
+
+async function scrapeAmazon(url: string): Promise<{
+  text: string
+  company: string
+  title: string
+  extractionMethod?: string
+}> {
+  const { extractFromOpenGraph } = await import('@/lib/jobs/extractors/open-graph')
   const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; HireIQ/1.0)' },
+    headers: {
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      Accept: 'text/html,application/xhtml+xml',
+    },
   })
-  if (!res.ok) throw new Error(`Could not fetch URL (status ${res.status})`)
-
-  const html = await res.text()
-  const { load } = await import('cheerio')
-  const $ = load(html)
-
-  $('script, style, nav, header, footer, aside, [class*="sidebar"], [class*="nav"]').remove()
-
-  const selectors = [
-    '[class*="job-description"]',
-    '[class*="job_description"]',
-    '[data-testid*="job"]',
-    'article',
-    '[role="main"]',
-    'main',
-    '.content',
-    '#content',
-  ]
-
-  let text = ''
-  for (const sel of selectors) {
-    const el = $(sel).first()
-    if (el.length && el.text().trim().length > 200) {
-      text = el.text().replace(/\s+/g, ' ').trim()
-      break
+  if (res.ok) {
+    const html = await res.text()
+    const og = extractFromOpenGraph(html)
+    if (og && og.text.length >= 100) {
+      return {
+        text: og.text.slice(0, 8000),
+        company: og.company || 'Amazon',
+        title: og.title,
+        extractionMethod: og.method,
+      }
     }
   }
 
-  if (!text) {
-    text = $('body').text().replace(/\s+/g, ' ').trim().slice(0, 8000)
+  const generic = await scrapeGeneric(url)
+  if (generic.text.length >= 100) {
+    return { ...generic, company: generic.company || 'Amazon' }
+  }
+  throw new Error('Could not extract Amazon job content — paste the description instead')
+}
+
+async function scrapeMicrosoft(url: string): Promise<{
+  text: string
+  company: string
+  title: string
+  extractionMethod?: string
+  extractionRuleId?: string
+}> {
+  const { parseMicrosoftCareersUrl } = await import('@/lib/jobs/url-detect')
+  const {
+    fetchMicrosoftPosition,
+    resolveMicrosoftPositionId,
+  } = await import('@/lib/jobs/extractors/microsoft-eightfold')
+
+  const parsed = parseMicrosoftCareersUrl(url)
+  if (!parsed) throw new Error('Could not parse Microsoft careers URL')
+
+  let positionId = parsed.positionId
+  if (!positionId && parsed.legacyJobId) {
+    positionId = (await resolveMicrosoftPositionId(url)) ?? undefined
   }
 
-  const title = $('h1').first().text().trim() || $('title').text().trim()
+  if (!positionId) {
+    throw new Error(
+      'Could not resolve this Microsoft careers link — try the apply.careers.microsoft.com URL or paste the description',
+    )
+  }
 
-  return { text: text.slice(0, 8000), company: '', title }
+  const result = await fetchMicrosoftPosition(positionId)
+  if (!result) {
+    throw new Error('Microsoft careers API returned no job content — paste the description instead')
+  }
+
+  return {
+    text: result.text,
+    company: result.company,
+    title: result.title,
+    extractionMethod: result.method,
+    extractionRuleId: result.ruleId,
+  }
 }
 
 export async function scrapeJobUrl(url: string): Promise<{
@@ -210,6 +276,8 @@ export async function scrapeJobUrl(url: string): Promise<{
   atsSystem: string
   confidence: 'high' | 'medium' | 'low'
   warning?: string
+  extractionMethod?: string
+  extractionRuleId?: string
 }> {
   if (isLinkedInJobUrl(url)) {
     throw new LinkedInBlockedError()
@@ -223,7 +291,13 @@ export async function scrapeJobUrl(url: string): Promise<{
     warning = AGGREGATOR_WARNING
   }
 
-  let result: { text: string; company: string; title: string }
+  let result: {
+    text: string
+    company: string
+    title: string
+    extractionMethod?: string
+    extractionRuleId?: string
+  }
 
   switch (source) {
     case 'workday':
@@ -238,19 +312,43 @@ export async function scrapeJobUrl(url: string): Promise<{
     case 'ashby':
       result = await scrapeAshby(url)
       break
+    case 'amazon':
+      result = await scrapeAmazon(url)
+      break
+    case 'microsoft':
+      result = await scrapeMicrosoft(url)
+      break
     default:
       result = await scrapeGeneric(url)
   }
 
-  if (result.text.trim().length < 100 && source === 'generic') {
+  if (result.text.trim().length < 100 && (source === 'generic' || source === 'amazon')) {
     throw new Error('Could not extract enough job content from this URL — paste the description instead')
   }
+
+  const genericMeta =
+    source === 'generic' && 'extractionMethod' in result
+      ? {
+          extractionMethod: result.extractionMethod,
+          extractionRuleId: result.extractionRuleId,
+        }
+      : {}
+
+  const genericConfidence =
+    source === 'generic' && 'extractionMethod' in result
+      ? result.extractionMethod === 'html-heuristic' && result.text.length < 500
+        ? 'low'
+        : result.extractionMethod === 'playwright'
+          ? 'medium'
+          : 'high'
+      : confidence
 
   return {
     ...result,
     source,
     atsSystem: source === 'generic' ? '' : source,
-    confidence: warning ? 'medium' : confidence,
+    confidence: warning ? 'medium' : genericConfidence,
     warning,
+    ...genericMeta,
   }
 }

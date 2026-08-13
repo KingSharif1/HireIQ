@@ -97,7 +97,7 @@ export function TrackerList({ items, selectedJobId, onSelect }: TrackerListProps
                           className="text-xs text-muted-foreground hover:text-foreground"
                           onClick={e => e.stopPropagation()}
                         >
-                          Match
+                          Tailor
                         </Link>
                       )}
                     </td>

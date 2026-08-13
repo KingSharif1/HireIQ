@@ -6,6 +6,7 @@ import { Check, CircleAlert, Clock3, Plus, Save, StickyNote } from 'lucide-react
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { PortalLoginSection } from '@/components/jobs/detail/JobSummary'
 import type { ActivityItem } from '@/lib/applications/activity'
 
 export type AddActivityEventInput = {
@@ -18,6 +19,9 @@ export type ActivityPanelProps = {
   notes: string
   onSaveNotes: (notes: string) => void | Promise<void>
   onAddEvent: (event: AddActivityEventInput) => void | Promise<void>
+  portalEmail?: string | null
+  portalPassword?: string | null
+  portalNote?: string | null
   disabled?: boolean
 }
 
@@ -48,6 +52,9 @@ export function ActivityPanel({
   notes,
   onSaveNotes,
   onAddEvent,
+  portalEmail,
+  portalPassword,
+  portalNote,
   disabled = false,
 }: ActivityPanelProps) {
   const [notesDraft, setNotesDraft] = useState({ source: notes, value: notes })
@@ -146,6 +153,13 @@ export function ActivityPanel({
           </Button>
         </div>
       </header>
+
+      <PortalLoginSection
+        email={portalEmail}
+        password={portalPassword}
+        note={portalNote}
+        className="overflow-hidden rounded-xl border border-border bg-card shadow-sm p-4 lg:hidden"
+      />
 
       <div className="rounded-xl border border-border bg-white p-4 dark:bg-card sm:p-5">
         <h3 className="text-sm font-semibold text-foreground">Timeline</h3>

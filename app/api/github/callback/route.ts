@@ -11,7 +11,8 @@ import { saveGitHubConnection, syncGitHubForUser } from '@/lib/github/sync'
 
 function profileProjectsUrl(error?: string) {
   const base = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-  const url = new URL('/dashboard/profile', base)
+  const url = new URL('/dashboard/builder', base)
+  url.searchParams.set('view', 'master')
   url.searchParams.set('section', 'projects')
   if (error) url.searchParams.set('github_error', error)
   return url.toString()

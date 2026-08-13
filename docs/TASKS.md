@@ -14,7 +14,7 @@ Files changed: [list]
 ---
 
 ## Task 100 — Repo docs + clean layout
-Status: DONE
+Status: DONE  
 Scope: `docs/`, root `README.md`, `package.json`, path updates  
 Result: Moved prototype, scripts, supabase, specs into `docs/`. Created ARCHITECTURE, STATUS, TASKS, DECISIONS, CHANGELOG, SPEC. Updated npm script paths.  
 Files changed: `docs/**`, `README.md`, `package.json`, `.gitignore`, `.cursor/rules/verification.mdc`, `app/dashboard/notifications/page.tsx`
@@ -63,9 +63,11 @@ Files changed: `lib/github/**`, `app/api/github/**`, `components/profile/GitHubC
 ---
 
 ## Task 106 — Visual render QA pass (spec §3.5)
-Status: PENDING  
-Scope: `lib/export/pdf-generator.tsx`, new `lib/resume/layout-check.ts`  
-Goal: After tailor, run length + placeholder + section checks; surface flags in UI before export.
+Status: IN PROGRESS  
+Scope: `lib/export/pdf-generator.tsx`, `lib/resume/layout-check.ts`, export routes, Documents UI  
+Goal: After tailor, run length + placeholder + section checks; surface flags in UI before export.  
+Result (partial): `runResumeLayoutCheck` blocks PDF/DOCX on critical issues. Documents preview shows **Export check** + PDF/DOCX (disabled when critical). Multi-page warning via measured `pageCount`. Font-size heuristics warn when body is <9pt or >12pt, name >28pt, or line-height >1.65. Analyzer health checks remain separate.  
+Files changed: `lib/resume/layout-check.ts`, `components/jobs/detail/{LayoutIssuesBanner,DocumentsWorkspace,JobResumeEditor}.tsx`, `lib/api/client.ts`
 
 ---
 
@@ -150,23 +152,47 @@ Scope: Gmail OAuth readonly, scan job, match to tracked applications, notificati
 Goal: When Google is connected, scan/match employer emails to saved/applied jobs; high confidence auto-link, medium/low confirm. Extension Submit timestamps improve matching. Per 2026-08-12 DECISIONS lock.  
 Notes: Not 100% accurate by design. Email/password users nudged to connect Google. Full mask/reply relay = v2 (see Task 139 + EMAIL.md).  
 Blocked by: Google OAuth verification path for `gmail.readonly` in production; needs `GOOGLE_CLIENT_ID`/`SECRET` in env.  
-Result (partial): Migrations **016/017** applied. Connect + opt-out + Sync now + cron batch + shared inbound linker. History API incremental still TODO (currently newer_than:14d list).  
+Result (partial): Migrations **016/017** applied. Connect + opt-out + Sync now + cron batch + shared inbound linker. **History API incremental** shipped 2026-08-13 (`listGmailHistoryChanges` + fallback full scan). Settings/Gmail panel show **incremental vs full scan** after Sync now, including stale-history fallback copy. Remaining: prod OAuth connect + second Sync now smoke.  
 Files changed: `016_gmail_sync.sql`, `017_inbound_provider.sql`, `lib/google/*`, `lib/email/link-inbound.ts`, `process-inbound.ts`, `app/api/google/*`, `app/api/cron/gmail-sync`, `GoogleConnectPanel.tsx`, docs
 
 ---
 
+## Task 147 — Apply with HireIQ (extension handoff)
+Status: PENDING  
+Scope: website job CTA + extension handoff; reuse tailor + agentic apply  
+Goal: From a tracked job, **Apply with extension** ensures tailored resume → opens ATS with extension agentic apply (user-watched / approval default).  
+Notes: Hosted/server path is Task **148**. Pricing draft in PRICING.md (not implemented).  
+Depends on: extension v0.9.9+, masked/Gmail tracking for OTP
+
+---
+
+## Task 148 — Hosted server auto-apply (Cloud Run)
+Status: DONE (partial — code + migration live; Cloud Run deploy still ops)  
+Scope: Playwright on **Cloud Run**, `apply_runs` queue, website **Auto-apply with HireIQ** CTA (web-first)  
+Goal: Sprout-like unattended apply from the HireIQ site. Extension optional when already on ATS. Meter per PRICING.md when customers exist.  
+Notes: Spec in [AUTO-APPLY.md](./AUTO-APPLY.md) · deploy [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md). Learnable board adapters on failure. CAPTCHA → `needs_user`. KVM not required as primary.  
+Depends on: tailor PDF availability; shared board/OTP logic with extension  
+Result: Migration **021** applied. Queue/status/worker APIs + Playwright fill (dry-run default) + live `result.progress`. Job detail CTA + animated progress panel. `services/apply-worker` Dockerfile. **Remaining ops:** deploy Cloud Run + `APPLY_WORKER_URL` / `APPLY_WORKER_SECRET` on Vercel.  
+Files changed: `021_apply_runs.sql`, `lib/apply/*`, `app/api/apply/*`, `services/apply-worker/*`, `AutoApplyWithHireIQ.tsx`, `JobDetailPage.tsx`, `docs/CLOUD-RUN-APPLY.md`, docs  
+
+---
+
 ## Task 140 — v2 email mask reply-relay (document now)
-Status: PENDING (v2)  
+Status: DONE (partial — first slice live on main via PR #4)  
 Scope: deepen Task 139 — apply with HireIQ address, inbound log, auto-forward, reply path (user → HireIQ → employer, HireIQ visible)  
 Goal: Sprout-like tracking without Gmail read; optional for users who opt out of Gmail or use email/password only.  
-Notes: Masked inbound create/forward already shipped (139). v2 = reliable reply routing + clearer prefs UX alongside Gmail opt-out.
+Notes: Masked inbound create/forward already shipped (139). Remaining v2: All outreach unmatched reply; `RESEND_FORWARD_FROM`.  
+Result: `POST /api/applications/[id]/email/reply`; Email tab **Reply via HireIQ**.  
+Files changed: `lib/email/send-masked-reply.ts`, `app/api/applications/[id]/email/reply/route.ts`, `EmailInbox.tsx`, `JobDetailPage.tsx`, `MaskedEmailCard.tsx`, docs
 
 ---
 
 ## Task 115 — Forward-to-save email address
-Status: PENDING (Phase 2)  
-Scope: inbound email webhook (Edge Function), per-user address token, jobs pipeline reuse  
-Goal: Forwarded posting → parsed → lands in tracker. Per DESIGN-TEAL-PARITY.md §C2.
+Status: DONE  
+Scope: inbound webhook, `profiles.forward_save_email`, Settings UI, jobs pipeline reuse  
+Goal: Forwarded posting → parsed URL → lands in tracker. Per DESIGN-TEAL-PARITY.md §C2.  
+Result: Dedicated `save.{name}.{token}@mail.kingsharif.com` address. Resend inbound to that mailbox extracts a job URL (ATS preferred), `saveJobFromUrl` inserts/dedupes, notification links to the tracker. Settings → Integrations → **Save jobs by email**. Migration **020** applied.  
+Files changed: `lib/email/{extract-job-urls,process-forward-save,process-inbound,masked-address}.ts`, `lib/jobs/save-from-url.ts`, `app/api/{jobs,profile/forward-save-email,webhooks/resend/inbound}`, `ForwardSaveCard.tsx`, `SettingsPanels.tsx`, migration 020, tests, docs
 
 ---
 
@@ -193,8 +219,8 @@ Status: IN PROGRESS
 Scope: `extension/` board adapters (GH/Lever/Ashby/Workday + generic fallback), review queue UI  
 Goal: Fill forms from profile + tailored PDF; user batch-reviews and submits while watching. Unknown fields ask the user every time (no answer bank). LinkedIn/Indeed excluded from automation. Per DESIGN-TEAL-PARITY.md §D.  
 Notes: Phase 2 connect/ATS + autofill UX done. Phase 3 **user-watched Submit** shipped (v0.7.0). **v0.8–0.9.5** panel/save-first/choice review/panel IA. Board-specific adapters still optional polish.  
-Result (partial): Website connect + ATS email + autofill UX + Submit + save-first + Questions + Autofill progress with resume gate. LinkedIn/Indeed submit click blocked.  
-Files changed (v0.9.5): `extension/src/content.ts`, `extension/package.json`, `extension/manifest.config.ts`, `docs/EXTENSION.md`
+Result (partial): Website connect + ATS email + autofill UX + Submit + save-first + Questions + Autofill progress with resume gate. LinkedIn/Indeed submit click blocked. **v0.9.8:** Amazon/MS hosts. **v0.9.9:** board adapters for Greenhouse / Lever / Ashby / Workday (field maps + submit/continue/resume selectors); generic fallback for other hosts.  
+Files changed (v0.9.9): `lib/extension/board.ts`, `form-fill.ts`, `extension/src/{autofill,detect,submit,file-attach}.ts`, `agentic-nav.ts`, tests
 
 ---
 
@@ -397,12 +423,12 @@ Files changed: `docs/EXTENSION.md`, `docs/CHROME-STORE.md`, `docs/README.md`, `d
 ---
 
 ## Task 146 — Resume Builder UX: one coherent surface
-Status: DONE
+Status: DONE  
 Scope: `components/builder/**`, `components/profile/**`, `app/dashboard/{builder,profile,resume}/**`, `components/shared/primary-nav.ts` (+ Sidebar/MobileNav), docs; **avoid** Applications/Job Hub unless redirects  
 Goal: Resume Builder looks and acts like one product page — fewer hops/tabs/duplicate doors (library vs Profile section carousel vs upload). Applications stay as-is.  
-Notes: Prior lock (DECISIONS 2026-08-09) split Profile=master / Builder=library / Teal=job Documents. User now wants consolidation. **Grill IA first**, then implement. Brief: [RESUME-BUILDER.md](./RESUME-BUILDER.md).  
-Result: Resume Builder now centers on tailored resumes while Profile stays the master source. Builder shows a compact Profile source card with Import as primary only before a master/upload exists; tailored rows are job-first with View/Edit/Download. Job Documents now has a clean read-only resume view, a focused Content/Design/Analyze editor, and Cover Letter as its own document type. Job detail cleanup pass: header carries useful role facts and original-posting link, top Edit resume / Apply actions are removed, the facts rail starts hidden, Activity is timeline-first with compact note/event actions, Application answers only render when saved answers exist, Email shows tracked Gmail/masked messages only, and Questions / Job description spacing is tighter. No DB changes.
-Files changed: `components/builder/ResumeLibrary.tsx`, `app/dashboard/builder/page.tsx`, `components/jobs/detail/DocumentsWorkspace.tsx`, `components/jobs/detail/JobResumeEditor.tsx`, `components/builder/CoverLetterPanel.tsx`, `components/jobs/JobDetailPage.tsx`, `components/jobs/detail/ActivityPanel.tsx`, `components/jobs/detail/EmailInbox.tsx`, `components/jobs/detail/JobSummary.tsx`, `components/jobs/detail/QuestionsPanel.tsx`, `docs/TASKS.md`, `docs/CHANGELOG.md`, `docs/STATUS.md`
+Notes: Prior lock (DECISIONS 2026-08-09) split Profile=master / Builder=library / Teal=job Documents. User now wants consolidation. Brief: [RESUME-BUILDER.md](./RESUME-BUILDER.md).  
+Result: One **Resume Builder** nav. Default **Master resume** (all sections on one scrolling page) + **Files & versions** with job-first View/Edit/Download. `/dashboard/profile` redirects. Job Documents: PDF-style view, Content/Design/Analyze editor, cover letter as its own document. Job detail: facts in header, Auto-apply + copy apply email, timeline-first Activity, tracked Email with Reply via HireIQ.  
+Files changed: `ProfileHome.tsx`, `BuilderHome.tsx`, `ResumeLibrary.tsx`, `app/dashboard/builder/page.tsx`, `DocumentsWorkspace.tsx`, `JobResumeEditor.tsx`, `JobDetailPage.tsx`, `EmailInbox.tsx`, `ActivityPanel.tsx`, docs
 
 ---
 
@@ -424,14 +450,22 @@ Files changed: `app/api/jobs/route.ts`, `lib/jobs/description.ts`, `lib/jobs/__t
 
 ---
 
+## Task 147b — Extension agentic apply spec (doc only, historical)
+Status: DONE  
+Scope: `docs/EXTENSION.md`, `docs/DECISIONS.md`, `docs/TASKS.md`  
+Goal: Document v2 agentic apply — multi-step navigation, account creation + OTP tied to `email_tracking_mode`.  
+Result: EXTENSION.md agentic section shipped; implementation continues as Task **147** (extension CTA) + **148** (hosted worker).  
+Files changed: `docs/EXTENSION.md`, `docs/DECISIONS.md`, `docs/TASKS.md`
+
+---
+
 ## Backlog (Phase 2+)
 
-- Extension: masked email autofill on apply forms
-- Task 140 — mask reply-relay prefs + reply path
+- **Task 147 / 148** — extension handoff + hosted auto-apply ([AUTO-APPLY.md](./AUTO-APPLY.md))
+- Stripe / usage meters per [PRICING.md](./PRICING.md)
 - Master update soft-keep (24h enrichments) + classify existing vs new
 - Contacts + Check List on job detail (real)
 - Fit score on application cards
-- Playwright fallback for generic job URLs
 - OCR for scanned PDFs
 - People / Companies tracker tabs
 - Resume parse: tiered skills + low-confidence flags

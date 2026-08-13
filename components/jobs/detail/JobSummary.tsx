@@ -6,11 +6,16 @@ import {
   BriefcaseBusiness,
   Building2,
   CalendarClock,
+  Check,
   ChevronDown,
+  Copy,
   ExternalLink,
+  Eye,
+  EyeOff,
   FileText,
   GraduationCap,
   History,
+  KeyRound,
   ListChecks,
   Mail,
   MapPin,
@@ -62,6 +67,9 @@ export interface JobFactsRailProps {
   remoteType?: string | null
   applyUrl?: string | null
   extracted?: JobExtractedData | null
+  portalEmail?: string | null
+  portalPassword?: string | null
+  portalNote?: string | null
   activity: readonly JobSummaryActivityItem[]
   onSeeAllActivity?: () => void
   onCollapseRail?: () => void
@@ -283,6 +291,9 @@ export function JobFactsRail({
   remoteType,
   applyUrl,
   extracted,
+  portalEmail,
+  portalPassword,
+  portalNote,
   activity,
   onSeeAllActivity,
   onCollapseRail,
@@ -354,6 +365,12 @@ export function JobFactsRail({
             </Button>
           </div>
         ) : null}
+
+        <PortalLoginSection
+          email={portalEmail}
+          password={portalPassword}
+          note={portalNote}
+        />
 
         <div className="border-t border-border p-4">
           <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
@@ -616,4 +633,122 @@ function titleCase(value: string): string {
   return value
     .replace(/_/g, ' ')
     .replace(/\b\w/g, character => character.toLocaleUpperCase())
+}
+
+export function PortalLoginSection({
+  email,
+  password,
+  note,
+  className,
+}: {
+  email?: string | null
+  password?: string | null
+  note?: string | null
+  className?: string
+}) {
+  const [showPassword, setShowPassword] = useState(false)
+  const [copiedField, setCopiedField] = useState<'email' | 'password' | null>(null)
+
+  const trimmedEmail = email?.trim() ?? ''
+  const trimmedPassword = password?.trim() ?? ''
+  const trimmedNote = note?.trim() ?? ''
+
+  if (!trimmedEmail && !trimmedPassword && !trimmedNote) return null
+
+  async function copyValue(value: string, field: 'email' | 'password') {
+    if (!value || !navigator.clipboard?.writeText) return
+    await navigator.clipboard.writeText(value)
+    setCopiedField(field)
+    window.setTimeout(() => setCopiedField(current => (current === field ? null : current)), 1500)
+  }
+
+  return (
+    <div className={cn(className ?? 'border-t border-border p-4')}>
+      <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <KeyRound className="size-3.5" aria-hidden="true" />
+        Portal login
+      </h3>
+      <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
+        Saved from the extension when you created an employer account.
+      </p>
+
+      <dl className="mt-3 space-y-3">
+        {trimmedEmail ? (
+          <PortalCredentialRow
+            label="Email"
+            value={trimmedEmail}
+            copied={copiedField === 'email'}
+            onCopy={() => copyValue(trimmedEmail, 'email')}
+          />
+        ) : null}
+
+        {trimmedPassword ? (
+          <PortalCredentialRow
+            label="Password"
+            value={trimmedPassword}
+            masked={!showPassword}
+            copied={copiedField === 'password'}
+            onCopy={() => copyValue(trimmedPassword, 'password')}
+            trailing={
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="size-7 shrink-0"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                onClick={() => setShowPassword(open => !open)}
+              >
+                {showPassword ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+              </Button>
+            }
+          />
+        ) : null}
+
+        {trimmedNote ? (
+          <div>
+            <dt className="text-[11px] text-muted-foreground">Note</dt>
+            <dd className="mt-0.5 whitespace-pre-wrap text-xs leading-5 text-foreground">{trimmedNote}</dd>
+          </div>
+        ) : null}
+      </dl>
+    </div>
+  )
+}
+
+function PortalCredentialRow({
+  label,
+  value,
+  copied,
+  onCopy,
+  masked = false,
+  trailing,
+}: {
+  label: string
+  value: string
+  copied: boolean
+  onCopy: () => void
+  masked?: boolean
+  trailing?: ReactNode
+}) {
+  return (
+    <div>
+      <dt className="text-[11px] text-muted-foreground">{label}</dt>
+      <dd className="mt-1 flex items-center gap-1">
+        <code className="min-w-0 flex-1 truncate rounded-md border border-border bg-secondary/40 px-2 py-1 text-xs text-foreground">
+          {masked ? '••••••••••••' : value}
+        </code>
+        {trailing}
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="size-7 shrink-0"
+          aria-label={`Copy ${label.toLowerCase()}`}
+          onClick={onCopy}
+        >
+          {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+        </Button>
+      </dd>
+    </div>
+  )
 }

@@ -1,6 +1,6 @@
 # HireIQ Architecture
 
-**Last updated:** 2026-08-12  
+**Last updated:** 2026-08-13  
 **Spec:** [SPEC.md](./SPEC.md) v1.0  
 **Production:** https://hireiq.kingsharif.com (Vercel · GitHub `KingSharif1/HireIQ`)
 
@@ -13,27 +13,30 @@ Two pillars only:
 
 Cover letter, outreach, and interview prep exist in the codebase but are **out of Phase 1 scope** per the new spec.
 
-### Primary navigation (IA — under revisit, Task 146)
+### Primary navigation (Task 146 — one Resume Builder)
 
 | Place | Route | Notes |
 |-------|--------|-------|
 | Dashboard | `/dashboard` | Hub tiles (teal shell) |
-| Applications | `/dashboard/tracker` | Teal tracker — **user says fine; leave alone** |
-| Resume Builder | `/dashboard/builder` | Library only today; master edits bounce to Profile |
-| Profile | `/dashboard/profile` | Section-nav master (13 sections, one at a time) |
+| Applications | `/dashboard/tracker` | Teal tracker — leave alone |
+| Resume Builder | `/dashboard/builder` | **Master resume** (default) + **Files & versions** |
+| Profile | `/dashboard/profile` | Redirect → Builder master (keeps `section` / OAuth error query) |
 
 Shell: `components/shared/{DashboardShell,Sidebar,MobileNav,primary-nav.ts}`.
 
-**Fragmentation (why Task 146):** Builder library + Profile section carousel + `/resume/upload` + per-job Teal tabs on Applications → Documents. Full map: [RESUME-BUILDER.md](./RESUME-BUILDER.md).
+Master editor is one scrolling page inside Builder (left nav jumps). Per-job Teal tabs stay on Applications → Documents. Full map: [RESUME-BUILDER.md](./RESUME-BUILDER.md).
 
-Profile: `components/profile/ProfileHome.tsx` (+ shared save/nav/panel). Legacy `/profile/documents`, `/profile/professional`, `/builder/master` redirect. Builder library: `components/builder/ResumeLibrary.tsx`. Job Teal chrome: `JobResumeEditor` (Content / Designer / Matcher).
+Profile: `components/profile/ProfileHome.tsx` embedded in `BuilderHome`. Legacy `/profile/documents`, `/profile/professional`, `/builder/master` redirect. Files tab: `ResumeLibrary`. Job Teal chrome: `JobResumeEditor`.
 
 ### Chrome extension (Module 6)
 
 - `extension/` — MV3 + Vite/CRXJS; Jobright-style right panel (autofill + save)
+- **Board adapters (v0.9.9):** Greenhouse / Lever / Ashby / Workday field maps + submit/continue/resume selectors; generic fallback otherwise
 - **Preferred auth:** website connect — popup opens `/extension/connect` → one-time `hiqc_` code (`extension_connect_codes`) → extension stores Supabase access/refresh tokens
 - Fallbacks: `chrome.identity` Google OAuth, legacy `hiq_` API tokens (`api_tokens`)
 - ATS account email: `applications.ats_account_email` when employer site needs signup (user creates account; we store email only)
+- Masked tracking: profile API overlays autofill `email` with `masked_email`
+- **Auto-apply:** extension path + hosted Playwright on Cloud Run — [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md). Queue table `apply_runs` (021); worker `services/apply-worker`; job-detail progress UI. Cloud Run deploy still ops.
 - Docs: [EXTENSION.md](./EXTENSION.md)
 
 ---
@@ -99,10 +102,11 @@ Application tracking
     → Manual inbox reads bounded applications.email_log JSONB through a provider-neutral view model
     → Masked inbound (Resend, live): employer → mail.kingsharif.com → POST /api/webhooks/resend/inbound
       → inbound_email_events + matched email_log → All outreach / job Email (see EMAIL.md)
+    → Forward-to-save (Task 115): `profiles.forward_save_email` → same webhook → extract job URL → saveJobFromUrl → tracker
     → Gmail sync (Task 114, next): Google-connected users, default on / opt-out → same email_log adapters
     → Future Gmail sync uses dedicated message storage, then adapts into the same inbox view model
     → Fixed-job Documents editor: profile_data → inclusion filter → live preview/score → tailored_resumes
-    → Gmail scan / forward-to-save (Phase 2)
+    → Gmail scan (Phase 2 remaining: daily cron)
 ```
 
 ---

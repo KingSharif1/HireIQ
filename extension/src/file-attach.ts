@@ -1,5 +1,7 @@
 /** Find resume / cover file inputs and attach a File via DataTransfer. */
 
+import { distinctiveResumeSelectors } from '../../lib/extension/board'
+
 function labelBlob(el: HTMLInputElement): string {
   const parts: string[] = [el.name || '', el.id || '', el.getAttribute('aria-label') || '']
   if (el.labels) {
@@ -18,6 +20,10 @@ function fileInputs(): HTMLInputElement[] {
 }
 
 export function findResumeFileInput(): HTMLInputElement | null {
+  for (const sel of distinctiveResumeSelectors()) {
+    const el = document.querySelector(sel)
+    if (el instanceof HTMLInputElement && el.type === 'file') return el
+  }
   const inputs = fileInputs()
   const resume = inputs.find(el => {
     const blob = labelBlob(el)

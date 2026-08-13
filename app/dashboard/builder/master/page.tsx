@@ -16,7 +16,7 @@ export default async function BuilderMasterPage({
     redirect(`/dashboard/tracker/${params.jobId}?tab=documents`)
   }
   if (params.section) {
-    redirect(`/dashboard/profile?section=${encodeURIComponent(params.section)}`)
+    redirect(`/dashboard/builder?view=master&section=${encodeURIComponent(params.section)}`)
   }
-  redirect('/dashboard/profile')
+  redirect('/dashboard/builder?view=master')
 }

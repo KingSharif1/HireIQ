@@ -32,6 +32,8 @@ interface ResumePreviewProps {
   /** Drag to pan when zoomed past the viewport (also enables wider zoom range). */
   enablePan?: boolean
   className?: string
+  /** Live measured page count from the letter preview. */
+  onPageCount?: (pageCount: number) => void
 }
 
 const MIN_ZOOM = 0.4
@@ -51,6 +53,7 @@ export function ResumePreview({
   theme,
   enablePan = false,
   className,
+  onPageCount,
 }: ResumePreviewProps) {
   const data = useMemo(() => normalizeResumeForDisplay(rawData), [rawData])
   const resolvedTheme = useMemo(
@@ -107,6 +110,10 @@ export function ResumePreview({
     ro.observe(el)
     return () => ro.disconnect()
   }, [autoFit])
+
+  useEffect(() => {
+    onPageCount?.(pageCount)
+  }, [pageCount, onPageCount])
 
   const overRecommended = recommendedPages > 0 && pageCount > recommendedPages
 

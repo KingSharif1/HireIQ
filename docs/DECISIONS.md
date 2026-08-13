@@ -1,25 +1,124 @@
 # HireIQ Decisions
 
-## 2026-08-13 — Resume Builder/Profile split hard lock
+## 2026-08-13 — Cloud Run hosted apply + web-first UX
 
-**Context:** User re-grilled Task 146 after the previous Profile=master / Builder=library decision. The desired model is clearer: Profile is still the master resume because it contains everything; Resume Builder is for tailored, job-specific documents the user can edit, save, view, and download.
+**Context:** Owner pays ~$28/mo for a KVM VPS; Cloud Run has free-tier headroom and scales. Auto-apply should be a **HireIQ website** action (not mobile-first). Extension stays for when the user is already on the ATS page. Need honesty about “any job” coverage.
 
 **Locks:**
 | Area | Choice |
 |------|--------|
-| Master source | **Profile remains master resume** and source of truth for all tailoring. |
-| Builder purpose | **Resume Builder manages tailored resumes**, not master editing. Show a compact Profile/master source card at top. |
-| Empty source | If no uploaded/master source exists, Import resume is the primary CTA. Once source exists, Import remains secondary. |
-| Tailored list | Job-first rows with role/company, version/date/score, and View/Edit/Download. Job title links to original posting when available. |
-| View mode | Read-only PDF-style resume view with compact score/readout side panel and Download/Edit actions. |
-| Edit mode | Focused Content / Design / Analyze tabs with live preview; tailored edits stay local to that job. |
-| Cover letter | Not inside resume editor; it is a separate document under job Documents. |
-| Promote to master | Never silent. New durable facts can be suggested for Profile only through explicit user approval. |
-| Job detail | Useful facts move into header; facts rail hidden by default; top Edit resume / Apply removed; Activity timeline-first; Email tracked-only. |
+| Hosted runtime | **Cloud Run** (Playwright) is primary for server auto-apply |
+| KVM | Optional debug/staging — not the primary apply farm |
+| Primary UX | Web: **Auto-apply with HireIQ** queues Cloud Run |
+| Extension | Assist when already on the job site (autofill / agentic) — not required for server apply |
+| Mobile | No hosted auto-apply promise in v1 |
+| Coverage | Big ATS first (GH/Lever/Ashby/Workday); improve via **learnable board adapters** on failures — not “works on every site forever” |
 
-**Tradeoff:** Keeps existing Profile data model and `tailored_resumes` storage instead of a schema rewrite. Some deeper tailoring diff UX (old bullet unselected / new bullet selected with explanations) remains a follow-up unless existing change-decision data is already present.
+**Tradeoff:** Cloud Run cold starts + timeouts on very long Workday flows; revisit KVM or Cloud Run Jobs if that bites.
 
-**Revisit if:** Users expect to edit master content directly from Builder, or if tailored resume design settings need cross-version templates.
+**Docs:** [AUTO-APPLY.md](./AUTO-APPLY.md)
+
+---
+
+## 2026-08-13 — Dual apply paths + draft SaaS pricing (docs only)
+
+**Context:** Owner wants (1) the Chrome extension **and** (2) a Sprout-like **server** auto-apply, plus a pricing sketch for future customers. Earlier lock said “extension only / no credits” for personal use — superseded for product direction; personal `billing_exempt` still unlimited while building.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Runtimes | **Both:** extension (local) + hosted Playwright worker (server) |
+| Hosted v0 | **Cloud Run** (amended — see decision above); KVM optional |
+| Charge | Meter **tailor** and **server auto-apply**; extension autofill **free** by default |
+| Tailor pack | **2 for the price of 1**, then pay per extra tailor |
+| Server apply | Always charged when using our browsers (1 vs 3 by portal complexity) |
+| Autofill fallback | Optional **10 free / period** then per-N — only if needed |
+| Code | **Docs only for now** — no Stripe / credit tables in this change |
+
+**Tradeoff:** Hosted apply adds real infra cost and ops; extension stays the $0 path. Dual paths share one apply engine where possible.
+
+**Docs:** [PRICING.md](./PRICING.md) · [AUTO-APPLY.md](./AUTO-APPLY.md)
+
+**Revisit if:** Cloud Run timeouts block Workday.
+
+---
+
+## 2026-08-13 — Auto-apply without Sprout-style credits (Task 147 intent) — SUPERSEDED
+
+**Superseded by** dual-path + pricing lock above. Kept for history: extension-first personal use without credits remains valid for `billing_exempt` / free tier autofill.
+
+**Original idea:** Extension-only agentic apply; no application credits for personal HireIQ.
+
+---
+
+## 2026-08-13 — Masked reply sends from HireIQ address (Task 140)
+
+**Context:** Users who apply with a HireIQ address need to answer recruiters without exposing Gmail. Sprout routes replies through the whisperpost identity.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Compose | Job **Email** tab → **Reply via HireIQ** under a thread with a received message |
+| From | `profiles.masked_email` (display name from profile) |
+| Mode gate | Only when `email_tracking_mode === 'masked'` |
+| Store | Append sent row to `applications.email_log` (`source: masked`) |
+
+**Tradeoff:** Requires Resend **sending** on `mail.kingsharif.com` (not only receiving). Users on Gmail tracking mode keep replying from Gmail itself.
+
+**Revisit if:** Need reply from All outreach for unmatched mail, or SMTP reply-all when the user answers the forward copy in Gmail.
+
+---
+## 2026-08-13 — Forward-to-save is a dedicated address (Task 115)
+
+**Context:** Spec Module 4 / DESIGN-TEAL-PARITY C2: forward a job posting email → parse → tracker. Masked apply inbox already receives employer mail on the same domain.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Address | Separate `save.{name}.{token}@mail.kingsharif.com` (`profiles.forward_save_email`) |
+| Pipeline | Reuse `saveJobFromUrl` (same as extension save) — scrape, no Claude analyze in the webhook |
+| LinkedIn | Save URL + email body; do not scrape LinkedIn |
+| UX | Settings → Integrations, independent of Gmail vs application-email tracking |
+
+**Tradeoff:** Two HireIQ addresses to remember (apply vs save). Mixing both on the masked inbox would confuse employer replies with job forwards.
+
+**Revisit if:** Users never create the save address and only want “forward anything to my apply email.”
+
+---
+## 2026-08-13 — Master resume is one scrolling page (Task 146)
+
+**Context:** After consolidating nav, Master was still a 13-section carousel (one panel at a time). User wanted one page.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Master editor | **All sections stacked** on `/dashboard/builder?view=master` |
+| Left nav | Jump links + highlight via IntersectionObserver |
+| Deep links | `?section=` still scrolls to that block |
+| Per-job Teal | Unchanged |
+
+**Tradeoff:** Heavier first paint (all editors mount). One Save still covers the whole profile.
+
+**Revisit if:** The page feels too long or we add a live preview column.
+
+---
+
+## 2026-08-13 — Resume Builder is one primary surface (Task 146)
+
+**Context:** User asked to continue remaining work without a grill session. Suggested option 1 from RESUME-BUILDER.md.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Primary nav | **One Resume Builder item** — Profile removed from rail |
+| Surface | `/dashboard/builder` with **Master resume** (default) + **Files & versions** |
+| Old Profile URLs | Redirect to `/dashboard/builder?view=master` (keep OAuth/GitHub callbacks) |
+| Per-job Teal | Stays on Applications → Documents |
+| Home | Applications + Resume Builder (no separate Profile tile) |
+
+**Tradeoff:** Originally left a section carousel; superseded by the scrolling-page lock above.
+
+**Revisit if:** Users miss a dedicated Profile nav.
 
 ---
 
@@ -117,6 +216,28 @@
 **Tradeoff:** Screening answers stored on the application (not a silent answer bank for future ATS forms). Master only via explicit promote.
 
 **Revisit if:** PDF attach fails on custom dropzones; AI draft cost too high → batch/limit fields.
+
+---
+
+## 2026-08-13 — Extension agentic apply (intent; doc only)
+
+**Context:** User wants the extension to go beyond single-page autofill: click through multi-step apply flows, create employer accounts when signup walls appear, and complete email verification — with behavior driven by the same **`email_tracking_mode`** as Settings (`gmail` | `masked` | `off`). Job URL fetching is getting a separate “learnable rules” pipeline; extension apply should follow the same pattern (document failures → add ATS rules).
+
+**Intent (soft — not shipped):**
+
+| Area | Choice |
+|------|--------|
+| Navigation | Agent clicks Next/Continue, waits for load, re-scans and autofills each step |
+| `gmail` mode | Create portal account with user Gmail; OTP from **Gmail read-only sync**; continue apply |
+| `masked` mode | Create with **masked inbound email**; OTP from inbound webhook; show **login override + timeline** (email, password, verification events) |
+| `off` mode | **No account creation** (no inbox to verify); autofill + user-watched Submit still OK |
+| LinkedIn / Indeed | No automated submit (unchanged) |
+| Consent | Opt-in per job; audit events for automated actions |
+| Spec | Full narrative in [EXTENSION.md](./EXTENSION.md#agentic-apply-planned) |
+
+**Tradeoff:** Requires stable Gmail sync + masked inbound OTP parsing before build; CASA and credential storage need security review.
+
+**Revisit if:** Task 114 + 139 production-ready → spike Greenhouse agentic path first.
 
 ---
 

@@ -8,11 +8,13 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:jobs:live": "JOB_FETCH_LIVE=1 JOB_FETCH_PLAYWRIGHT=0 vitest run lib/jobs/__tests__/job-fetch-live.test.ts",
     "test:watch": "vitest",
     "ui:shots": "node docs/scripts/ui-shots.mjs",
     "ui:shots:headed": "node docs/scripts/ui-shots.mjs --headed",
     "extension:build": "npm run build --prefix extension",
-    "extension:dev": "npm run dev --prefix extension"
+    "extension:dev": "npm run dev --prefix extension",
+    "apply:worker": "npx tsx --tsconfig tsconfig.json services/apply-worker/server.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.81",
@@ -73,6 +75,7 @@
     "@types/pdf-parse": "^1.1.5",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.7",
+    "jsdom": "^29.1.1",
     "playwright": "^1.60.0",
     "vitest": "^3.2.6"
   }

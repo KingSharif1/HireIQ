@@ -1,28 +1,21 @@
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { ResumeLibrary, type LibraryTailoredRow } from '@/components/builder/ResumeLibrary'
-import { emptyProfileData } from '@/lib/profile/data'
-import { normalizeProfileData } from '@/lib/profile/provenance'
-import type { ResumeRow } from '@/lib/profile/resume-row'
-import type { ProfileData } from '@/types'
+import { BuilderHome } from '@/components/builder/BuilderHome'
+import { loadProfileWorkspaceData } from '@/lib/profile/load-workspace'
+import type { LibraryTailoredRow } from '@/components/builder/ResumeLibrary'
 
 export const dynamic = 'force-dynamic'
 
-/** Resume Builder library — import / list / open job versions. Master edits → Profile. */
+/** Resume Builder — master editor + files/versions on one surface. */
 export default async function BuilderLibraryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; jobId?: string; section?: string }>
+  searchParams: Promise<{ tab?: string; jobId?: string; section?: string; view?: string }>
 }) {
   const params = await searchParams
-  // Legacy deep links that opened the Teal workspace on /builder
   if (params.jobId) {
     redirect(`/dashboard/tracker/${params.jobId}?tab=documents`)
-  }
-  if (params.tab || params.section) {
-    const q = new URLSearchParams()
-    if (params.section) q.set('section', params.section)
-    redirect(q.toString() ? `/dashboard/profile?${q.toString()}` : '/dashboard/profile')
   }
 
   const supabase = await createClient()
@@ -31,13 +24,10 @@ export default async function BuilderLibraryPage({
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [profileRes, resumesRes, tailoredRes] = await Promise.all([
-    supabase.from('profiles').select('profile_data').eq('id', user.id).maybeSingle(),
-    supabase
-      .from('resumes')
-      .select('id, title, ats_format_score, is_primary, created_at, original_file_url')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false }),
+  const view = params.view === 'files' || params.view === 'library' ? 'files' : 'master'
+
+  const [{ profile, initialData, resumes, githubData }, tailoredRes] = await Promise.all([
+    loadProfileWorkspaceData(user.id),
     supabase
       .from('tailored_resumes')
       .select('id, job_id, version, tailored_score, match_score, created_at, jobs(title, company, apply_url)')
@@ -45,11 +35,6 @@ export default async function BuilderLibraryPage({
       .order('created_at', { ascending: false })
       .limit(20),
   ])
-
-  const profileData: ProfileData = normalizeProfileData(
-    (profileRes.data?.profile_data as ProfileData | null) ?? emptyProfileData()
-  )
-  const resumes = (resumesRes.data ?? []) as ResumeRow[]
 
   type TailoredJoin = {
     id: string
@@ -79,7 +64,6 @@ export default async function BuilderLibraryPage({
     }
   })
 
-  // One row per job (newest tailored version wins)
   const seenJobs = new Set<string>()
   const tailored = tailoredRaw.filter(row => {
     if (seenJobs.has(row.job_id)) return false
@@ -87,27 +71,18 @@ export default async function BuilderLibraryPage({
     return true
   })
 
-  const hasMasterProfile = Boolean(
-    profileData.summary?.trim() ||
-      profileData.personal.firstName?.trim() ||
-      profileData.personal.lastName?.trim() ||
-      (profileData.experience?.length ?? 0) > 0 ||
-      (profileData.projects?.length ?? 0) > 0 ||
-      (profileData.education?.length ?? 0) > 0
-  )
-
-  const masterName =
-    [profileData.personal.firstName, profileData.personal.lastName].filter(Boolean).join(' ') ||
-    'Master resume'
-  const masterTitle = profileData.personal.headline || 'Complete profile source'
-
   return (
-    <ResumeLibrary
-      resumes={resumes}
-      tailored={tailored}
-      hasMasterProfile={hasMasterProfile}
-      masterName={masterName}
-      masterTitle={masterTitle}
-    />
+    <Suspense fallback={null}>
+      <BuilderHome
+        view={view}
+        userId={user.id}
+        initialData={initialData}
+        profile={profile}
+        resumes={resumes}
+        githubData={githubData}
+        libraryResumes={resumes}
+        tailored={tailored}
+      />
+    </Suspense>
   )
 }

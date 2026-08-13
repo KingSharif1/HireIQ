@@ -97,14 +97,31 @@ export async function processResendInbound(event: ResendReceivedEvent): Promise<
     id: string
     email: string | null
     masked_email: string | null
+    forward_save_email: string | null
     email_forward_to: string | null
     email_forward_enabled: boolean | null
   } | null = null
+  let saveMailbox: string | null = null
 
   for (const r of recipients) {
+    const { data: saveHit } = await admin
+      .from('profiles')
+      .select(
+        'id, email, masked_email, forward_save_email, email_forward_to, email_forward_enabled',
+      )
+      .ilike('forward_save_email', r)
+      .maybeSingle()
+    if (saveHit) {
+      user = saveHit
+      saveMailbox = saveHit.forward_save_email
+      break
+    }
+
     const { data } = await admin
       .from('profiles')
-      .select('id, email, masked_email, email_forward_to, email_forward_enabled')
+      .select(
+        'id, email, masked_email, forward_save_email, email_forward_to, email_forward_enabled',
+      )
       .ilike('masked_email', r)
       .maybeSingle()
     if (data) {
@@ -113,7 +130,7 @@ export async function processResendInbound(event: ResendReceivedEvent): Promise<
     }
   }
 
-  if (!user?.masked_email) {
+  if (!user) {
     console.warn('[inbound] no profile for', recipients)
     return { ok: true, reason: 'unknown_recipient' }
   }
@@ -130,6 +147,27 @@ export async function processResendInbound(event: ResendReceivedEvent): Promise<
   const html = received.data?.html ?? ''
   const bodyPreview = snippetFromBodies(text, html)
   const at = event.data.created_at ?? event.created_at ?? new Date().toISOString()
+
+  if (saveMailbox) {
+    const { processForwardedJobEmail } = await import('@/lib/email/process-forward-save')
+    return processForwardedJobEmail({
+      userId: user.id,
+      mailbox: saveMailbox,
+      emailId,
+      fromAddress,
+      toAddresses: recipients,
+      subject,
+      text,
+      html,
+      bodyPreview,
+      messageId: event.data.message_id ?? null,
+      at,
+    })
+  }
+
+  if (!user.masked_email) {
+    return { ok: true, reason: 'unknown_recipient' }
+  }
 
   const linked = await linkInboundEmailForUser({
     userId: user.id,

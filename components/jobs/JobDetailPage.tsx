@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, ExternalLink, MapPin } from 'lucide-react'
+import { ArrowLeft, Check, Copy, ExternalLink, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ActivityPanel, type AddActivityEventInput } from '@/components/jobs/detail/ActivityPanel'
 import { ApplicationAnswers } from '@/components/jobs/detail/ApplicationAnswers'
@@ -12,15 +12,16 @@ import {
   type DocumentMode,
   type JobDetailTailoredVersion,
 } from '@/components/jobs/detail/DocumentsWorkspace'
-import { EmailInbox } from '@/components/jobs/detail/EmailInbox'
+import { EmailInbox, type ReplyEmailInput } from '@/components/jobs/detail/EmailInbox'
 import {
   JobFactsRail,
   JobSummaryDescription,
   JobSummaryOverview,
 } from '@/components/jobs/detail/JobSummary'
+import { AutoApplyWithHireIQ } from '@/components/jobs/detail/AutoApplyWithHireIQ'
 import { QuestionsPanel } from '@/components/jobs/detail/QuestionsPanel'
 import { buildActivityFeed } from '@/lib/applications/activity'
-import { buildInboxThreads } from '@/lib/applications/email'
+import { buildInboxThreads, emailThreadKey } from '@/lib/applications/email'
 import { normalizeFormAnswers } from '@/lib/applications/form-answers'
 import {
   APPLICATION_STATUSES,
@@ -64,6 +65,8 @@ interface JobDetailPageProps {
   profileData: ProfileData
   /** When false, Email tab / inbox is hidden (tracking mode off). */
   emailTrackingEnabled?: boolean
+  /** HireIQ application address — shown so you can paste it on the employer form. */
+  applyEmail?: string | null
 }
 
 function resolveInitialTab(param: string | null): DetailTab {
@@ -83,6 +86,7 @@ export function JobDetailPage({
   tailoredVersions,
   profileData: initialProfile,
   emailTrackingEnabled = true,
+  applyEmail = null,
 }: JobDetailPageProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -97,7 +101,7 @@ export function JobDetailPage({
   })
   const initialTab = resolveInitialTab(searchParams.get('tab'))
   const [notes, setNotes] = useState(item.notes ?? '')
-  const [emails] = useState<ApplicationEmailLogEntry[]>(item.email_log ?? [])
+  const [emails, setEmails] = useState<ApplicationEmailLogEntry[]>(item.email_log ?? [])
   const formAnswers = useMemo(
     () => normalizeFormAnswers(item.form_answers),
     [item.form_answers]
@@ -118,6 +122,18 @@ export function JobDetailPage({
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null)
   const [railOpen, setRailOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [copiedApplyEmail, setCopiedApplyEmail] = useState(false)
+
+  async function copyApplyEmail() {
+    if (!applyEmail) return
+    try {
+      await navigator.clipboard.writeText(applyEmail)
+      setCopiedApplyEmail(true)
+      window.setTimeout(() => setCopiedApplyEmail(false), 1600)
+    } catch {
+      setError('Could not copy application email')
+    }
+  }
 
   const questions = useMemo(() => {
     const result: TailorGapAnswer[] = []
@@ -242,6 +258,26 @@ export function JobDetailPage({
     setLocalEvents(current => [body.event!, ...current])
   }
 
+  async function replyEmail(input: ReplyEmailInput) {
+    const response = await fetch(`/api/applications/${item.id}/email/reply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+    const body = (await response.json().catch(() => ({}))) as {
+      entry?: ApplicationEmailLogEntry
+      error?: string
+    }
+    if (!response.ok || !body.entry) {
+      throw new Error(body.error || 'Failed to send reply')
+    }
+    setEmails(current => {
+      if (current.some(e => e.id === body.entry!.id)) return current
+      return [body.entry!, ...current]
+    })
+    setSelectedThreadId(emailThreadKey(body.entry.subject))
+  }
+
   function openDocuments(mode: DocumentMode) {
     setDocumentMode(mode)
     setTab('documents')
@@ -348,6 +384,13 @@ export function JobDetailPage({
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {applyEmail ? (
+              <Button type="button" variant="outline" size="sm" onClick={() => void copyApplyEmail()}>
+                {copiedApplyEmail ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {copiedApplyEmail ? 'Copied' : 'Copy apply email'}
+              </Button>
+            ) : null}
+            {safeApplyUrl ? <AutoApplyWithHireIQ jobId={item.job.id} hasApplyUrl /> : null}
             <div className="sm:hidden">
               <label htmlFor="mobile-application-status" className="sr-only">
                 Application status
@@ -465,6 +508,9 @@ export function JobDetailPage({
                 remoteType={item.job.remote_type}
                 applyUrl={safeApplyUrl}
                 extracted={item.job.extracted_data}
+                portalEmail={item.ats_account_email}
+                portalPassword={item.ats_account_password}
+                portalNote={item.ats_account_note}
                 activity={activityItems}
                 onSeeAllActivity={() => setTab('activity')}
               />
@@ -504,6 +550,9 @@ export function JobDetailPage({
                 notes={notes}
                 onSaveNotes={saveNotes}
                 onAddEvent={addEvent}
+                portalEmail={item.ats_account_email}
+                portalPassword={item.ats_account_password}
+                portalNote={item.ats_account_note}
               />
               {formAnswers.length > 0 ? (
                 <ApplicationAnswers
@@ -520,6 +569,9 @@ export function JobDetailPage({
               threads={threads}
               selectedThreadId={selectedThreadId}
               onSelectThread={setSelectedThreadId}
+              onReplyEmail={applyEmail ? replyEmail : undefined}
+              applyEmail={applyEmail}
+              applicationId={item.id}
             />
           ) : null}
         </div>
@@ -534,6 +586,9 @@ export function JobDetailPage({
                 remoteType={item.job.remote_type}
                 applyUrl={safeApplyUrl}
                 extracted={item.job.extracted_data}
+                portalEmail={item.ats_account_email}
+                portalPassword={item.ats_account_password}
+                portalNote={item.ats_account_note}
                 activity={activityItems}
                 onSeeAllActivity={() => setTab('activity')}
                 onCollapseRail={() => setRailOpen(false)}

@@ -1,10 +1,12 @@
 'use client'
 
+import { useState } from 'react'
 import { Download, Eye, FileSignature, FileText, Pencil, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CoverLetterPanel } from '@/components/builder/CoverLetterPanel'
 import { JobResumeEditor } from '@/components/jobs/detail/JobResumeEditor'
 import { ResumePreview } from '@/components/resume/ResumePreview'
+import { DocumentExportActions, LayoutIssuesBanner } from '@/components/jobs/detail/LayoutIssuesBanner'
 import { DEFAULT_RESUME_THEME } from '@/lib/export/theme'
 import { cn, scoreColor } from '@/lib/utils'
 import type { ProfileData, StructuredResume, TailorGapAnswer } from '@/types'
@@ -120,60 +122,12 @@ export function DocumentsWorkspace({
 
   if (mode === 'preview' && selected?.structured_data) {
     return (
-      <section className="space-y-4">
-        <DocumentBackButton onClick={() => onMode('list')} />
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
-          <div className="min-h-[calc(100vh-260px)] rounded-xl border border-border bg-neutral-200 p-3 dark:bg-neutral-900">
-            <ResumePreview
-              data={selected.structured_data}
-              theme={DEFAULT_RESUME_THEME}
-              showHealth={false}
-              showTools={false}
-              enablePan
-              className="h-full"
-            />
-          </div>
-          <aside className="space-y-3 rounded-xl border border-border bg-card p-4 xl:sticky xl:top-36 xl:self-start">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Tailored resume
-              </p>
-              <h2 className="mt-1 text-lg font-semibold text-foreground">Resume v{selected.version}</h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {new Date(selected.created_at).toLocaleDateString(undefined, {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                })}
-              </p>
-            </div>
-            {score != null ? (
-              <div className="rounded-lg border border-border bg-background p-3">
-                <p className={cn('text-3xl font-bold tabular-nums', scoreColor(score))}>{score}%</p>
-                <p className="text-xs text-muted-foreground">Match score</p>
-              </div>
-            ) : null}
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              This version is saved for this application only. Master Profile changes require an explicit promote flow later.
-            </p>
-            <div className="flex flex-col gap-2">
-              <Button type="button" size="sm" onClick={() => onMode('edit')}>
-                <Pencil className="h-4 w-4" />
-                Edit
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => void downloadDocument('resume', selected.id)}
-              >
-                <Download className="h-4 w-4" />
-                Download
-              </Button>
-            </div>
-          </aside>
-        </div>
-      </section>
+      <DocumentsPreview
+        selected={{ ...selected, structured_data: selected.structured_data }}
+        score={score}
+        onBack={() => onMode('list')}
+        onEdit={() => onMode('edit')}
+      />
     )
   }
 
@@ -323,5 +277,82 @@ function DocumentBackButton({ onClick }: { onClick: () => void }) {
     >
       All documents
     </button>
+  )
+}
+
+function DocumentsPreview({
+  selected,
+  score,
+  onBack,
+  onEdit,
+}: {
+  selected: JobDetailTailoredVersion & { structured_data: StructuredResume }
+  score: number | null | undefined
+  onBack: () => void
+  onEdit: () => void
+}) {
+  const [pageCount, setPageCount] = useState(1)
+
+  return (
+    <section className="space-y-4">
+      <DocumentBackButton onClick={onBack} />
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="min-h-[calc(100vh-260px)] space-y-3 rounded-xl border border-border bg-neutral-200 p-3 dark:bg-neutral-900">
+          <LayoutIssuesBanner
+            resume={selected.structured_data}
+            pageCount={pageCount}
+            fonts={{
+              bodyFontSize: DEFAULT_RESUME_THEME.bodyFontSize,
+              nameFontSize: DEFAULT_RESUME_THEME.nameFontSize,
+              lineHeight: DEFAULT_RESUME_THEME.lineHeight,
+            }}
+          />
+          <ResumePreview
+            data={selected.structured_data}
+            theme={DEFAULT_RESUME_THEME}
+            showHealth={false}
+            showTools={false}
+            enablePan
+            className="h-full"
+            onPageCount={setPageCount}
+          />
+        </div>
+        <aside className="space-y-3 rounded-xl border border-border bg-card p-4 xl:sticky xl:top-36 xl:self-start">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Tailored resume
+            </p>
+            <h2 className="mt-1 text-lg font-semibold text-foreground">Resume v{selected.version}</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {new Date(selected.created_at).toLocaleDateString(undefined, {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </p>
+          </div>
+          {score != null ? (
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className={cn('text-3xl font-bold tabular-nums', scoreColor(score))}>{score}%</p>
+              <p className="text-xs text-muted-foreground">Match score</p>
+            </div>
+          ) : null}
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            This version is saved for this application only. Master changes require an explicit promote.
+          </p>
+          <div className="flex flex-col gap-2">
+            <Button type="button" size="sm" onClick={onEdit}>
+              <Pencil className="h-4 w-4" />
+              Edit
+            </Button>
+            <DocumentExportActions
+              tailoredResumeId={selected.id}
+              fileStem={`resume-v${selected.version}`}
+              resume={selected.structured_data}
+            />
+          </div>
+        </aside>
+      </div>
+    </section>
   )
 }

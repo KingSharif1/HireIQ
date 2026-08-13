@@ -1,26 +1,216 @@
 # Changelog
 
-## 2026-08-13 — Task 146: Job detail cleanup pass
+## 2026-08-13 — Merge desktop Task 146 polish into mobile main
 
-**What:** Cleaned the tracker job detail page: the header now carries role facts (status, match, source domain, work type/level/location when known) plus View original posting; top Edit resume / Apply buttons are gone; the facts rail starts hidden; Activity is timeline-first with compact Add note / Add event reveals; Application answers only appears when saved answers exist; Email shows Gmail / masked-email tracked messages only; Questions and Job description are denser and cleaner.
+**What:** Merged local Resume Builder / job-document polish into origin/main. Kept one Builder surface (Master + Files). Files tab has job-first View/Edit/Download. Job Documents keeps PDF view + Content/Design/Analyze editor + cover letter as its own document. Job detail keeps header facts, Auto-apply / copy apply email, timeline-first Activity, tracked Email with Reply via HireIQ (no manual log).
 
-**Files:** `components/jobs/JobDetailPage.tsx`, `components/jobs/detail/{ActivityPanel,EmailInbox,JobSummary,QuestionsPanel}.tsx`, `docs/{TASKS,CHANGELOG,STATUS}.md`
+**Why:** Desktop and Cursor mobile diverged; this preserves both product directions without dropping auto-apply or Builder-as-master.
 
-**Why:** Keep Applications detail focused and professional while preserving the data model and keeping resume actions inside Documents.
-
-**Next:** Continue non-job-detail Task 146 follow-ups or Task 143 Google enablement.
+**Next:** Deploy Cloud Run worker; Task 147.
 
 ---
 
-## 2026-08-13 — Task 146: Resume Builder tailored documents
+## 2026-08-13 — Task 148 merged: docs sync + cost table
 
-**What:** Resume Builder now presents a compact Profile/master source card, keeps Import primary only when no source exists, and lists tailored resumes by job with View/Edit/Download actions. Job Documents now has a clean read-only PDF-style resume view, a focused Content / Design / Analyze editor, and Cover Letter as its own job document type.
+**What:** Docs pass before merge — STATUS/TASKS/REMAINING/AUTO-APPLY/PRICING/Sprout research + Cloud Run vs VPS cost math in CLOUD-RUN-APPLY.
 
-**Files:** `components/builder/ResumeLibrary.tsx`, `app/dashboard/builder/page.tsx`, `components/jobs/detail/DocumentsWorkspace.tsx`, `components/jobs/detail/JobResumeEditor.tsx`, `components/builder/CoverLetterPanel.tsx`, `components/jobs/JobDetailPage.tsx`, docs.
+**Files:** docs/*
 
-**Why:** Keep Profile as the master/source of truth while making Resume Builder the place for tailored application resumes, with fewer awkward tabs and hops.
+**Why:** Owner asked to commit, merge, and keep documents current.
 
-**Next:** UI smoke Builder + job Documents; then continue Task 143 Google enablement.
+**Next:** Deploy Cloud Run worker; Task 147.
+
+---
+
+## 2026-08-13 — Task 148: live apply progress UI + Cloud Run setup guide
+
+**What:** Job detail progress panel (steps, % bar, filled-field chips with motion). Worker writes live `result.progress`. Step-by-step Cloud Run deploy doc.
+
+**Files:** `AutoApplyWithHireIQ.tsx`, `lib/apply/{types,server-apply,process-run}.ts`, `docs/CLOUD-RUN-APPLY.md`, AUTO-APPLY
+
+**Why:** Owner asked how to wire Cloud Run, Sprout parity honesty, and a visible apply process (status + motion vs live Chromium stream).
+
+**Next:** Deploy worker; Task 147 extension CTA.
+
+---
+
+## 2026-08-13 — Task 148: hosted Auto-apply with HireIQ (queue + worker)
+
+**What:** `apply_runs` queue (migration **021**), queue/status/worker APIs, Playwright fill engine (GH/Lever/Ashby-ish, dry-run default), job detail **Auto-apply with HireIQ** CTA, Cloud Run worker package under `services/apply-worker`.
+
+**Files:** `docs/supabase/migrations/021_apply_runs.sql`, `lib/apply/*`, `app/api/apply/*`, `services/apply-worker/*`, `components/jobs/detail/AutoApplyWithHireIQ.tsx`, `JobDetailPage.tsx`, AUTO-APPLY/TASKS/STATUS/MIGRATIONS
+
+**Why:** Start Task 148 before 147 — web-first Cloud Run apply path.
+
+**Next:** Deploy worker to Cloud Run; set `APPLY_WORKER_URL` + `APPLY_WORKER_SECRET` on Vercel; then Task 147 extension handoff.
+
+---
+
+## 2026-08-13 — Cloud Run primary + web Auto-apply with HireIQ
+
+**What:** Hosted apply locks to **Cloud Run** (not the $28 KVM as primary). Product UX: web **Auto-apply with HireIQ** queues the worker; extension helps when already on the ATS page. Documented honest coverage + learnable board adapters.
+
+**Files:** `docs/AUTO-APPLY.md`, `DECISIONS.md`, TASKS/STATUS/REMAINING-WORK, sprout research lock blurb
+
+**Why:** Cloud Run idle ≈ $0 and scales; KVM bills every month. Owner wants HireIQ-main auto-apply on web, not mobile-first.
+
+**Next:** Implement Task 148 Cloud Run worker or Task 147 on-site extension CTA.
+
+---
+
+## 2026-08-13 — Dual auto-apply paths + draft pricing (docs)
+
+**What:** Product lock for **extension + hosted** auto-apply. Pricing draft (docs only): tailor **2 for the price of 1** then extra; charge **server** auto-apply; extension autofill free (optional 10-then-pay). Infra note: prototype worker on **KVM**, Cloud Run for scale-to-zero later.
+
+**Files:** `docs/PRICING.md`, `docs/AUTO-APPLY.md`, `DECISIONS.md`, `TASKS.md` (147/148), STATUS, REMAINING-WORK
+
+**Why:** Owner wants Sprout-like server apply and a customer pricing sketch without implementing Stripe yet.
+
+**Next:** Build Task 147 extension handoff; provision KVM when starting Task 148.
+
+---
+
+## 2026-08-13 — Sprout auto-apply research + Task 147 lock
+
+**What:** Refreshed Sprout AI Apply / credits research. Locked HireIQ approach: **no application credits**; automation stays in the user’s Chrome extension; website CTA will chain tailor → agentic apply (Task 147).
+
+**Files:** `docs/legacy/planning/12-sprout-research.md`, `DECISIONS.md`, `TASKS.md`, `STATUS.md`, `REMAINING-WORK.md`
+
+**Why:** User wants Sprout-like “see job → tailor → AI applies” without weekly credit packs. Credits meter Sprout’s cloud browsers; HireIQ already has the cheaper path.
+
+**Next:** Build Task 147 job-detail **Apply with HireIQ** handoff.
+
+---
+
+## 2026-08-13 — Task 140: reply via HireIQ application email
+
+**What:** From a job’s Email tab, reply to an employer message and HireIQ sends it from your masked application address (Resend). The sent message lands in the same thread. Settings copy explains the reply path.
+
+**Files:** `lib/email/send-masked-reply.ts`, `app/api/applications/[id]/email/reply/route.ts`, `EmailInbox.tsx`, `JobDetailPage.tsx`, `MaskedEmailCard.tsx`, tests, docs
+
+**Why:** Task 140 first slice — Sprout-style reply without exposing personal Gmail. Needs `RESEND_API_KEY` and sending enabled on `mail.kingsharif.com`.
+
+**Next:** Smoke a real reply on prod; optional inbound→forward copy (`RESEND_FORWARD_FROM`); thread linking for unmatched All outreach replies.
+
+---
+
+## 2026-08-13 — Task 115: save jobs by forwarding email
+
+**What:** Each user can mint a `save.*@mail.kingsharif.com` address. Forward a posting there and the inbound webhook extracts a job URL, scrapes it, and adds it to Applications (deduped by apply URL). Settings → Integrations shows **Save jobs by email**. Extension autofill now uses the masked apply address when tracking mode is application email.
+
+**Files:** `lib/email/{extract-job-urls,process-forward-save,process-inbound,masked-address}.ts`, `lib/jobs/save-from-url.ts`, `app/api/jobs/route.ts`, `app/api/profile/forward-save-email/route.ts`, `ForwardSaveCard.tsx`, `SettingsPanels.tsx`, `app/api/extension/profile/route.ts`, `lib/extension/apply-identity.ts`, `020_forward_save_email.sql`
+
+**Why:** Spec Module 4 / Task 115. Also, masked tracking was on for the test user but Autofill still filled the Gmail address.
+
+**Next:** Merge PR #3; reload extension v0.9.9 on the Aechelon Greenhouse form and confirm Email is the masked address; forward a Greenhouse URL to the new save address after deploy.
+
+---
+
+## 2026-08-13 — Copy apply email on job detail
+
+**What:** When tracking mode is application email, job detail shows **Copy apply email** next to Apply, and the Email tab reminds you which address to use on the employer form. Prod smoke: test user already on masked mode with a live Greenhouse apply form.
+
+**Files:** `JobDetailPage.tsx`, `EmailInbox.tsx`, `app/dashboard/tracker/[jobId]/page.tsx`
+
+**Why:** Settings had the address; Apply opened Greenhouse without a way to copy it onto the Email field.
+
+**Next:** Merge PR #3 so unmatched inbound appears in All outreach; reload extension v0.9.9 on a real apply form.
+
+---
+
+## 2026-08-13 — Extension board adapters (v0.9.9)
+
+**What:** Greenhouse / Lever / Ashby / Workday field maps, submit/continue/resume selectors, and Lever/Ashby full-name fill. Generic fallback unchanged. Extension **v0.9.9**.
+
+**Files:** `lib/extension/board.ts`, `lib/extension/form-fill.ts`, `extension/src/{autofill,detect,submit,file-attach}.ts`, `agentic-nav.ts`, tests, docs
+
+**Why:** Task 117 remaining polish — generic classify missed ATS-specific names (`urls[LinkedIn]`, Workday `data-automation-id`, Ashby `_systemfield_*`).
+
+**Next:** Merge PR #3; Gmail OAuth; more adapters when a host fails.
+
+---
+
+## 2026-08-13 — Master resume scrolls as one page
+
+**What:** Resume Builder Master shows every profile section on one page. Left nav jumps to anchors; `?section=` deep links still work.
+
+**Files:** `components/profile/{ProfileHome,ProfileSectionPanel}.tsx`, `lib/profile/sections.ts`, `BuilderHome.tsx`, docs
+
+**Why:** Task 146 remaining carousel felt like many pages.
+
+**Next:** Merge PR #3; Gmail OAuth.
+
+---
+
+## 2026-08-13 — Font-size export checks + Amazon/MS save hosts
+
+**What:** Export check warns on body/name font size and loose line height. Extension + server job-URL gate allow `amazon.jobs` / `careers.microsoft.com` and block prod `hireiq.kingsharif.com`. Tracker empty-score CTA says Tailor. Profile/GitHub/suggestion links go to Resume Builder master (and keep `github_error` on redirect). Extension **v0.9.8**.
+
+**Files:** `lib/resume/layout-check.ts`, `LayoutIssuesBanner.tsx`, `lib/extension/job-page.ts`, `extension/src/detect.ts`, `TrackerList.tsx`, `TrackerBoard.tsx`, `lib/notifications.ts`, GitHub OAuth callbacks, docs
+
+**Why:** Close Task 106 font heuristics and leftover Profile doors after Builder consolidation.
+
+**Next:** Merge PR #3; Task 146 optional scroll-all-sections; Gmail OAuth.
+
+---
+
+## 2026-08-13 — Unmatched inbound in All outreach
+
+**What:** Application-address mail that doesn’t match a company still appears in All outreach (Unmatched). Prod webhook stored the inbound smoke message.
+
+**Files:** `lib/applications/outreach.ts`, `ApplicationsTracker.tsx`, `OutreachList.tsx`, `app/dashboard/tracker/page.tsx`
+
+**Why:** Smoke mail was received but hidden because All outreach only read job `email_log`.
+
+**Next:** Merge PR #3; Gmail OAuth.
+
+---
+
+## 2026-08-13 — One Resume Builder nav + live page-count export check
+
+**What:** Resume Builder is the only resume destination (Master + Files tabs). Profile URLs redirect. Documents export check uses measured preview page count. Gmail sync copy explains stale History API fallback.
+
+**Files:** `components/builder/BuilderHome.tsx`, `app/dashboard/builder/page.tsx`, `app/dashboard/profile/page.tsx`, `primary-nav.ts`, `HomeTiles.tsx`, `ResumePreview.tsx`, `LayoutIssuesBanner.tsx`, `lib/google/sync.ts`, docs
+
+**Why:** Continue remaining backlog after prod smoke; fewer hops for master resume edits.
+
+**Next:** Merge PR #3; inbound test mail; Gmail OAuth.
+
+---
+
+## 2026-08-13 — Documents export check + remaining prod smoke
+
+**What:** Documents preview shows layout issues and PDF/DOCX export (blocked on critical). Hide duplicate Portal login on Activity at desktop. Gmail Sync now copy includes incremental vs full scan. Prod: created application email; Amazon/Microsoft fetch-url returned titles; Gmail connect reaches Google OAuth.
+
+**Files:** `components/jobs/detail/{LayoutIssuesBanner,DocumentsWorkspace,JobResumeEditor,ActivityPanel}.tsx`, `lib/resume/layout-check.ts`, `lib/api/client.ts`, `GoogleConnectPanel.tsx`, `SettingsPanels.tsx`, docs
+
+**Why:** Close remaining smoke we can do without Google mailbox access; surface export QA in the live Documents UI.
+
+**Next:** Send a test message to the application alias; finish Gmail OAuth; Task 146.
+
+---
+
+## 2026-08-13 — Prod smoke: portal login UI
+
+**What:** Logged into production and verified Portal login on job tracker detail (facts rail + Activity tab): email, show/hide password, note. Gmail sync correctly returns 400 until connected. Masked inbound still needs an application alias.
+
+**Files:** docs only (`STATUS.md`, `REMAINING-WORK.md`)
+
+**Why:** Close the portal-login smoke that was blocked on credentials.
+
+**Next:** Connect Gmail + create application email for remaining smokes.
+
+---
+
+## 2026-08-13 — Amazon/Microsoft fetch, portal login, Gmail history, export QA
+
+**What:** Open Graph + Microsoft Eightfold PCSX job fetch; portal credentials on job detail (facts rail + Activity); Gmail History API incremental sync; resume layout check before PDF/DOCX export; Resume Builder library UX pass; `REMAINING-WORK.md` + migration 019 docs.
+
+**Files:** `lib/jobs/extractors/{open-graph,microsoft-eightfold}.ts`, `lib/google/{gmail,sync}.ts`, `lib/resume/layout-check.ts`, `components/jobs/detail/{JobSummary,ActivityPanel}.tsx`, `components/builder/ResumeLibrary.tsx`, `app/api/export/{pdf,docx}/route.ts`, `docs/REMAINING-WORK.md`, `docs/supabase/MIGRATIONS.md`, live tests
+
+**Why:** Close gaps from job-fetch + agentic apply MVP; ordered roadmap for remaining work.
+
+**Next:** Merge PR #2, apply migration 019, human Google provider enable.
 
 ---
 

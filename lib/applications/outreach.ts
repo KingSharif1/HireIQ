@@ -6,11 +6,19 @@ import type {
 import { normalizeEmailEntry, type InboxMessage } from '@/lib/applications/email'
 
 export type OutreachItem = InboxMessage & {
-  applicationId: string
-  jobId: string
+  applicationId: string | null
+  jobId: string | null
   jobTitle: string
   company: string
-  applicationStatus: ApplicationStatus
+  applicationStatus: ApplicationStatus | null
+}
+
+export type UnmatchedInboundRow = {
+  id: string
+  from_address: string | null
+  subject: string | null
+  body_preview: string | null
+  created_at: string
 }
 
 /** Flatten every application's email_log into one newest-first feed. */
@@ -18,7 +26,8 @@ export function buildOutreachFeed(
   items: readonly Pick<
     ApplicationTrackerItem,
     'id' | 'job_id' | 'status' | 'email_log' | 'job'
-  >[]
+  >[],
+  unmatched: readonly UnmatchedInboundRow[] = [],
 ): OutreachItem[] {
   const rows: OutreachItem[] = []
   for (const app of items) {
@@ -35,6 +44,30 @@ export function buildOutreachFeed(
       })
     }
   }
+
+  for (const row of unmatched) {
+    const message = normalizeEmailEntry({
+      id: row.id,
+      subject: row.subject?.trim() || '(No subject)',
+      body: row.body_preview ?? undefined,
+      snippet: row.body_preview ?? undefined,
+      direction: 'received',
+      at: row.created_at,
+      sender: row.from_address ?? undefined,
+      source: 'masked',
+      isRead: false,
+    })
+    const host = row.from_address?.split('@')[1]?.trim() || 'Inbox'
+    rows.push({
+      ...message,
+      applicationId: null,
+      jobId: null,
+      jobTitle: 'Not linked to a job',
+      company: host,
+      applicationStatus: null,
+    })
+  }
+
   return rows.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
 }
 

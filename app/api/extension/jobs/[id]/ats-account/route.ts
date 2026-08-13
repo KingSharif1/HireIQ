@@ -50,7 +50,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid or revoked token' }, { status: 401, headers })
   }
 
-  let body: { email?: string; note?: string }
+  let body: { email?: string; note?: string; password?: string }
   try {
     body = await request.json()
   } catch {
@@ -59,6 +59,10 @@ export async function PATCH(
 
   const email = typeof body.email === 'string' ? body.email.trim() : ''
   const note = typeof body.note === 'string' ? body.note.trim().slice(0, 500) : ''
+  const password =
+    typeof body.password === 'string' && body.password.trim()
+      ? body.password.trim().slice(0, 200)
+      : null
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: 'Valid email is required' }, { status: 400, headers })
   }
@@ -69,6 +73,7 @@ export async function PATCH(
     .update({
       ats_account_email: email,
       ats_account_note: note || null,
+      ...(password ? { ats_account_password: password } : {}),
       updated_at: new Date().toISOString(),
     })
     .eq('job_id', jobId)

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
-import { ArrowUpRight, Briefcase, FileText, Puzzle, User } from 'lucide-react'
+import { ArrowUpRight, Briefcase, FileText, Puzzle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ExtensionConnectPanel } from '@/components/home/ExtensionConnectPanel'
 
@@ -26,13 +26,6 @@ const ACTIONS: {
     description: 'Edit your master resume and export tailored versions.',
     icon: FileText,
     accent: 'from-cyan-500/12 to-transparent',
-  },
-  {
-    href: '/dashboard/profile',
-    title: 'Profile',
-    description: 'Keep autofill info, projects, and answers ready.',
-    icon: User,
-    accent: 'from-slate-500/10 to-transparent',
   },
 ]
 
@@ -63,7 +56,7 @@ export function HomeTiles({ firstName }: HomeTilesProps) {
         </p>
       </motion.header>
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-2">
         {ACTIONS.map((action, i) => {
           const Icon = action.icon
           return (

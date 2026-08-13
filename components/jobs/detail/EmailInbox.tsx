@@ -1,15 +1,29 @@
 'use client'
 
-import { useMemo } from 'react'
-import { ArrowDownLeft, ArrowUpRight, Mail } from 'lucide-react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { ArrowDownLeft, ArrowUpRight, CircleAlert, Mail, Send } from 'lucide-react'
 
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 import type { InboxThread } from '@/lib/applications/email'
+
+export type ReplyEmailInput = {
+  body: string
+  to?: string
+  subject?: string
+  inReplyToId?: string
+}
 
 export type EmailInboxProps = {
   threads: readonly InboxThread[]
   selectedThreadId?: string | null
   onSelectThread: (threadId: string) => void
+  /** When set, show Reply composer that sends via HireIQ masked address. */
+  onReplyEmail?: (email: ReplyEmailInput) => void | Promise<void>
   disabled?: boolean
+  /** When set, remind the user to apply with this HireIQ address. */
+  applyEmail?: string | null
+  applicationId?: string | null
 }
 
 const directionStyles = {
@@ -38,11 +52,55 @@ export function EmailInbox({
   threads,
   selectedThreadId,
   onSelectThread,
+  onReplyEmail,
+  disabled = false,
+  applyEmail = null,
 }: EmailInboxProps) {
   const selectedThread = useMemo(
     () => threads.find(thread => thread.id === selectedThreadId) ?? threads[0] ?? null,
     [selectedThreadId, threads]
   )
+  const [replyBody, setReplyBody] = useState('')
+  const [isReplying, setIsReplying] = useState(false)
+  const [replyError, setReplyError] = useState<string | null>(null)
+  const [replyOk, setReplyOk] = useState<string | null>(null)
+
+  const lastReceived = useMemo(() => {
+    if (!selectedThread) return null
+    return [...selectedThread.messages].reverse().find(m => m.direction === 'received') ?? null
+  }, [selectedThread])
+
+  const canReply = Boolean(onReplyEmail && applyEmail && lastReceived)
+
+  useEffect(() => {
+    setReplyBody('')
+    setReplyError(null)
+    setReplyOk(null)
+  }, [selectedThread?.id])
+
+  async function handleReply(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!onReplyEmail || !lastReceived || !replyBody.trim()) return
+    setIsReplying(true)
+    setReplyError(null)
+    setReplyOk(null)
+    try {
+      await onReplyEmail({
+        body: replyBody.trim(),
+        to: lastReceived.sender,
+        subject: lastReceived.subject,
+        inReplyToId: lastReceived.id,
+      })
+      setReplyBody('')
+      setReplyOk('Sent via your HireIQ application email.')
+    } catch (err) {
+      setReplyError(err instanceof Error ? err.message : 'Could not send reply.')
+    } finally {
+      setIsReplying(false)
+    }
+  }
+
+  const replyDisabled = disabled || isReplying
 
   return (
     <section className="space-y-5" aria-labelledby="email-inbox-title">
@@ -54,6 +112,14 @@ export function EmailInbox({
           <p className="mt-1 text-sm text-muted-foreground">
             Review messages automatically tracked from Gmail or your masked application email.
           </p>
+          {applyEmail ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Apply with{' '}
+              <span className="font-mono text-foreground">{applyEmail}</span>
+              {' — '}
+              employer replies show up here when we can match the company.
+            </p>
+          ) : null}
         </div>
         <span className="inline-flex w-fit items-center rounded-full border border-border bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
           {threads.length} {threads.length === 1 ? 'thread' : 'threads'}
@@ -65,8 +131,9 @@ export function EmailInbox({
           <Mail className="mx-auto h-7 w-7 text-muted-foreground" aria-hidden="true" />
           <p className="mt-3 text-sm font-medium text-foreground">No tracked emails yet</p>
           <p className="mx-auto mt-1 max-w-md text-xs leading-5 text-muted-foreground">
-            Connect Gmail in Settings or use your masked application email when applying. Messages
-            matched to this job will appear here automatically.
+            {applyEmail
+              ? `Use ${applyEmail} on the employer form. Replies land here when we can match the company.`
+              : 'Connect Gmail in Settings or use your masked application email when applying. Messages matched to this job will appear here automatically.'}
           </p>
         </div>
       ) : (
@@ -167,6 +234,54 @@ export function EmailInbox({
                   )
                 })}
               </ol>
+
+              {canReply && lastReceived ? (
+                <form
+                  className="space-y-3 border-t border-border p-4 sm:p-5"
+                  onSubmit={handleReply}
+                >
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground">Reply via HireIQ</h4>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Sends from{' '}
+                      <span className="font-mono text-foreground">{applyEmail}</span>
+                      {' '}to {lastReceived.sender || 'the employer'}. They see your HireIQ address — not your personal inbox.
+                    </p>
+                  </div>
+                  <Textarea
+                    className="min-h-28"
+                    placeholder="Write your reply…"
+                    value={replyBody}
+                    disabled={replyDisabled}
+                    onChange={event => {
+                      setReplyBody(event.target.value)
+                      setReplyOk(null)
+                    }}
+                    required
+                  />
+                  {replyError ? (
+                    <p className="inline-flex items-center gap-1.5 text-xs text-destructive" role="alert">
+                      <CircleAlert className="h-4 w-4" aria-hidden="true" />
+                      {replyError}
+                    </p>
+                  ) : null}
+                  {replyOk ? (
+                    <p className="text-xs text-muted-foreground" role="status">
+                      {replyOk}
+                    </p>
+                  ) : null}
+                  <div className="flex justify-end">
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={replyDisabled || !replyBody.trim()}
+                    >
+                      <Send className="h-4 w-4" aria-hidden="true" />
+                      {isReplying ? 'Sending…' : 'Send reply'}
+                    </Button>
+                  </div>
+                </form>
+              ) : null}
             </div>
           ) : null}
         </div>

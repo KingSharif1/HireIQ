@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildForwardSaveEmail,
   buildMaskedEmail,
   buildMaskedLocalPart,
   extractRecipientEmails,
   normalizeMaskedRecipient,
 } from '@/lib/email/masked-address'
+import { extractSavableJobUrl, extractUrlsFromEmail } from '@/lib/email/extract-job-urls'
 import { inferStatusFromEmail, matchInboundToJob } from '@/lib/email/inbound-match'
 
 describe('masked-address', () => {
@@ -30,6 +32,43 @@ describe('masked-address', () => {
 
   it('normalizes recipients', () => {
     expect(normalizeMaskedRecipient(' <A@B.COM> ')).toBe('a@b.com')
+  })
+
+  it('builds a save.* forward-to-save address', () => {
+    const email = buildForwardSaveEmail({
+      firstName: 'Sharif',
+      lastName: 'Ahmed',
+      domain: 'mail.kingsharif.com',
+    })
+    expect(email).toMatch(/^save\.sharif\.ahmed\.[a-z0-9]{6}@mail\.kingsharif\.com$/)
+  })
+})
+
+describe('extract-job-urls', () => {
+  it('prefers a Greenhouse URL over tracking and unsubscribe links', () => {
+    const url = extractSavableJobUrl(
+      'See this role https://job-boards.greenhouse.io/acme/jobs/123 and https://example.com/unsubscribe',
+    )
+    expect(url).toBe('https://job-boards.greenhouse.io/acme/jobs/123')
+  })
+
+  it('unwraps Google redirect URLs', () => {
+    const urls = extractUrlsFromEmail(
+      'https://www.google.com/url?q=https://jobs.ashbyhq.com/acme/abcd-1234&sa=D',
+    )
+    expect(urls[0]).toBe('https://jobs.ashbyhq.com/acme/abcd-1234')
+  })
+
+  it('reads href from HTML', () => {
+    const url = extractSavableJobUrl(
+      null,
+      '<p>Apply <a href="https://jobs.lever.co/acme/11111111-1111-1111-1111-111111111111">here</a></p>',
+    )
+    expect(url).toBe('https://jobs.lever.co/acme/11111111-1111-1111-1111-111111111111')
+  })
+
+  it('returns null when nothing looks like a job', () => {
+    expect(extractSavableJobUrl('Thanks for dinner https://nytimes.com/2026/01/01/food')).toBeNull()
   })
 })
 

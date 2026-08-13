@@ -1,6 +1,12 @@
 /** Server-side job URL gate (mirrors extension/src/detect.ts). */
 
-const BLOCKED_HOSTS = ['localhost', '127.0.0.1', 'hireiq.app', 'www.hireiq.app']
+const BLOCKED_HOSTS = [
+  'localhost',
+  '127.0.0.1',
+  'hireiq.app',
+  'www.hireiq.app',
+  'hireiq.kingsharif.com',
+]
 
 const JOB_HOST_HINTS = [
   'linkedin.com',
@@ -14,6 +20,8 @@ const JOB_HOST_HINTS = [
   'glassdoor.com',
   'wellfound.com',
   'angel.co',
+  'amazon.jobs',
+  'careers.microsoft.com',
 ]
 
 const JOB_PATH_HINTS = [

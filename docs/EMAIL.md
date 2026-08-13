@@ -10,7 +10,7 @@
 |------|------|
 | **Task 114 — Gmail sync** | **MVP** employer-status tracking for Google-connected users (default on / opt-out) |
 | **Task 139 — Masked apply** | Apply address + inbound log + optional forward — live now; paste-on-apply, email/password users, Gmail opted out |
-| **Task 140 — Mask reply-relay** | **v2** deepen 139: clearer prefs + reply path (user ↔ HireIQ ↔ employer) |
+| **Task 140 — Mask reply-relay** | **v2** deepen 139: reply from job Email tab via masked address (first slice shipped); fuller prefs + unmatched-thread reply still open |
 
 Agents: do not delete 139 while building 114 — both feed `email_log` / All outreach.
 
@@ -22,7 +22,7 @@ They paste it (or extension autofills later) on applications. Employer mail → 
 ## Data flow
 
 ```
-User creates address (Profile → Personal)
+User creates address (Settings → Application email)
   → profiles.masked_email UNIQUE
 
 Employer sends mail to masked address
@@ -34,6 +34,12 @@ Employer sends mail to masked address
   → append applications.email_log (source: masked) + email_linked event
   → notification (email_status)
   → optional Resend Send forward (RESEND_FORWARD_FROM)
+
+User creates save address (Settings → Save jobs by email)
+  → profiles.forward_save_email UNIQUE
+User forwards a posting to that address
+  → same inbound webhook
+  → extract job URL (ATS preferred) → saveJobFromUrl → tracker + notification
 ```
 
 ## Env
@@ -79,6 +85,8 @@ Site URL: prefer prod `https://hireiq.kingsharif.com` (localhost still listed in
 |-------|----------|
 | Profile → Personal → **Gmail tracking** | Connect Google (gmail.readonly); sync toggle default on |
 | Profile → Personal → Application email | Create / copy / forward toggle (Task 139) |
+| Job → Email tab → **Reply via HireIQ** | Sends from masked address to employer (Task 140) |
+| Settings → Integrations → **Save jobs by email** | Forward a posting to `save.*@mail.kingsharif.com` → tracker (Task 115) |
 | Applications → All outreach | Matched inbound (source HireIQ / later Gmail) |
 | Job → Email tab | Same when matched |
 | Alerts | `email_status` |
@@ -87,7 +95,8 @@ Site URL: prefer prod `https://hireiq.kingsharif.com` (localhost still listed in
 
 **015** — masked inbound: `profiles.masked_email`, `email_forward_*`, `inbound_email_events`  
 **016** — Gmail connect: `profiles.gmail_sync_enabled` (default true), `google_connections` (refresh token + history_id)  
-**017** — `inbound_email_events.provider` + `provider_message_id` (unique per provider)
+**017** — `inbound_email_events.provider` + `provider_message_id` (unique per provider)  
+**020** — `profiles.forward_save_email` (Task 115)
 
 ## Env (Gmail connect)
 
@@ -108,7 +117,7 @@ Separate from Supabase “Sign in with Google” — this flow requests `gmail.r
 | Profile → Sync now | `POST /api/google/sync` (session) |
 | Cron / ops | `GET|POST /api/cron/gmail-sync` with `Authorization: Bearer $CRON_SECRET` |
 
-Scans `newer_than:14d` (excludes chats/promos/social), matches open applications via existing inbound scorer, writes `email_log` with `source: gmail`.
+Scans incrementally via Gmail **History API** when `google_connections.history_id` is set; otherwise `newer_than:14d` full scan (excludes chats/promos/social). On expired history, falls back to full scan and refreshes `history_id` from profile.
 
 ## Smoke checklist (prod)
 

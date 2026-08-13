@@ -19,7 +19,7 @@ export function formatUnreadCount(count: number): string {
 }
 
 export function profileSectionLink(section: PendingSuggestionSection): string {
-  return `/dashboard/profile?section=${section}`
+  return `/dashboard/builder?view=master&section=${section}`
 }
 
 export function buildTailorCompleteNotification(
