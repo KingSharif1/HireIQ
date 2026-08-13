@@ -157,13 +157,21 @@ Files changed: `016_gmail_sync.sql`, `017_inbound_provider.sql`, `lib/google/*`,
 
 ---
 
+## Task 147 — Apply with HireIQ (tailor → agentic apply, no credits)
+Status: PENDING  
+Scope: website job CTA + extension handoff; reuse tailor + agentic apply; no credit system  
+Goal: From a tracked job, one primary action: ensure tailored resume → open ATS with extension agentic apply (user-watched / approval default). Match Sprout loop without weekly credit packs — automation runs in the user’s Chrome.  
+Notes: Research lock 2026-08-13 in DECISIONS + `legacy/planning/12-sprout-research.md`. Hard stops: CAPTCHA, LinkedIn/Indeed submit, Workday edge cases → human.  
+Depends on: extension v0.9.9+, masked/Gmail tracking for OTP, Task 140 reply path optional
+
+---
+
 ## Task 140 — v2 email mask reply-relay (document now)
-Status: IN PROGRESS  
+Status: DONE (partial — first slice live on main via PR #4)  
 Scope: deepen Task 139 — apply with HireIQ address, inbound log, auto-forward, reply path (user → HireIQ → employer, HireIQ visible)  
 Goal: Sprout-like tracking without Gmail read; optional for users who opt out of Gmail or use email/password only.  
-Notes: Masked inbound create/forward already shipped (139). v2 = reliable reply routing + clearer prefs UX alongside Gmail opt-out.  
-Claimed: 2026-08-13 — first slice: Reply from job Email tab via Resend (from masked address).  
-Result (partial): `POST /api/applications/[id]/email/reply` sends from `masked_email`; Email tab shows **Reply via HireIQ** under threads with a received message when tracking mode is application email. Remaining: prod smoke send; optional reply from All outreach unmatched; inbound auto-forward still needs `RESEND_FORWARD_FROM`.  
+Notes: Masked inbound create/forward already shipped (139). Remaining v2: All outreach unmatched reply; `RESEND_FORWARD_FROM`.  
+Result: `POST /api/applications/[id]/email/reply`; Email tab **Reply via HireIQ**.  
 Files changed: `lib/email/send-masked-reply.ts`, `app/api/applications/[id]/email/reply/route.ts`, `EmailInbox.tsx`, `JobDetailPage.tsx`, `MaskedEmailCard.tsx`, docs
 
 ---

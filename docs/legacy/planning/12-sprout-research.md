@@ -1,148 +1,111 @@
 # 12 — Sprout Research Notes
 
-> What we know from public sources + user-provided DOM snippets.
-> **Not** verified internal implementation. Use as pattern reference only.
-> Last updated: 2026-06-14
+> Public sources + product mapping for HireIQ. **Not** verified internal implementation.
+> **Updated:** 2026-08-13 (refreshed from Sprout help + marketing)
 
 ## Sources
 
+- [AI Apply feature](https://www.usesprout.com/features/ai-apply)
+- [Pricing](https://www.usesprout.com/pricing)
 - [How Credits Work](https://help.usesprout.com/en/articles/11639803-how-credits-work)
 - [Why credits run out fast](https://help.usesprout.com/en/articles/11511308-why-did-i-run-out-of-application-credits-even-though-i-only-applied-to-a-few-jobs)
-- [Whisperpost email](https://help.usesprout.com/en/articles/11511462-why-is-the-email-on-my-job-applications-not-my-personal-email)
-- [Reply via whisperpost](https://help.usesprout.com/en/articles/11511475-how-do-i-reply-to-an-interviewer-if-my-application-was-sent-using-a-whisperpost-io-email)
+- [Credit balance looks wrong](https://help.usesprout.com/en/articles/16258294-my-credit-balance-looks-wrong)
+- [Whisperpost / apply email](https://help.usesprout.com/en/articles/11511462-why-is-the-email-on-my-job-applications-not-my-personal-email)
+- [Reply to interviewer](https://help.usesprout.com/en/articles/11511475-how-do-i-reply-to-an-interviewer-if-my-application-was-sent-using-a-whisperpost-io-email)
 - [View login credentials](https://help.usesprout.com/en/articles/12053211-how-do-i-view-login-credentials)
-- [AI Apply feature page](https://www.usesprout.com/features/ai-apply)
-- User-pasted DOM from `app.usesprout.com` (logged-in UI snippets)
+- [Sprout homepage](https://www.usesprout.com/)
 
 ---
 
-## Credit system (1 vs 3)
+## What “AI Apply” actually is (public)
 
-**What we thought:** credits scale with resume length or number of screening questions.
+End-to-end loop Sprout sells:
 
-**What Sprout actually says:**
+1. **Discover** jobs in-app (swipe / job board).
+2. **Swipe right / tap Apply** → starts the pipeline (credit deducted here).
+3. **Generate** tailored resume + cover letter from profile.
+4. **Optional human review** — “Require Approval” setting; otherwise can go faster.
+5. **Agent fills** the employer portal (field detect + map from profile/resume).
+6. **Agent submits** (or fails → History → open listing manually).
+7. **Track** in Job History; email updates via dedicated apply address.
+
+Marketing claims form detection, smart field mapping, instant submission, tracker sync ([AI Apply](https://www.usesprout.com/features/ai-apply)).
+
+---
+
+## Credit system (why they charge)
 
 | Cost | When |
 |------|------|
-| **1 credit** | Standard applications (most jobs) |
-| **3 credits** | Workday-hosted applications, CAPTCHA, multi-step forms |
+| **1 credit** | Standard applications |
+| **3 credits** | Complex portals (esp. Workday): account create, CAPTCHA, multi-step, redirects, slow sites |
 
-- Cost shown on **job card before apply** (⚡ badge).
-- Credits deducted when user swipes/commits to apply.
-- Credits reset weekly on subscription billing cycle; don't roll over.
+- Cost shown with ⚡ on the job card **before** swipe.
+- Deducted on **swipe**, not on successful submit — generating docs starts then.
+- Skip (swipe left) = free.
+- System failure → automatic credit refund.
+- Credits **do not roll over**; reset each billing period (weekly plans every 7 days).
 
-**HireIQ implication:** When we add billing (v2), price by **portal automation complexity**, not document length. Our v1 has no credit system.
-
----
-
-## Application email (whisperpost.io)
-
-- Each user gets a unique `@whisperpost.io` address.
-- Used **on applications** instead of personal email.
-- Sprout can access this inbox for verification codes during auto-apply.
-- All emails **forward to user's real inbox** — user replies normally.
-- Replies route back through whisperpost to employer.
-
-**HireIQ:** Same pattern with our domain. See `11-email-tracking.md`.
+Public pricing (Aug 2026 marketing): ~**$29.99/wk · 50 apps**, **$59.99/mo · 200 apps**, quarterly tiers ([Pricing](https://www.usesprout.com/pricing)). Credits are how they meter **server-side automation cost** (browsers, CAPTCHA solvers, retries), not a technical requirement of autofill itself.
 
 ---
 
-## Application credentials
+## Apply identity + credentials
 
-When a job portal requires account creation:
-1. Sprout creates account with whisperpost email + generated password.
-2. Verification emails go to whisperpost inbox → agent completes signup.
-3. Credentials saved per application.
-4. User views under **Applications → [job] → Application Credentials**:
-   - Email address (copy)
-   - Password (show/copy)
-   - Security note
+Two apply identities ([help](https://help.usesprout.com/en/articles/11511462-why-is-the-email-on-my-job-applications-not-my-personal-email)):
 
-**They do NOT** reset passwords on existing personal-email accounts. Collision avoided because the portal account uses the masked email, not the user's Gmail.
+| Mode | Address |
+|------|---------|
+| Gmail connected | Gmail **alias** (`you+…@gmail.com` style) |
+| No Gmail | Unique `@whisperpost.io` |
 
-**User DOM evidence:** Blue card showing `sharifahmed.dev.d7w@whisperpost.io` + password field.
+Both: employer mail → personal inbox + per-job Inbox in app; OTP / portal setup handled during apply; replies work like normal email ([reply help](https://help.usesprout.com/en/articles/11511475-how-do-i-reply-to-an-interviewer-if-my-application-was-sent-using-a-whisperpost-io-email)).
+
+When a portal needs an account, Sprout saves credentials under **Application Credentials** ([help](https://help.usesprout.com/en/articles/12053211-how-do-i-view-login-credentials)).
 
 ---
 
-## Auto-apply flow (public description)
+## HireIQ mapping (2026-08-13)
 
-1. User swipes right on job (or clicks Apply on web).
-2. Sprout generates tailored resume + cover letter.
-3. Optional review step (user setting).
-4. AI agent opens employer's application page.
-5. Detects fields, fills from profile, answers screening questions.
-6. Submits application.
-7. Logs in Job History; uses whisperpost for any verification.
+| Sprout piece | HireIQ today | Gap |
+|--------------|--------------|-----|
+| Swipe discovery | Bring-your-own URL / tracker | No swipe feed (by design) |
+| Tailored resume/CL | Tailor + Documents | Cover letter weaker; one-click chain missing |
+| Autofill forms | Extension v0.9.9 + board adapters | Good on GH/Lever/Ashby/Workday |
+| Multi-step + submit | Agentic apply v1 (Continue, signup, OTP) | Not unattended “one tap done” yet |
+| Masked / alias email | `masked_email` + Gmail mode | Reply-via-HireIQ shipped (Task 140 slice) |
+| Portal credentials | `ats_account_*` on timeline | Matches Sprout pattern |
+| Credits / subscription | **None** | Keep none for personal product |
+| Cloud browser farm | N/A — extension runs **in your Chrome** | CAPTCHA = you solve; no credit metering needed |
 
-Failed applications → "Failed" in history; user can complete manually. Credits may be refunded on failure (per FAQ).
+### Can we do “see job → tailor → AI applies” without spending like Sprout?
 
-**HireIQ:** v2. v1 = manual apply with masked email for tracking.
+**Yes — for a personal HireIQ product.** Credits are Sprout’s **billing meter** for cloud agents. HireIQ can run the hard part in the **user’s browser** (extension already started):
 
----
+```
+Save / open job → Tailor resume (Claude — usage cost only)
+  → Open apply URL with extension
+  → Autofill + agentic Continue / signup / OTP / attach PDF
+  → User-watched Submit (always on LinkedIn/Indeed; default elsewhere until trusted)
+  → Mark Applied + portal creds on timeline
+```
 
-## Job detail UI (from user DOM)
+**What you still “pay”:** Anthropic tokens for tailor (and any future Q&A). **What you don’t need:** Sprout-style weekly credit packs.
 
-### Layout
-- **3-pane** on desktop: left nav (sections), center (documents), right sidebar (job info).
-- We simplify to **2-pane**: center + right sidebar; left nav becomes tabs in center.
-
-### Left section nav (per job)
-- Application Documents
-- Questions (badge count)
-- LinkedIn Outreach (v2 for us)
-- Company Timeline
-- Inbox
-
-### Center — Documents
-- Tabs: Resume | Cover Letter
-- Version label: `v1`
-- Actions: Edit, Regenerate, `1/3 used`, Submit
-- Resume preview (one-page emphasis)
-
-### Right sidebar — accordions
-1. **Job Fit Score** — e.g. 7.5/10 with skills breakdown
-2. **Job details** — title, company, location, salary, remote, tags, View Original link
-3. **Application details** — Status, Doc Gen, Review Pending, Credit Cost, Created/Updated
-
-### Application Credentials section
-- Shown when portal account created (during/after auto-apply).
-
-### In-progress state
-- "Application In Progress — being processed" empty state while agent runs.
-
-**HireIQ mapping:** See `10-screens-and-ia.md`. We skip Submit (no auto-apply v1), Outreach, and 3-pane density.
+**Hard limits (same physics Sprout hits):** CAPTCHA, weird Workday flows, LinkedIn/Indeed ToS (we stay manual submit), sites that block automation. Sprout charges **3 credits** for that complexity; we pause and ask the human.
 
 ---
 
-## Profile UI (from user DOM)
+## Product lock proposal (Task 147)
 
-- Sidebar groups: PROFILE, DOCUMENTS, PROFESSIONAL PROFILE
-- Sections with count badges (e.g. Experience 3, Skills 8)
-- Review/completeness indicator
-- Single clean column forms
-
-**HireIQ:** Already built in `ProfileWorkspace` — close structural match.
+1. **No credits** on HireIQ for auto-apply.
+2. **Primary path:** Chrome extension agentic apply (local), not a HireIQ-hosted browser farm.
+3. **One website CTA:** job detail **Apply with HireIQ** = ensure tailored PDF → deep-link / focus extension on apply URL → agentic run with review gates for sensitive fields.
+4. **Require approval default on** for first ship (match Sprout’s safe setting).
+5. Revisit cloud/unattended apply only if we later productize for many users (then credits or usage pricing make sense).
 
 ---
 
-## What we intentionally do differently
+## Older notes (UI DOM, still useful)
 
-| Sprout | HireIQ v1 |
-|--------|-----------|
-| 3-pane job detail | 2-pane, simpler |
-| Swipe job discovery | Bring your own job |
-| Auto-apply | Manual apply |
-| Credit subscription | Free / no credits v1 |
-| Submit button on docs | Export PDF/DOCX instead |
-| LinkedIn outreach | v2 |
-| One-page resume only | Seniority-based length (1–2 pg) |
-
-## What we match
-
-- Profile-as-master career record
-- Sectioned profile with badges
-- Per-job document versions + regenerate cap
-- Fit score in sidebar
-- Masked email for tracking
-- Questions tab showing AI Q&A
-- Change-aware tailoring (our diff summary)
+See prior sections in git history for 3-pane job UI, fit score sidebar, etc. Core product implications unchanged: profile-as-master, per-job docs, masked email, questions tab.

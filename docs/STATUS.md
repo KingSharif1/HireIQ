@@ -8,9 +8,9 @@
 
 | | |
 |--|--|
-| **Working on** | Task **140** — reply via HireIQ application email |
-| **Blocked** | Task 143 Google provider · Gmail OAuth consent · Chrome extension needs user’s browser |
-| **Next** | Merge reply-relay PR · smoke Send reply on a matched inbound · enable Google login |
+| **Working on** | Task **147** — Apply with HireIQ (research lock; build next) |
+| **Blocked** | Task 143 Google provider · Gmail OAuth · CAPTCHA needs human |
+| **Next** | Job detail **Apply with HireIQ** CTA → tailor PDF → extension agentic apply |
 | **Roadmap** | [REMAINING-WORK.md](./REMAINING-WORK.md) |
 
 ## System snapshot
@@ -35,7 +35,8 @@
 | GitHub integration | ✓ Task 105 |
 | Gmail sync | 🟡 **Task 114** | History API incremental; prod OAuth + smoke |
 | Settings | ✓ `/dashboard/settings` — tracking modes, GitHub, password, delete |
-| Mask reply-relay | 🟡 **Task 140** — Reply via HireIQ on job Email tab (first slice) |
+| Mask reply-relay | ✓ **Task 140** first slice live (PR #4) — Reply via HireIQ on Email tab |
+| Auto-apply (Sprout-like) | 🔭 **Task 147** — no credits; extension-local agentic apply + website handoff |
 
 ## Phase 1 MVP progress (spec order)
 

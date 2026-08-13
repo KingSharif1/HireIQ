@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-13 — Sprout auto-apply research + Task 147 lock
+
+**What:** Refreshed Sprout AI Apply / credits research. Locked HireIQ approach: **no application credits**; automation stays in the user’s Chrome extension; website CTA will chain tailor → agentic apply (Task 147).
+
+**Files:** `docs/legacy/planning/12-sprout-research.md`, `DECISIONS.md`, `TASKS.md`, `STATUS.md`, `REMAINING-WORK.md`
+
+**Why:** User wants Sprout-like “see job → tailor → AI applies” without weekly credit packs. Credits meter Sprout’s cloud browsers; HireIQ already has the cheaper path.
+
+**Next:** Build Task 147 job-detail **Apply with HireIQ** handoff.
+
+---
+
 ## 2026-08-13 — Task 140: reply via HireIQ application email
 
 **What:** From a job’s Email tab, reply to an employer message and HireIQ sends it from your masked application address (Resend). The sent message lands in the same thread. Settings copy explains the reply path.
