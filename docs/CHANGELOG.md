@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-08-12 — Handoff: Resume Builder next (Task 146)
+
+**What:** Documented current Builder/Profile/job-Teal split, pain (too many pages/tabs), and Task 146 for a one-surface Resume Builder. Applications left alone.
+
+**Files:** `docs/RESUME-BUILDER.md`, STATUS, TASKS, ARCHITECTURE, DECISIONS, CHANGELOG
+
+**Why:** Clean new-chat start after marketing + dashboard ship.
+
+**Next:** Grill IA → implement Task 146.
+
+---
+
+## 2026-08-12 — Task 145: Document extension connect + Chrome Store
+
+**What:** Rewrote EXTENSION.md (connect mental model, local vs prod builds, externally_connectable, APIs). Added CHROME-STORE.md (trader, draft listing, publish gates, assets). Linked from README/STATUS; DECISIONS lock for prod popup.
+
+**Files:** `docs/EXTENSION.md`, `docs/CHROME-STORE.md`, `docs/README.md`, `docs/STATUS.md`, `docs/DECISIONS.md`, `docs/TASKS.md`
+
+**Why:** Capture decisions before we leave Store setup and come back later.
+
+**Next:** Icons + screenshots when ready to Publish; Task 143 Google enable.
+
+---
+
 ## 2026-08-12 — Landing finale + CTA cleanup
 
 **What:** Closing aurora finale (“Less paperwork. More interviews.”) with one primary Get started. Sign in only in footer. Interactive scroll scenes + parallax BG; removed sticky empty void.

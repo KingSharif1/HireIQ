@@ -13,18 +13,20 @@ Two pillars only:
 
 Cover letter, outreach, and interview prep exist in the codebase but are **out of Phase 1 scope** per the new spec.
 
-### Primary navigation (IA reset)
+### Primary navigation (IA — under revisit, Task 146)
 
 | Place | Route | Notes |
 |-------|--------|-------|
-| Dashboard | `/dashboard` | Hub tiles |
-| Applications | `/dashboard/tracker` | Teal tracker |
-| Resume Builder | `/dashboard/builder` | Library only; master edits on Profile |
-| Profile | `/dashboard/profile` | Account icon — unified master (docs + content + pending) |
+| Dashboard | `/dashboard` | Hub tiles (teal shell) |
+| Applications | `/dashboard/tracker` | Teal tracker — **user says fine; leave alone** |
+| Resume Builder | `/dashboard/builder` | Library only today; master edits bounce to Profile |
+| Profile | `/dashboard/profile` | Section-nav master (13 sections, one at a time) |
 
 Shell: `components/shared/{DashboardShell,Sidebar,MobileNav,primary-nav.ts}`.
 
-Profile: `components/profile/ProfileHome.tsx` (+ shared save/nav/panel). Legacy `/profile/documents`, `/profile/professional`, `/builder/master` redirect. Builder library: `components/builder/ResumeLibrary.tsx`. Job Teal chrome: Applications → Documents (JobMatcherPanel).
+**Fragmentation (why Task 146):** Builder library + Profile section carousel + `/resume/upload` + per-job Teal tabs on Applications → Documents. Full map: [RESUME-BUILDER.md](./RESUME-BUILDER.md).
+
+Profile: `components/profile/ProfileHome.tsx` (+ shared save/nav/panel). Legacy `/profile/documents`, `/profile/professional`, `/builder/master` redirect. Builder library: `components/builder/ResumeLibrary.tsx`. Job Teal chrome: `JobResumeEditor` (Content / Designer / Matcher).
 
 ### Chrome extension (Module 6)
 

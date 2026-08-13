@@ -2,7 +2,16 @@
 
 **As of:** 2026-08-12  
 **Branch:** `main` (pushed) · **Production:** https://hireiq.kingsharif.com  
-**Tests:** masked-inbound unit suite green; extension **v0.9.x** local builds  
+**Tests:** masked-inbound unit suite green; extension **v0.9.6** local builds  
+
+## Session handoff (next chat)
+
+| | |
+|--|--|
+| **Working on** | **Task 146** — Resume Builder UX consolidation |
+| **Leave alone** | Applications / tracker (user says fine); marketing landing (just shipped) |
+| **Brief** | [RESUME-BUILDER.md](./RESUME-BUILDER.md) — routes, pain, pasteable opener |
+| **System one-liner** | HireIQ: tailor resumes + track apps (Next/Supabase) · Builder split across Profile + library + job Teal tabs · next = one coherent Builder page |
 
 ## System snapshot
 
@@ -13,7 +22,7 @@
 | Legal / branding | 🟡 Landing + `/privacy` + `/terms` live · Search Console + re-verify branding + submit sensitive-scope verification — see `docs/GOOGLE-VERIFICATION.md` |
 | Resume upload (PDF/DOCX) | ✓ |
 | Resume parse (Claude) | 🟡 — needs tiered skills + low-confidence flags + OCR |
-| Profile / Resume Builder | ✓ — Profile master (131/133); job editor full-bleed + zoom/pan (132); Builder library |
+| Profile / Resume Builder | 🟡 **Task 146** — works but fragmented (Builder library + Profile sections + upload + job Teal). See [RESUME-BUILDER.md](./RESUME-BUILDER.md) |
 | Job URL fetch | 🟡 — GH/Lever/Ashby/Workday ✓; LinkedIn → paste; aggregator warnings |
 | Job analyze | ✓ |
 | ATS score | ✓ — algorithmic |
@@ -21,7 +30,7 @@
 | Tailor stepper | ⛔ Redirected — Job Matcher + tracker replace primary flow |
 | Application tracker | ✓ — Teal list/board; All outreach (134); masked inbound code + DB (139) |
 | Masked apply email (Resend) | ✓ Infra live — `mail.kingsharif.com` receiving; webhook URL prod; needs smoke + `RESEND_FORWARD_FROM` optional |
-| Chrome extension | 🟡 **v0.9.6** prod popup (Connected pill, no localhost UI) · local keeps Advanced |
+| Chrome extension | 🟡 **v0.9.6** · docs in EXTENSION.md + CHROME-STORE.md · Store draft OK; Publish gated |
 | GitHub integration | ✓ Task 105 |
 | Gmail sync | 🟡 **Task 114** — Settings modes + Google signup scopes; needs smoke after reconnect |
 | Settings | ✓ `/dashboard/settings` — tracking modes, GitHub, password, delete |
@@ -69,10 +78,10 @@ Migrations 001–015 documented; 006–015 applied remotely via MCP.
 
 ## Next recommended tasks
 
-1. **Task 143** — Enable Google in Supabase (AUTH.md §3); smoke login + extension Connect  
-2. **Smoke Task 139 on prod** — create address → inbound → All outreach (redeploy if webhook secret just added)  
-3. **Task 114** — Gmail read-only sync (MVP email tracking, default on / opt-out)  
-4. **Extension panel IA** — Autofill Information + progress + Questions; resume as progress item  
-5. **Task 140 (v2)** — mask reply-relay + prefs when user opts out of Gmail / email-password only  
+1. **Task 146** — Resume Builder one-page UX ([RESUME-BUILDER.md](./RESUME-BUILDER.md)) — **start here next chat**  
+2. **Task 143** — Enable Google in Supabase (AUTH.md §3); smoke login + extension Connect  
+3. **Chrome Store draft** — icons + screenshots when ready; see [CHROME-STORE.md](./CHROME-STORE.md) (don’t Publish until prod Connect smoke)  
+4. **Smoke Task 139 on prod** — create address → inbound → All outreach  
+5. **Task 114** — Gmail read-only sync (MVP email tracking)  
 
-Docs: [EMAIL.md](./EMAIL.md) · [DECISIONS.md](./DECISIONS.md) · [AUTH.md](./AUTH.md) · [EXTENSION.md](./EXTENSION.md)
+Docs: [RESUME-BUILDER.md](./RESUME-BUILDER.md) · [EMAIL.md](./EMAIL.md) · [DECISIONS.md](./DECISIONS.md) · [AUTH.md](./AUTH.md) · [EXTENSION.md](./EXTENSION.md) · [CHROME-STORE.md](./CHROME-STORE.md) · [GOOGLE-VERIFICATION.md](./GOOGLE-VERIFICATION.md)

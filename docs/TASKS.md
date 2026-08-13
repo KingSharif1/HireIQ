@@ -387,6 +387,25 @@ Files changed: `extension/src/popup.html`, `popup.ts`, `settings.ts`, `env.ts`, 
 
 ---
 
+## Task 145 — Document extension connect + Chrome Store prep
+Status: DONE  
+Scope: `docs/EXTENSION.md`, `docs/CHROME-STORE.md`, README, STATUS, DECISIONS, CHANGELOG  
+Goal: Single place for connect mental model, local vs prod builds, Store checklist, trader note, publish gates.  
+Result: EXTENSION.md rewritten; new CHROME-STORE.md; cross-links from README/STATUS.  
+Files changed: `docs/EXTENSION.md`, `docs/CHROME-STORE.md`, `docs/README.md`, `docs/STATUS.md`, `docs/DECISIONS.md`, `docs/CHANGELOG.md`, `docs/TASKS.md`  
+
+---
+
+## Task 146 — Resume Builder UX: one coherent surface
+Status: PENDING  
+Scope: `components/builder/**`, `components/profile/**`, `app/dashboard/{builder,profile,resume}/**`, `components/shared/primary-nav.ts` (+ Sidebar/MobileNav), docs; **avoid** Applications/Job Hub unless redirects  
+Goal: Resume Builder looks and acts like one product page — fewer hops/tabs/duplicate doors (library vs Profile section carousel vs upload). Applications stay as-is.  
+Notes: Prior lock (DECISIONS 2026-08-09) split Profile=master / Builder=library / Teal=job Documents. User now wants consolidation. **Grill IA first**, then implement. Brief: [RESUME-BUILDER.md](./RESUME-BUILDER.md).  
+Result:  
+Files changed:  
+
+---
+
 ## Task 143 — Enable Supabase Google login (site + extension)
 Status: IN PROGRESS  
 Scope: `proxy.ts`, `lib/auth/messages.ts`, auth pages, `docs/AUTH.md`, extension auth error copy  

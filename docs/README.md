@@ -6,8 +6,12 @@
 **Architecture map:** [ARCHITECTURE.md](./ARCHITECTURE.md)  
 **Current status:** [STATUS.md](./STATUS.md)  
 **Active tasks:** [TASKS.md](./TASKS.md)  
+**Resume Builder brief (next):** [RESUME-BUILDER.md](./RESUME-BUILDER.md)  
 **Auth setup:** [AUTH.md](./AUTH.md)  
-**Masked email (Resend):** [EMAIL.md](./EMAIL.md)
+**Chrome extension:** [EXTENSION.md](./EXTENSION.md)  
+**Chrome Web Store:** [CHROME-STORE.md](./CHROME-STORE.md)  
+**Masked email (Resend):** [EMAIL.md](./EMAIL.md)  
+**Google OAuth verification:** [GOOGLE-VERIFICATION.md](./GOOGLE-VERIFICATION.md)
 
 ---
 

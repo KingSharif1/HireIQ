@@ -1,5 +1,23 @@
 # HireIQ Decisions
 
+## 2026-08-12 — Resume Builder consolidation (intent; IA not locked yet)
+
+**Context:** After marketing + dashboard polish, user says Applications are fine but Resume Builder feels like too many pages/tabs that should be one better page. Current ship follows 2026-08-09 Profile=master / Builder=library / Teal=job-only.
+
+**Intent (soft lock):**
+| Area | Choice |
+|------|--------|
+| Priority | **Task 146** — one coherent Resume Builder surface |
+| Applications | Do not redesign |
+| Process | Grill IA in next session before rewriting; then update this decision with hard locks |
+| Brief | [RESUME-BUILDER.md](./RESUME-BUILDER.md) |
+
+**Tradeoff:** Until grilled, keep dual Profile + Builder nav; don’t half-merge.
+
+**Revisit if:** Next session completes Task 146 — then supersede or amend 2026-08-09 Profile lock.
+
+---
+
 ## 2026-08-12 — Settings + email tracking modes + Google Gmail at signup
 
 **Context:** Google login ≠ Gmail mailbox permission. Tracking UX was buried under Personal Info. User wants exclusive tracking paths and account Settings.
@@ -86,6 +104,25 @@
 **Tradeoff:** Connect codes briefly store access/refresh server-side (hashed code, TTL, one-time). Simpler UX than identity OAuth for local/dev and Store builds.
 
 **Revisit if:** Token storage on `extension_connect_codes` becomes a compliance issue (encrypt at rest / shorter TTL) or Chrome tightens externally_connectable.
+
+---
+
+## 2026-08-12 — Extension prod popup vs local; no silent auto-link
+
+**Context:** Store users must not see localhost API URL / Advanced. Wanted “auto-link if already logged into the website.”
+
+**Choice:**
+| Area | Lock |
+|------|------|
+| Prod build (`npm run build`) | Force `https://hireiq.kingsharif.com`; hide API field + Advanced |
+| Dev build (`npm run dev`) | Keep localhost field + Advanced (Google-in-window, legacy token) |
+| Auto-link | Chrome forbids zero-click bind; already signed-in site + one **Connect** click = instant link |
+| Dashboard panel | Instructions first; legacy `hiq_` token collapsed — not required for Store |
+| `externally_connectable` | Must include `hireiq.kingsharif.com` for prod Connect |
+
+**Tradeoff:** Two build modes; engineers must use `--mode development` for local API override.
+
+**Revisit if:** We add a dashboard “Link extension” button that uses the same `sendMessage` path (still one click).
 
 ---
 
