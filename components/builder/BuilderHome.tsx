@@ -23,7 +23,7 @@ type BuilderHomeProps = {
 }
 
 const VIEWS: { id: BuilderView; label: string; hint: string }[] = [
-  { id: 'master', label: 'Master resume', hint: 'Edit the profile used for tailoring and autofill' },
+  { id: 'master', label: 'Master resume', hint: 'All sections on one page — used for tailoring and autofill' },
   { id: 'files', label: 'Files & versions', hint: 'Uploads and per-job tailored copies' },
 ]
 

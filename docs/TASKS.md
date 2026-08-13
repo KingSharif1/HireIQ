@@ -399,12 +399,12 @@ Files changed: `docs/EXTENSION.md`, `docs/CHROME-STORE.md`, `docs/README.md`, `d
 ---
 
 ## Task 146 — Resume Builder UX: one coherent surface
-Status: IN PROGRESS  
+Status: DONE  
 Scope: `components/builder/**`, `components/profile/**`, `app/dashboard/{builder,profile,resume}/**`, `components/shared/primary-nav.ts` (+ Sidebar/MobileNav), docs; **avoid** Applications/Job Hub unless redirects  
 Goal: Resume Builder looks and acts like one product page — fewer hops/tabs/duplicate doors (library vs Profile section carousel vs upload). Applications stay as-is.  
-Notes: Prior lock (DECISIONS 2026-08-09) split Profile=master / Builder=library / Teal=job Documents. User now wants consolidation. **Grill IA first**, then implement. Brief: [RESUME-BUILDER.md](./RESUME-BUILDER.md).  
-Result (partial): One **Resume Builder** nav. Default **Master resume** editor + **Files & versions** tab. `/dashboard/profile` redirects in (preserves `section` + GitHub/Google error query). Suggestion/GitHub/extension links point at Builder master. Section carousel still inside Master — remaining: optional scroll-all-sections.  
-Files changed: `components/builder/BuilderHome.tsx`, `app/dashboard/builder/page.tsx`, `app/dashboard/profile/page.tsx`, `primary-nav.ts`, `HomeTiles.tsx`, GitHub OAuth callbacks, `lib/notifications.ts`, redirects
+Notes: Prior lock (DECISIONS 2026-08-09) split Profile=master / Builder=library / Teal=job Documents. User now wants consolidation. Brief: [RESUME-BUILDER.md](./RESUME-BUILDER.md).  
+Result: One **Resume Builder** nav. Default **Master resume** (all sections on one scrolling page, left nav jumps) + **Files & versions**. `/dashboard/profile` redirects (preserves `section` + GitHub/Google error query). Suggestion/GitHub/extension links point at Builder master. Per-job Teal stays on Applications → Documents.  
+Files changed: `ProfileHome.tsx`, `ProfileSectionPanel.tsx`, `BuilderHome.tsx`, `app/dashboard/builder/page.tsx`, `app/dashboard/profile/page.tsx`, `primary-nav.ts`, `HomeTiles.tsx`, GitHub OAuth callbacks, `lib/notifications.ts`, docs
 
 ---
 

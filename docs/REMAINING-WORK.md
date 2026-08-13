@@ -16,7 +16,7 @@ This is the single checklist for what shipped recently, what’s next, and what 
 | **Portal login UI** | Job detail **Job facts** rail + **Activity** tab show email / password / note when saved. |
 | **Gmail sync** | History API incremental sync when `history_id` exists; falls back to 14-day list scan. |
 | **Export QA** | `runResumeLayoutCheck` blocks PDF/DOCX on critical issues; warns on page count + font-size/line-height (Task 106). |
-| **Resume Builder** | One nav item: **Master resume** (default) + **Files & versions**. `/dashboard/profile` redirects (keeps GitHub error query). |
+| **Resume Builder** | One nav: **Master resume** (all sections, one page) + **Files & versions**. `/dashboard/profile` redirects. |
 
 Open PR: **#3** — `cursor/prod-smoke-layout-warnings-d22e` (export check + Builder consolidation)
 
@@ -53,7 +53,7 @@ Open PR: **#3** — `cursor/prod-smoke-layout-warnings-d22e` (export check + Bui
 | 114 | Gmail sync polish | Done in code: History API + incremental/full + stale-history copy. Remaining: Connect Gmail on prod + second Sync now |
 | 117 | Extension polish | v0.9.8 Amazon/MS hosts + detectPageKind. Remaining: board adapters, broader autofill |
 | 106 | Visual render QA | Export check: page count + body/name font + line-height warnings. Remaining: live preview beside master (optional) |
-| 146 | Resume Builder consolidation | One Builder nav: Master (default) + Files. Profile/GitHub links in. Remaining: optional scroll-all-sections |
+| 146 | Resume Builder consolidation | **Done:** one Builder nav, Master scrolling page + Files, Profile/GitHub links in |
 | 115 | Forward-to-save email | Inbound webhook for forwarded postings |
 | 140 | Mask reply-relay v2 | User ↔ HireIQ ↔ employer reply path |
 

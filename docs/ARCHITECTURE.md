@@ -24,7 +24,7 @@ Cover letter, outreach, and interview prep exist in the codebase but are **out o
 
 Shell: `components/shared/{DashboardShell,Sidebar,MobileNav,primary-nav.ts}`.
 
-Master editor is still a section carousel inside Builder. Per-job Teal tabs stay on Applications → Documents. Full map: [RESUME-BUILDER.md](./RESUME-BUILDER.md).
+Master editor is one scrolling page inside Builder (left nav jumps). Per-job Teal tabs stay on Applications → Documents. Full map: [RESUME-BUILDER.md](./RESUME-BUILDER.md).
 
 Profile: `components/profile/ProfileHome.tsx` embedded in `BuilderHome`. Legacy `/profile/documents`, `/profile/professional`, `/builder/master` redirect. Files tab: `ResumeLibrary`. Job Teal chrome: `JobResumeEditor`.
 

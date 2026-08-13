@@ -1,5 +1,23 @@
 # HireIQ Decisions
 
+## 2026-08-13 — Master resume is one scrolling page (Task 146)
+
+**Context:** After consolidating nav, Master was still a 13-section carousel (one panel at a time). User wanted one page.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Master editor | **All sections stacked** on `/dashboard/builder?view=master` |
+| Left nav | Jump links + highlight via IntersectionObserver |
+| Deep links | `?section=` still scrolls to that block |
+| Per-job Teal | Unchanged |
+
+**Tradeoff:** Heavier first paint (all editors mount). One Save still covers the whole profile.
+
+**Revisit if:** The page feels too long or we add a live preview column.
+
+---
+
 ## 2026-08-13 — Resume Builder is one primary surface (Task 146)
 
 **Context:** User asked to continue remaining work without a grill session. Suggested option 1 from RESUME-BUILDER.md.
@@ -9,13 +27,13 @@
 |------|--------|
 | Primary nav | **One Resume Builder item** — Profile removed from rail |
 | Surface | `/dashboard/builder` with **Master resume** (default) + **Files & versions** |
-| Old Profile URLs | Redirect to ` /dashboard/builder?view=master` (keep OAuth/GitHub callbacks) |
+| Old Profile URLs | Redirect to `/dashboard/builder?view=master` (keep OAuth/GitHub callbacks) |
 | Per-job Teal | Stays on Applications → Documents |
 | Home | Applications + Resume Builder (no separate Profile tile) |
 
-**Tradeoff:** Section carousel still exists inside Master; not a single scrolling page. Fewer destinations, same editors.
+**Tradeoff:** Originally left a section carousel; superseded by the scrolling-page lock above.
 
-**Revisit if:** Users miss a dedicated Profile nav or want a scrolling one-pager.
+**Revisit if:** Users miss a dedicated Profile nav.
 
 ---
 

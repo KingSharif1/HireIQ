@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-13 — Master resume scrolls as one page
+
+**What:** Resume Builder Master shows every profile section on one page. Left nav jumps to anchors; `?section=` deep links still work.
+
+**Files:** `components/profile/{ProfileHome,ProfileSectionPanel}.tsx`, `lib/profile/sections.ts`, `BuilderHome.tsx`, docs
+
+**Why:** Task 146 remaining carousel felt like many pages.
+
+**Next:** Merge PR #3; Gmail OAuth.
+
+---
+
 ## 2026-08-13 — Font-size export checks + Amazon/MS save hosts
 
 **What:** Export check warns on body/name font size and loose line height. Extension + server job-URL gate allow `amazon.jobs` / `careers.microsoft.com` and block prod `hireiq.kingsharif.com`. Tracker empty-score CTA says Tailor. Profile/GitHub/suggestion links go to Resume Builder master (and keep `github_error` on redirect). Extension **v0.9.8**.

@@ -1,6 +1,6 @@
 # Resume Builder — current map + next-session brief
 
-**As of:** 2026-08-13 · **Next task:** [Task 146](./TASKS.md) remaining = optional scroll-all-sections  
+**As of:** 2026-08-13 · **Task 146 done** (one Builder surface + scrolling Master)  
 **Prod:** https://hireiq.kingsharif.com · **Commit baseline:** `3c1d4f4` (+ STATUS `1b08bd2`)
 
 Use this file as the **starting brief** for a new chat whose only job is making Resume Builder look and act like one coherent product surface.
@@ -19,9 +19,9 @@ Do **not** expand Applications / Job Hub unless needed for redirects. Prefer gri
 
 | Symptom | Why |
 |---------|-----|
-| Two primary nav items for one mental model | **Resume Builder** (`/dashboard/builder`) + **Profile** (`/dashboard/profile`) |
-| Builder is only a library | “Edit master” bounces to Profile |
-| Profile is a **section carousel** | Sidebar with 13 sections — one panel at a time (feels like many pages) |
+| Two primary nav items for one mental model | **Fixed** — one Resume Builder nav; Profile redirects in |
+| Builder is only a library | **Fixed** — Master is the default Builder view |
+| Profile is a **section carousel** | **Fixed 2026-08-13** — Master is one scrolling page; left nav jumps |
 | Duplicate documents door | Library “Your resumes” ≈ Profile → Documents (`?section=resumes`) |
 | Upload is a third route | `/dashboard/resume/upload` |
 | Teal design chrome orphaned from “Builder” | Content / Designer / Matcher live under **Applications → job → Documents** (`JobResumeEditor`) |
@@ -44,7 +44,7 @@ Prior lock ([DECISIONS 2026-08-09](./DECISIONS.md)): Profile = master; Builder =
 | `/dashboard/resume/[id]` | Resume detail |
 | `/dashboard/tracker/[id]?tab=documents` | Per-job Teal editor (Content / Design / Match + preview) |
 
-Nav: `components/shared/primary-nav.ts` — Dashboard · Applications · Resume Builder · Profile.
+Nav: `components/shared/primary-nav.ts` — Dashboard · Applications · Resume Builder.
 
 ---
 

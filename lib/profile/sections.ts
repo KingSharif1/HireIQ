@@ -80,6 +80,11 @@ export function isKnownSection(id: string): id is SectionId {
   return SECTIONS.some(s => s.id === id)
 }
 
+/** DOM id for Master resume section anchors (one-page scroll). */
+export function profileSectionAnchor(id: SectionId): string {
+  return `section-${id}`
+}
+
 /** Count badge value for a section. Returns a number for lists, or null. */
 export function sectionCount(id: SectionId, data: ProfileData, resumeCount: number): number | null {
   switch (id) {

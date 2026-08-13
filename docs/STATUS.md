@@ -2,15 +2,15 @@
 
 **As of:** 2026-08-13  
 **Branch:** `main` · **Production:** https://hireiq.kingsharif.com  
-**Tests:** 197+ unit · 11 live URL · extension **v0.9.8** · PR #3 open
+**Tests:** 203 unit · 11 live URL · extension **v0.9.8** · PR #3 open
 
 ## Session handoff
 
 | | |
 |--|--|
-| **Working on** | PR #3 — font-size export checks + Builder link cleanup |
+| **Working on** | PR #3 — Master resume one-page scroll |
 | **Blocked** | Gmail OAuth consent · Task 143 Google provider |
-| **Next** | Merge PR #3 · Task 146 scroll-all-sections · complete Gmail connect |
+| **Next** | Merge PR #3 · Connect Gmail · Task 117 board adapters |
 | **Roadmap** | [REMAINING-WORK.md](./REMAINING-WORK.md) |
 
 ## System snapshot
@@ -22,7 +22,7 @@
 | Legal / branding | 🟡 Landing + `/privacy` + `/terms` live · Search Console + re-verify branding + submit sensitive-scope verification — see `docs/GOOGLE-VERIFICATION.md` |
 | Resume upload (PDF/DOCX) | ✓ |
 | Resume parse (Claude) | 🟡 — needs tiered skills + low-confidence flags + OCR |
-| Profile / Resume Builder | 🟡 **Task 146** — one Builder nav (master + files); section carousel still inside master |
+| Profile / Resume Builder | ✓ **Task 146** — one Builder nav; Master is one scrolling page + Files tab |
 | Job URL fetch | ✓ ~90% | Amazon/Microsoft + tiered pipeline; legacy MS URLs need Playwright |
 | Job analyze | ✓ |
 | ATS score | ✓ — algorithmic |
@@ -80,7 +80,7 @@ Migrations 001–018 applied remotely; **019 applied** 2026-08-13 — see [supab
 
 1. Merge PR #3, then Connect Gmail on prod Settings → Sync now  
 2. **Task 143** — Enable Google in Supabase ([AUTH.md](./AUTH.md) §3)  
-3. **Task 146** — optional scroll-all-sections on Master ([RESUME-BUILDER.md](./RESUME-BUILDER.md))  
+3. **Task 117** — extension board adapters (optional polish)  
 4. **Chrome Store draft** — [CHROME-STORE.md](./CHROME-STORE.md)  
 
 Docs: [REMAINING-WORK.md](./REMAINING-WORK.md) · [EMAIL.md](./EMAIL.md) · [DECISIONS.md](./DECISIONS.md) · [AUTH.md](./AUTH.md) · [EXTENSION.md](./EXTENSION.md)
