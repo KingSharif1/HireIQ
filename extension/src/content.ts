@@ -20,6 +20,11 @@ import {
   type FillReport,
 } from './autofill'
 import { extensionFetch, getExtensionBearer, base64ToFile, friendlyExtensionError } from './api'
+import {
+  runAgenticApplyStep,
+  type AgenticApplyContext,
+} from './agentic-apply'
+import type { ApplyIdentity } from '../../lib/extension/apply-identity'
 import { detectAuthWall } from './detect-auth-wall'
 import { isSensitiveFieldLabel, type AutofillProfile, isMissingProfileValue, missingProfilePrompt, isMasterBackfillKind } from '@hireiq/form-fill'
 import {
@@ -567,9 +572,11 @@ function ensureUi() {
             <span class="saved-chip" id="hiq-saved-chip" hidden>Saved</span>
           </div>
           <div class="account" id="hiq-account">
-            <h3 class="section-label" style="color:#92400e;margin:0">Employer account needed</h3>
+            <h3 class="section-label" style="color:#92400e;margin:0" id="hiq-account-title">Employer account needed</h3>
             <p id="hiq-account-reason">This site wants you to create / sign in to an account.</p>
-            <p>Create the account yourself (we don’t invent emails). Then save the email here so HireIQ can help track status.</p>
+            <p id="hiq-account-body">Create the account yourself, or let HireIQ continue when tracking is on.</p>
+            <button type="button" class="btn secondary" id="hiq-agentic-continue" hidden>Continue to application</button>
+            <button type="button" class="btn primary" id="hiq-agentic-create" hidden>Create account &amp; continue</button>
             <input id="hiq-ats-email" type="email" placeholder="email you used on this site" />
             <button type="button" class="btn secondary" id="hiq-ats-save">Save ATS email</button>
           </div>
@@ -622,7 +629,11 @@ function ensureUi() {
   const savedChip = shadow.getElementById('hiq-saved-chip')!
   const autofillBtn = shadow.getElementById('hiq-autofill') as HTMLButtonElement
   const accountEl = shadow.getElementById('hiq-account')!
+  const accountTitle = shadow.getElementById('hiq-account-title')!
   const accountReason = shadow.getElementById('hiq-account-reason')!
+  const accountBody = shadow.getElementById('hiq-account-body')!
+  const agenticContinueBtn = shadow.getElementById('hiq-agentic-continue') as HTMLButtonElement
+  const agenticCreateBtn = shadow.getElementById('hiq-agentic-create') as HTMLButtonElement
   const atsEmailInput = shadow.getElementById('hiq-ats-email') as HTMLInputElement
   const atsSaveBtn = shadow.getElementById('hiq-ats-save') as HTMLButtonElement
   const previewLoading = shadow.getElementById('hiq-preview-loading')!
@@ -650,6 +661,7 @@ function ensureUi() {
   let profileUrl = ''
   let savedJobId = ''
   let profile: AutofillProfile | null = null
+  let applyIdentity: ApplyIdentity | null = null
   let reviewItems: ReviewItem[] = []
   let expandedReviewIdx: number | null = null
   let resumes: ResumeOption[] = []
@@ -752,12 +764,52 @@ function ensureUi() {
       profile?: AutofillProfile
       autofillPreview?: Preview
       profileUrl?: string
+      applyIdentity?: ApplyIdentity
     }
     if (!res.ok || !json.profile) throw new Error(json.error || res.error || `Profile failed (${res.status})`)
     profile = json.profile
+    applyIdentity = json.applyIdentity ?? null
     profileUrl = json.profileUrl || ''
     if (json.autofillPreview) renderPreview(json.autofillPreview)
+    refreshAuthWall()
     return json.profile
+  }
+
+  function buildAgenticContext(): AgenticApplyContext | null {
+    if (!applyIdentity || !profile) return null
+    return {
+      applyIdentity,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      sleep: ms => new Promise(resolve => setTimeout(resolve, ms)),
+      fetchVerificationCode: async jobId => {
+        const settings = await getSettings()
+        const bearer = await getExtensionBearer()
+        const res = await extensionFetch(
+          `${settings.apiBaseUrl.replace(/\/$/, '')}/api/extension/jobs/${jobId}/verification-code`,
+          { headers: { Authorization: `Bearer ${bearer}` } },
+        )
+        const json = (res.json || {}) as { code?: string | null; error?: string }
+        return { code: json.code ?? null, error: json.error || res.error }
+      },
+      savePortalCredentials: async (jobId, email, password, note) => {
+        const settings = await getSettings()
+        const bearer = await getExtensionBearer()
+        await extensionFetch(
+          `${settings.apiBaseUrl.replace(/\/$/, '')}/api/extension/jobs/${jobId}/ats-account`,
+          {
+            method: 'PATCH',
+            headers: {
+              Authorization: `Bearer ${bearer}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password, note }),
+          },
+        )
+        atsEmailInput.value = email
+      },
+      onStatus: (message, kind) => setStatus(message, kind || ''),
+    }
   }
 
   /** Only returns when already saved — never auto-saves. */
@@ -1434,13 +1486,65 @@ function ensureUi() {
 
   function refreshAuthWall() {
     const wall = detectAuthWall(document)
+    const identity = applyIdentity
+    if (identity) {
+      accountTitle.textContent = wall.needsAccount ? identity.panelTitle : 'Smart apply'
+      accountBody.textContent = identity.panelBody
+      if (identity.applyEmail && !atsEmailInput.value.trim()) {
+        atsEmailInput.value = identity.applyEmail
+      }
+    }
+
+    agenticContinueBtn.hidden = true
+    agenticCreateBtn.hidden = true
+
     if (wall.needsAccount) {
       accountEl.classList.add('show')
       accountReason.textContent = wall.reason
+      if (identity?.canCreateAccount) {
+        agenticCreateBtn.hidden = false
+      }
     } else {
-      accountEl.classList.remove('show')
+      accountReason.textContent = wall.reason
+      if (identity && identity.primaryAction !== 'autofill-only') {
+        accountEl.classList.add('show')
+        agenticContinueBtn.hidden = false
+      } else {
+        accountEl.classList.remove('show')
+      }
     }
   }
+
+  async function runAgentic(action: 'continue' | 'signup') {
+    if (!savedJobId) {
+      setStatus('Save this job first', 'err')
+      return
+    }
+    const ctx = buildAgenticContext()
+    if (!ctx) {
+      setStatus('Sign in and load your profile first.', 'err')
+      return
+    }
+    agenticContinueBtn.disabled = true
+    agenticCreateBtn.disabled = true
+    try {
+      if (action === 'signup') {
+        await runAgenticApplyStep(ctx, savedJobId)
+      } else {
+        await runAgenticApplyStep(ctx, savedJobId)
+      }
+      refreshAuthWall()
+      updateProgress(scanFormProgress())
+    } catch (err) {
+      setStatus(friendlyExtensionError(err), 'err')
+    } finally {
+      agenticContinueBtn.disabled = false
+      agenticCreateBtn.disabled = false
+    }
+  }
+
+  agenticContinueBtn.addEventListener('click', () => void runAgentic('continue'))
+  agenticCreateBtn.addEventListener('click', () => void runAgentic('signup'))
 
   atsSaveBtn.addEventListener('click', async () => {
     const email = atsEmailInput.value.trim()

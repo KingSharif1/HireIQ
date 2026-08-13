@@ -7,6 +7,8 @@ import {
   type AutofillProfile,
 } from '@/lib/extension/form-fill'
 import { inferCountryFromLocation } from '@/lib/extension/location-country'
+import { resolveApplyIdentity } from '@/lib/extension/apply-identity'
+import { ensureAccessTokenForUser } from '@/lib/google/token-access'
 import type { Profile, ProfileData } from '@/types'
 
 export const runtime = 'nodejs'
@@ -85,7 +87,7 @@ export async function GET(request: Request) {
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('profiles')
-    .select('first_name, last_name, email, profile_data')
+    .select('first_name, last_name, email, profile_data, email_tracking_mode, masked_email, gmail_sync_enabled')
     .eq('id', userId)
     .maybeSingle()
 
@@ -99,9 +101,22 @@ export async function GET(request: Request) {
   const profile = buildAutofillProfile(
     data as Pick<Profile, 'first_name' | 'last_name' | 'email' | 'profile_data'>,
   )
-  const normalized = normalizeProfileData(
-    ((data as Pick<Profile, 'profile_data'>).profile_data ?? {}) as ProfileData,
-  )
+  const row = data as Pick<
+    Profile,
+    'first_name' | 'last_name' | 'email' | 'profile_data'
+  > & {
+    email_tracking_mode?: string | null
+    masked_email?: string | null
+    gmail_sync_enabled?: boolean | null
+  }
+  const normalized = normalizeProfileData((row.profile_data ?? {}) as ProfileData)
+  const gmailConnected = Boolean(await ensureAccessTokenForUser(userId))
+  const applyIdentity = resolveApplyIdentity({
+    mode: (row.email_tracking_mode as 'gmail' | 'masked' | 'off' | null) ?? 'off',
+    profileEmail: profile.email,
+    maskedEmail: row.masked_email,
+    gmailConnected,
+  })
 
   const autofillPreview = {
     fullName: [profile.firstName, profile.lastName].filter(Boolean).join(' ') || 'Add your name',
@@ -131,6 +146,8 @@ export async function GET(request: Request) {
     {
       profile,
       autofillPreview,
+      applyIdentity,
+      emailTrackingMode: applyIdentity.mode,
       appUrl: (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, ''),
       profileUrl: `${(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')}/dashboard/profile/professional`,
     },

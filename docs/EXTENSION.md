@@ -18,7 +18,7 @@ No special Supabase `chromiumapp.org` redirect required for this flow.
 
 **Advanced (dev builds only):** Google via `chrome.identity`, or paste a legacy `hiq_` token. Hidden in production builds.
 
-Extension package **v0.9.6**. `externally_connectable` includes `https://hireiq.kingsharif.com/*`.
+Extension package **v0.9.7**. `externally_connectable` includes `https://hireiq.kingsharif.com/*`.
 
 ## Prerequisites
 
@@ -82,9 +82,9 @@ We do **not** create ATS accounts or mask emails for you **today** (v0.9). Sensi
 
 See **[Agentic apply (planned)](#agentic-apply-planned)** below for the v2 vision — multi-step navigation, account creation tied to email tracking mode, and verification-code handling.
 
-## Agentic apply (planned)
+## Agentic apply (v1 — shipped)
 
-> **Status:** Design note only — not implemented. Current extension = save, autofill known fields, AI drafts, user-watched Submit. This section captures the target behavior for a future agentic apply loop.
+> **Status:** MVP shipped in extension v0.9.7+. Multi-step Continue, signup autofill, verification polling tied to `email_tracking_mode`. Full unattended apply on every ATS is still evolving — add rules when a host fails (same pattern as job URL fetching).
 
 ### Goal
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveExtensionUserId } from '@/lib/extension/tokens'
+import { fetchVerificationCodeForUser } from '@/lib/extension/fetch-verification-code'
 
 export const runtime = 'nodejs'
 
@@ -11,7 +12,7 @@ function corsHeaders(origin: string | null): HeadersInit {
       : '*'
   return {
     'Access-Control-Allow-Origin': allow,
-    'Access-Control-Allow-Methods': 'PATCH, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Authorization, Content-Type',
     'Access-Control-Max-Age': '86400',
   }
@@ -21,16 +22,14 @@ export async function OPTIONS(request: Request) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(request.headers.get('origin')) })
 }
 
-/**
- * Save the email the user used (or will use) on an employer ATS account.
- */
-export async function PATCH(
+/** Poll Gmail or masked inbound for a recent employer verification code. */
+export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const origin = request.headers.get('origin')
   const headers = corsHeaders(origin)
-  const { id: jobId } = await context.params
+  await context.params
 
   const auth = request.headers.get('authorization') || ''
   const bearer = auth.startsWith('Bearer ') ? auth.slice(7) : ''
@@ -50,43 +49,32 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid or revoked token' }, { status: 401, headers })
   }
 
-  let body: { email?: string; note?: string; password?: string }
-  try {
-    body = await request.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400, headers })
-  }
-
-  const email = typeof body.email === 'string' ? body.email.trim() : ''
-  const note = typeof body.note === 'string' ? body.note.trim().slice(0, 500) : ''
-  const password =
-    typeof body.password === 'string' && body.password.trim()
-      ? body.password.trim().slice(0, 200)
-      : null
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return NextResponse.json({ error: 'Valid email is required' }, { status: 400, headers })
-  }
-
   const admin = createAdminClient()
-  const { data: app, error } = await admin
-    .from('applications')
-    .update({
-      ats_account_email: email,
-      ats_account_note: note || null,
-      ...(password ? { ats_account_password: password } : {}),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('job_id', jobId)
-    .eq('user_id', userId)
-    .select('id, job_id, ats_account_email')
-    .maybeSingle()
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('email, email_tracking_mode')
+    .eq('id', userId)
+    .maybeSingle<{ email: string | null; email_tracking_mode: string | null }>()
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500, headers })
-  }
-  if (!app) {
-    return NextResponse.json({ error: 'Application not found for this job' }, { status: 404, headers })
+  const mode = (profile?.email_tracking_mode as 'gmail' | 'masked' | 'off' | null) ?? 'off'
+  if (mode === 'off') {
+    return NextResponse.json(
+      { code: null, error: 'Email tracking is off — cannot poll verification codes.' },
+      { status: 422, headers },
+    )
   }
 
-  return NextResponse.json({ ok: true, application: app }, { status: 200, headers })
+  try {
+    const result = await fetchVerificationCodeForUser(
+      userId,
+      mode,
+      profile?.email?.trim() || '',
+    )
+    return NextResponse.json(result, { status: 200, headers })
+  } catch (err) {
+    return NextResponse.json(
+      { code: null, error: err instanceof Error ? err.message : 'Verification poll failed' },
+      { status: 500, headers },
+    )
+  }
 }

@@ -400,6 +400,7 @@ export interface Application {
   /** Email the user used on the employer ATS (extension). */
   ats_account_email?: string | null
   ats_account_note?: string | null
+  ats_account_password?: string | null
   created_at: string
   updated_at: string
 }
