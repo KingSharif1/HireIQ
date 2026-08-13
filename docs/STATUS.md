@@ -9,7 +9,7 @@
 | Area | State |
 |------|-------|
 | Auth | 🟡 Email ✓ · Google UI ready but **provider not enabled** in Supabase (Task 143) — see AUTH.md §3 |
-| Deploy | ✓ Vercel · `hireiq.kingsharif.com` · marketing finale + dashboard teal + ext popup pending push |
+| Deploy | ✓ Vercel · `hireiq.kingsharif.com` · `3c1d4f4` landing finale + dashboard teal + ext popup pushed |
 | Legal / branding | 🟡 Landing + `/privacy` + `/terms` live · Search Console + re-verify branding + submit sensitive-scope verification — see `docs/GOOGLE-VERIFICATION.md` |
 | Resume upload (PDF/DOCX) | ✓ |
 | Resume parse (Claude) | 🟡 — needs tiered skills + low-confidence flags + OCR |
