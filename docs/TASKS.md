@@ -166,12 +166,12 @@ Depends on: extension v0.9.9+, masked/Gmail tracking for OTP
 
 ---
 
-## Task 148 — Hosted server auto-apply (KVM / Cloud Run)
+## Task 148 — Hosted server auto-apply (Cloud Run)
 Status: PENDING  
-Scope: Playwright worker, `apply_runs` queue, website **Auto-apply on server** CTA  
-Goal: Sprout-like unattended apply on HireIQ infra. Prototype on **KVM**; Cloud Run as scale-to-zero option. Meter usage per PRICING.md when customers exist.  
-Notes: Spec in [AUTO-APPLY.md](./AUTO-APPLY.md). Share board/OTP logic with extension. CAPTCHA → `needs_user` in v1.  
-Depends on: Task 147 patterns + tailor PDF availability
+Scope: Playwright on **Cloud Run**, `apply_runs` queue, website **Auto-apply with HireIQ** CTA (web-first)  
+Goal: Sprout-like unattended apply from the HireIQ site. Extension optional when already on ATS. Meter per PRICING.md when customers exist.  
+Notes: Spec in [AUTO-APPLY.md](./AUTO-APPLY.md). Learnable board adapters on failure. CAPTCHA → `needs_user`. KVM not required as primary.  
+Depends on: tailor PDF availability; shared board/OTP logic with extension
 
 ---
 

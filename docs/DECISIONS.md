@@ -1,14 +1,34 @@
 # HireIQ Decisions
 
+## 2026-08-13 — Cloud Run hosted apply + web-first UX
+
+**Context:** Owner pays ~$28/mo for a KVM VPS; Cloud Run has free-tier headroom and scales. Auto-apply should be a **HireIQ website** action (not mobile-first). Extension stays for when the user is already on the ATS page. Need honesty about “any job” coverage.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Hosted runtime | **Cloud Run** (Playwright) is primary for server auto-apply |
+| KVM | Optional debug/staging — not the primary apply farm |
+| Primary UX | Web: **Auto-apply with HireIQ** queues Cloud Run |
+| Extension | Assist when already on the job site (autofill / agentic) — not required for server apply |
+| Mobile | No hosted auto-apply promise in v1 |
+| Coverage | Big ATS first (GH/Lever/Ashby/Workday); improve via **learnable board adapters** on failures — not “works on every site forever” |
+
+**Tradeoff:** Cloud Run cold starts + timeouts on very long Workday flows; revisit KVM or Cloud Run Jobs if that bites.
+
+**Docs:** [AUTO-APPLY.md](./AUTO-APPLY.md)
+
+---
+
 ## 2026-08-13 — Dual apply paths + draft SaaS pricing (docs only)
 
-**Context:** Owner wants (1) the Chrome extension **and** (2) a Sprout-like **server** auto-apply (KVM 2 and/or Cloud Run), plus a pricing sketch for future customers. Earlier lock said “extension only / no credits” for personal use — superseded for product direction; personal `billing_exempt` still unlimited while building.
+**Context:** Owner wants (1) the Chrome extension **and** (2) a Sprout-like **server** auto-apply, plus a pricing sketch for future customers. Earlier lock said “extension only / no credits” for personal use — superseded for product direction; personal `billing_exempt` still unlimited while building.
 
 **Locks:**
 | Area | Choice |
 |------|--------|
 | Runtimes | **Both:** extension (local) + hosted Playwright worker (server) |
-| Hosted v0 | Prefer **small KVM** to prototype; **Cloud Run** as scale-to-zero option later |
+| Hosted v0 | **Cloud Run** (amended — see decision above); KVM optional |
 | Charge | Meter **tailor** and **server auto-apply**; extension autofill **free** by default |
 | Tailor pack | **2 for the price of 1**, then pay per extra tailor |
 | Server apply | Always charged when using our browsers (1 vs 3 by portal complexity) |
@@ -19,7 +39,7 @@
 
 **Docs:** [PRICING.md](./PRICING.md) · [AUTO-APPLY.md](./AUTO-APPLY.md)
 
-**Revisit if:** Cloud Run timeouts block Workday; or KVM idle cost > Cloud Run at low volume.
+**Revisit if:** Cloud Run timeouts block Workday.
 
 ---
 

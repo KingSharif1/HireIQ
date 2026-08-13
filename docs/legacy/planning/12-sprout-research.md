@@ -98,11 +98,11 @@ Save / open job → Tailor resume (Claude — usage cost only)
 
 ## Product lock proposal (Task 147 / 148) — updated 2026-08-13
 
-1. **Both runtimes:** Chrome extension (free path) **and** hosted Playwright worker (metered).
-2. Hosted v0 on **KVM**; Cloud Run later for scale-to-zero.
-3. Website CTAs: **Apply with extension** vs **Auto-apply on server**.
-4. Pricing draft (not coded): see [PRICING.md](../../PRICING.md).
-5. Full architecture: [AUTO-APPLY.md](../../AUTO-APPLY.md).
+1. **Both runtimes:** Chrome extension (on-site assist) **and** Cloud Run Playwright (primary Auto-apply with HireIQ on web).
+2. Hosted on **Cloud Run** (scale-to-zero); KVM optional debug only.
+3. Website primary CTA: **Auto-apply with HireIQ**; extension when already on ATS.
+4. Coverage grows via **board adapters** on failures — not every site forever.
+5. Pricing draft: [PRICING.md](../../PRICING.md) · full arch: [AUTO-APPLY.md](../../AUTO-APPLY.md).
 
 ---
 

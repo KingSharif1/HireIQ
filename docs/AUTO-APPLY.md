@@ -4,27 +4,43 @@
 **Status:** Spec / infra plan — extension path partially shipped; hosted worker not built yet.  
 **Pricing:** [PRICING.md](./PRICING.md) (docs only)
 
-HireIQ will support **both**:
+HireIQ supports **two ways to apply**, both on **web** (desktop/laptop browser). Mobile is not the primary surface for auto-apply v1.
 
-1. **Extension apply** — robot runs in the user’s Chrome (cheap).
-2. **Server auto-apply** — robot runs on HireIQ infra (KVM and/or Cloud Run), like Sprout’s cloud agents (metered).
+1. **Auto-apply with HireIQ (server)** — primary “Sprout-like” product: queue from the HireIQ website; Playwright runs on **Cloud Run**.
+2. **Extension assist** — when you’re **already on** the employer apply page: autofill / Continue / OTP / Submit in your Chrome (cheap, live).
 
 ---
 
-## Why both
+## Product UX (web-first)
 
-| Path | Best for | Cost to us |
-|------|----------|------------|
-| **Extension** | You / power users watching the form; CAPTCHA easy to solve yourself | ~$0 per apply |
-| **Server** | Apply while away; queue many jobs; customers who want “swipe and done” | Browser minutes on our host |
+| Situation | What we show |
+|-----------|----------------|
+| On HireIQ job detail (web) | Primary CTA: **Auto-apply with HireIQ** → queues Cloud Run worker. Secondary: **Open apply page** (manual / with extension if installed). |
+| Already on Greenhouse / Lever / etc. | Extension panel: Autofill, Questions, Submit, agentic Continue — no Cloud Run needed. |
+| Mobile | Tracker + tailor OK; **no** hosted auto-apply promise in v1 (screens small, CAPTCHA painful). Revisit later. |
 
-Sprout mostly sells (2). We keep (1) forever and add (2) when ready to charge for it.
+You do **not** need the extension for server auto-apply. Extension is the “I’m already on the form” accelerator.
+
+---
+
+## Why Cloud Run (not the $28/mo KVM as primary)
+
+Owner already pays ~**$28/mo** for a KVM VPS. Cloud Run is better as the **apply worker** because:
+
+| | Cloud Run | Always-on KVM |
+|--|-----------|----------------|
+| Idle | **~$0** (scale to zero) | $28 whether you apply or not |
+| Scale | Many parallel applies when customers show up | One box = few Chromium tabs |
+| Ops | Container + deploy | Patch OS/Chrome yourself |
+| Fit now | Low volume + free tier headroom | Useful as **debug/staging** box if you want |
+
+**Lock:** Hosted auto-apply runs on **Cloud Run** (Playwright + Chromium image, ≥2 vCPU / 2–4 GiB). Keep the KVM for other things or as a manual fallback — don’t burn it as the forever apply farm unless Cloud Run timeouts become a hard blocker (long Workday). Use Cloud Run **jobs** or longer request timeouts for multi-step flows.
 
 ---
 
 ## Shared apply engine
 
-Both paths should call the **same logic** where possible:
+Both paths should share rules/code where possible:
 
 ```
 Job + tailored PDF + profile + tracking mode
@@ -36,78 +52,64 @@ Job + tailored PDF + profile + tracking mode
     → write Applied + portal creds + events
 ```
 
-| Layer | Extension | Server worker |
-|-------|-----------|---------------|
-| Browser | User’s Chrome | Playwright Chromium in container/VM |
-| Trigger | Panel / **Apply with HireIQ** handoff | `POST /api/apply/jobs/[id]/queue` |
-| OTP | Poll HireIQ APIs from content script | Worker polls same APIs |
-| CAPTCHA | User solves in visible tab | Pause job → notify user (v1); solvers later optional |
-| LinkedIn / Indeed | No auto-submit (lock) | Same lock |
+| Layer | Extension | Cloud Run worker |
+|-------|-----------|------------------|
+| Browser | User’s Chrome | Playwright Chromium in container |
+| Trigger | On ATS page panel | HireIQ web **Auto-apply with HireIQ** |
+| OTP | Poll HireIQ APIs | Same APIs from worker |
+| CAPTCHA | User solves live | Status `needs_user` → notify; resume after |
+| LinkedIn / Indeed | No auto-submit | Same lock |
 
 ---
 
-## Background: hosted worker
+## Background: Cloud Run worker
 
 ```
-Website "Auto-apply (server)"
-    → enqueue apply_jobs row (queued)
-    → worker pulls job
-    → launch Chromium (Playwright)
-    → run shared agent steps
-    → status: applying → applied | failed | needs_user (CAPTCHA)
+HireIQ web "Auto-apply with HireIQ"
+    → ensure tailored PDF exists (or offer tailor first — billed)
+    → enqueue apply_runs (queued)
+    → Cloud Run receives job (HTTP or Pub/Sub / Cloud Tasks)
+    → Playwright launches Chromium
+    → run shared agent steps + board adapters
+    → status: applying → applied | failed | needs_user
     → notify + Activity events
 ```
 
 Suggested tables (later migration):
 
-- `apply_runs` — id, user_id, job_id, mode (`extension` | `server`), status, portal complexity (1|3), error, started_at, finished_at
+- `apply_runs` — id, user_id, job_id, mode (`extension` | `server`), status, complexity (1|3), error, started_at, finished_at
 - Reuse `applications.ats_account_*`, `application_events`
 
 ---
 
-## Infra choice: KVM 2 vs Cloud Run
+## Will it work on *any* job application?
 
-### Cloud Run (Playwright container)
+**No — not magically on day one.** Same reality as Sprout: common ATS boards work well; weird custom career sites fail more often.
 
-- **Pros:** Scale to zero → cheap when idle; pay per apply-minute; no babysitting a VM; easy from GCP.
-- **Cons:** Cold start (Chromium image is heavy); max request timeout limits long Workday flows; need enough memory (**≥2 vCPU / 2–4 GiB** typical for Playwright).
-- **Best when:** Burst / low volume (early customers, few applies/day).
+### What works well first
 
-### KVM VPS (e.g. “KVM 2” from a host)
+- **Greenhouse, Lever, Ashby, Workday** — we already have field maps / selectors (`lib/extension/board.ts`). Server worker reuses the same adapters.
+- Company pages that **iframe or redirect** into those ATS hosts.
 
-- **Pros:** Flat monthly fee; always warm; no timeout wall; full control (proxies, display, debugging); often cheaper once apply volume is steady.
-- **Cons:** You pay while idle; you patch Chrome/OS; one box can only run N parallel browsers (RAM).
-- **Best when:** You (or a few users) run applies often; you want a stable long-running worker.
+### What fails or needs a human
 
-### Recommendation for HireIQ now
+- Heavy CAPTCHA / bot walls  
+- LinkedIn Easy Apply / Indeed (ToS — we don’t auto-submit)  
+- One-off WordPress “email us” forms, PDF-only applies, weird SPAs with no stable selectors  
+- Sites that block datacenter IPs (Cloud Run egress) — may need residential proxy later (cost)  
 
-1. **Ship extension path first** (Task 147) — $0 infra.
-2. **Prototype server path on a small KVM** (your “KVM 2”) with one Playwright worker + a simple queue — easiest to debug CAPTCHA/OTP.
-3. **Add Cloud Run later** for burst / multi-tenant scale-to-zero if KVM saturates or idle cost bothers you.
-4. Don’t start with both; pick **KVM for v0 worker**, keep Cloud Run as the scale option in docs.
+### How it gets better over time (“learn”)
 
-Rough intuition (not a quote): sporadic applies → Cloud Run wins on idle; daily heavy use → KVM flat rate wins. Browser automation is RAM-heavy either way.
+Not mystical ML on every DOM — the same **learnable rules** pattern as job URL fetch:
 
----
+1. Run apply → success or structured failure (hostname, step, missing selector, screenshot/HTML snippet).
+2. Log failure into `apply_runs` / advisors list.
+3. Add or tighten a **board adapter** (selectors, Continue button, resume input, wait rules).
+4. Next run on that host uses the new rule — extension **and** Cloud Run both improve.
 
-## Website UX (target)
+Optional later: LLM “what should I click?” as a fallback when no adapter matches — slower/costlier; adapters stay the default for reliability.
 
-On job detail, two actions (clearly labeled):
-
-1. **Apply with extension** — opens ATS + focuses HireIQ panel (free / autofill policy).
-2. **Auto-apply on server** — queues hosted run (shows unit cost 1 or 3 before confirm).
-
-Both require a tailored resume (or offer to tailor first — uses tailor pricing).
-
----
-
-## Safety locks (both paths)
-
-- Opt-in per job  
-- Sensitive fields confirm  
-- No LinkedIn/Indeed auto-submit  
-- Server path: never silent money drain — show cost before queue  
-- `billing_exempt` for your account while building  
+So: **not every site forever**, but **coverage grows** the more real applies we run and document — especially the big ATS hosts that dominate volume.
 
 ---
 
@@ -115,6 +117,16 @@ Both require a tailored resume (or offer to tailor first — uses tailor pricing
 
 | ID | Work |
 |----|------|
-| **147** | Website ↔ extension handoff (“Apply with HireIQ”) |
-| **148** | Hosted apply worker (KVM first) + `apply_runs` + queue API |
+| **147** | Web job detail: open-with-extension assist + tailor gate |
+| **148** | **Cloud Run** Playwright worker + queue + **Auto-apply with HireIQ** CTA |
 | Pricing | [PRICING.md](./PRICING.md) — Stripe later |
+
+---
+
+## Safety locks
+
+- Opt-in per job on web  
+- Show server-apply cost before queue (when billing exists)  
+- Sensitive fields confirm  
+- No LinkedIn/Indeed auto-submit  
+- `billing_exempt` for owner while building  
