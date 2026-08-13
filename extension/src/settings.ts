@@ -1,8 +1,10 @@
+import { defaultApiBaseUrl, IS_DEV_BUILD, PROD_APP_URL } from './env'
+
 export type ExtensionSettings = {
   apiBaseUrl: string
   /** Legacy hiq_ token — still accepted by the API. */
   token: string
-  /** Supabase access JWT from Google sign-in. */
+  /** Supabase access JWT from website connect / Google. */
   accessToken: string
   refreshToken: string
   expiresAt: number
@@ -10,12 +12,19 @@ export type ExtensionSettings = {
 }
 
 const DEFAULTS: ExtensionSettings = {
-  apiBaseUrl: 'http://localhost:3000',
+  apiBaseUrl: defaultApiBaseUrl(),
   token: '',
   accessToken: '',
   refreshToken: '',
   expiresAt: 0,
   userEmail: '',
+}
+
+function resolveApiBaseUrl(stored: unknown): string {
+  const value = typeof stored === 'string' ? stored.trim() : ''
+  // Production Store builds always talk to prod — ignore stale localhost from older installs.
+  if (!IS_DEV_BUILD) return PROD_APP_URL
+  return value || DEFAULTS.apiBaseUrl
 }
 
 export async function getSettings(): Promise<ExtensionSettings> {
@@ -28,7 +37,7 @@ export async function getSettings(): Promise<ExtensionSettings> {
     'userEmail',
   ])
   return {
-    apiBaseUrl: (stored.apiBaseUrl as string) || DEFAULTS.apiBaseUrl,
+    apiBaseUrl: resolveApiBaseUrl(stored.apiBaseUrl),
     token: (stored.token as string) || DEFAULTS.token,
     accessToken: (stored.accessToken as string) || DEFAULTS.accessToken,
     refreshToken: (stored.refreshToken as string) || DEFAULTS.refreshToken,
@@ -38,10 +47,14 @@ export async function getSettings(): Promise<ExtensionSettings> {
 }
 
 export async function saveSettings(partial: Partial<ExtensionSettings>) {
-  await chrome.storage.sync.set(partial)
+  const next = { ...partial }
+  if (!IS_DEV_BUILD && next.apiBaseUrl != null) {
+    next.apiBaseUrl = PROD_APP_URL
+  }
+  await chrome.storage.sync.set(next)
 }
 
-/** Prefer Google session JWT; fall back to legacy hiq_ token. */
+/** Prefer session JWT; fall back to legacy hiq_ token. */
 export async function getBearerToken(): Promise<string> {
   const s = await getSettings()
   if (s.accessToken) return s.accessToken

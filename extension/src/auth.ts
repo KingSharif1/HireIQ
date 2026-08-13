@@ -1,5 +1,5 @@
 import { getSettings, saveSettings, clearSession } from './settings'
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from './env'
+import { SUPABASE_ANON_KEY, SUPABASE_URL, defaultApiBaseUrl } from './env'
 
 export type AuthSession = {
   accessToken: string
@@ -170,7 +170,7 @@ export async function exchangeWebsiteConnectCode(
 }
 
 export async function openWebsiteConnect(apiBaseUrl: string) {
-  const base = apiBaseUrl.replace(/\/$/, '') || 'http://localhost:3000'
+  const base = apiBaseUrl.replace(/\/$/, '') || defaultApiBaseUrl()
   const ext = chrome.runtime.id
   const url = `${base}/extension/connect?ext=${encodeURIComponent(ext)}`
   await chrome.tabs.create({ url })

@@ -1,6 +1,7 @@
 import { detectJobPage } from './detect'
 import { ensureAccessToken, exchangeWebsiteConnectCode } from './auth'
 import { getSettings } from './settings'
+import { defaultApiBaseUrl } from './env'
 
 chrome.runtime.onInstalled.addListener(() => {
   console.info('HireIQ extension installed')
@@ -27,17 +28,38 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary)
 }
 
+function isMissingTabError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err)
+  return /no tab with id/i.test(msg) || /invalid tab/i.test(msg)
+}
+
+/** Badge / inject can race with closed or navigated-away tabs — ignore those. */
+async function safeTabCall(label: string, fn: () => Promise<unknown>) {
+  try {
+    await fn()
+  } catch (err) {
+    if (isMissingTabError(err)) return
+    console.warn(`HireIQ ${label}`, err)
+  }
+}
+
+async function setJobBadge(tabId: number, isJobPage: boolean) {
+  await safeTabCall('setBadge', async () => {
+    await chrome.action.setBadgeText({
+      tabId,
+      text: isJobPage ? '•' : '',
+    })
+    await chrome.action.setBadgeBackgroundColor({
+      tabId,
+      color: '#0d9488',
+    })
+  })
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === 'HIREIQ_DETECT' && sender.tab?.id != null) {
     const detect = message.detect as { isJobPage?: boolean }
-    void chrome.action.setBadgeText({
-      tabId: sender.tab.id,
-      text: detect.isJobPage ? '•' : '',
-    })
-    void chrome.action.setBadgeBackgroundColor({
-      tabId: sender.tab.id,
-      color: '#0d9488',
-    })
+    void setJobBadge(sender.tab.id, Boolean(detect.isJobPage))
     return
   }
 
@@ -65,7 +87,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const contentType = res.headers.get('content-type') || ''
 
         if (msg.init?.responseType === 'base64') {
-          // PDF (or other binary): arrayBuffer → base64 for content-script File attach
           if (!res.ok) {
             const text = await res.text()
             let json: unknown = null
@@ -84,7 +105,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             })
             return
           }
-          // JSON "not available" responses
           if (contentType.includes('application/json')) {
             const text = await res.text()
             let json: unknown = null
@@ -145,7 +165,7 @@ chrome.runtime.onMessageExternal.addListener((message, _sender, sendResponse) =>
   void (async () => {
     try {
       const settings = await getSettings()
-      const apiBase = settings.apiBaseUrl || 'http://localhost:3000'
+      const apiBase = settings.apiBaseUrl || defaultApiBaseUrl()
       await exchangeWebsiteConnectCode(message.code, apiBase)
       sendResponse({ ok: true })
     } catch (err) {
@@ -160,24 +180,18 @@ chrome.runtime.onMessageExternal.addListener((message, _sender, sendResponse) =>
 
 /** Ensure panel can load even when Chrome site-access is restricted to "On click". */
 async function injectContentScripts(tabId: number) {
-  try {
+  await safeTabCall('content inject', async () => {
     const files = chrome.runtime.getManifest().content_scripts?.[0]?.js
     if (!files?.length) return
     await chrome.scripting.executeScript({ target: { tabId }, files })
-  } catch (err) {
-    console.warn('HireIQ content inject failed', err)
-  }
+  })
 }
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status !== 'complete' || !tab.url) return
   if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) return
   const detect = detectJobPage(tab.url)
-  void chrome.action.setBadgeText({
-    tabId,
-    text: detect.isJobPage ? '•' : '',
-  })
-  void chrome.action.setBadgeBackgroundColor({ tabId, color: '#0d9488' })
+  void setJobBadge(tabId, detect.isJobPage)
   if (detect.isJobPage) {
     void injectContentScripts(tabId)
   }

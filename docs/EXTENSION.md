@@ -5,25 +5,31 @@
 ## Connect (preferred)
 
 1. Build & load unpacked from `extension/dist`.
+   - **Local:** `cd extension && npm run dev` (or `vite build --mode development`) — shows API URL + Advanced.
+   - **Prod / Store zip:** `cd extension && npm run build` — hides localhost controls; API is always `https://hireiq.kingsharif.com`.
 2. Click the HireIQ icon → **Connect HireIQ**.
-3. A normal tab opens `/extension/connect` — sign in with **Google or email/password** (same as the website).
-4. The page hands a one-time code to the extension automatically.
-5. Popup shows **Connected**.
+3. A normal tab opens `/extension/connect` — if you’re already signed in on HireIQ, it links instantly; otherwise sign in (Google or email).
+4. Popup shows **Connected** (+ email).
+5. On a job page use Autofill + Save.
 
-No special Supabase `chromiumapp.org` redirect required for this flow. Popup blockers don’t apply (it’s a tab from a user click).
+No special Supabase `chromiumapp.org` redirect required for this flow.
 
-**Advanced fallbacks:** Google via `chrome.identity`, or paste a legacy `hiq_` token.
+**Chrome cannot silently auto-link with zero clicks** (security). Closest UX: already signed in on the site → one Connect click → instant link.
+
+**Advanced (dev builds only):** Google via `chrome.identity`, or paste a legacy `hiq_` token. Hidden in production builds.
+
+Extension package **v0.9.6**. `externally_connectable` includes `https://hireiq.kingsharif.com/*`.
 
 ## Prerequisites
 
 ```
 SUPABASE_SERVICE_ROLE_KEY=…
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:3000   # or https://hireiq.kingsharif.com for prod smoke
 NEXT_PUBLIC_SUPABASE_URL=…
 NEXT_PUBLIC_SUPABASE_ANON_KEY=…
 ```
 
-Migrations through **`014_application_form_answers`**. Extension package **v0.9.5**.
+Migrations through **`014_application_form_answers`**.
 
 ## Build
 

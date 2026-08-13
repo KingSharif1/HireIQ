@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "HireIQ — Job Apply Copilot",
   "description": "Save jobs to HireIQ and autofill applications from your profile.",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "action": {
     "default_popup": "src/popup.html",
     "default_title": "HireIQ"
@@ -25,6 +25,8 @@
     "matches": [
       "http://localhost:3000/*",
       "https://localhost:3000/*",
+      "https://hireiq.kingsharif.com/*",
+      "https://*.vercel.app/*",
       "https://*.hireiq.app/*",
       "https://hireiq.app/*"
     ]
@@ -32,7 +34,7 @@
   "content_scripts": [
     {
       "js": [
-        "assets/content.ts-loader-DWZeZ1YS.js"
+        "assets/content.ts-loader-DwL23OEo.js"
       ],
       "matches": [
         "<all_urls>"
@@ -46,8 +48,8 @@
         "<all_urls>"
       ],
       "resources": [
-        "assets/settings-CXfgVSA7.js",
-        "assets/content.ts-D62tsno7.js"
+        "assets/settings-BVjJFazQ.js",
+        "assets/content.ts-Bxs1ik6i.js"
       ],
       "use_dynamic_url": false
     }

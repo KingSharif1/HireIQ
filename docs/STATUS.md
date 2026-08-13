@@ -9,7 +9,7 @@
 | Area | State |
 |------|-------|
 | Auth | 🟡 Email ✓ · Google UI ready but **provider not enabled** in Supabase (Task 143) — see AUTH.md §3 |
-| Deploy | ✓ Vercel · `hireiq.kingsharif.com` · landing+terms pushed (`7d940d7`) — confirm deploy live before Google re-verify |
+| Deploy | ✓ Vercel · `hireiq.kingsharif.com` · marketing finale + dashboard teal + ext popup pending push |
 | Legal / branding | 🟡 Landing + `/privacy` + `/terms` live · Search Console + re-verify branding + submit sensitive-scope verification — see `docs/GOOGLE-VERIFICATION.md` |
 | Resume upload (PDF/DOCX) | ✓ |
 | Resume parse (Claude) | 🟡 — needs tiered skills + low-confidence flags + OCR |
@@ -21,7 +21,7 @@
 | Tailor stepper | ⛔ Redirected — Job Matcher + tracker replace primary flow |
 | Application tracker | ✓ — Teal list/board; All outreach (134); masked inbound code + DB (139) |
 | Masked apply email (Resend) | ✓ Infra live — `mail.kingsharif.com` receiving; webhook URL prod; needs smoke + `RESEND_FORWARD_FROM` optional |
-| Chrome extension | 🟡 **v0.9.5** panel IA (Autofill+progress + Questions); resume gate when upload present |
+| Chrome extension | 🟡 **v0.9.6** prod popup (Connected pill, no localhost UI) · local keeps Advanced |
 | GitHub integration | ✓ Task 105 |
 | Gmail sync | 🟡 **Task 114** — Settings modes + Google signup scopes; needs smoke after reconnect |
 | Settings | ✓ `/dashboard/settings` — tracking modes, GitHub, password, delete |

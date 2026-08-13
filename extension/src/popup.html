@@ -16,16 +16,42 @@
         background: #0f1115;
         color: #f3f4f6;
       }
+      .header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
       h1 {
         font-size: 15px;
         margin: 0 0 2px;
         font-weight: 700;
       }
       p.sub {
-        margin: 0 0 14px;
+        margin: 0;
         font-size: 12px;
         color: #9ca3af;
         line-height: 1.4;
+      }
+      .auth-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 999px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .auth-pill.on {
+        background: rgba(13, 148, 136, 0.25);
+        color: #99f6e4;
+      }
+      .auth-pill.off {
+        background: #1f2937;
+        color: #9ca3af;
       }
       .pill {
         display: inline-flex;
@@ -66,10 +92,14 @@
         background: #111827;
         color: inherit;
       }
+      .stack {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
       .row {
         display: flex;
         gap: 8px;
-        margin-top: 14px;
       }
       button {
         flex: 1;
@@ -114,7 +144,7 @@
         color: #6b7280;
         line-height: 1.4;
       }
-      details {
+      details.dev-only {
         margin-top: 12px;
         font-size: 11px;
         color: #9ca3af;
@@ -123,30 +153,43 @@
         cursor: pointer;
         color: #9ca3af;
       }
+      .dev-only[hidden],
+      [hidden] {
+        display: none !important;
+      }
     </style>
   </head>
   <body>
-    <h1>HireIQ</h1>
-    <p class="sub">Connect with your HireIQ account (Google or email) in a normal browser tab.</p>
+    <div class="header">
+      <div>
+        <h1>HireIQ</h1>
+        <p class="sub" id="subtitle">Link this extension to your HireIQ account.</p>
+      </div>
+      <span class="auth-pill off" id="authPill">Not connected</span>
+    </div>
 
     <div class="pill off" id="pagePill">Checking page…</div>
 
-    <button type="button" class="primary" id="connectBtn">Connect HireIQ</button>
-    <div class="row">
-      <button type="button" class="secondary" id="signOut" hidden>Sign out</button>
-      <button type="button" class="primary" id="saveJob">Save this page</button>
+    <div class="stack">
+      <button type="button" class="primary" id="connectBtn">Connect HireIQ</button>
+      <div class="row">
+        <button type="button" class="secondary" id="signOut" hidden>Sign out</button>
+        <button type="button" class="primary" id="saveJob">Save this page</button>
+      </div>
     </div>
 
-    <label for="apiBaseUrl">API base URL</label>
-    <input id="apiBaseUrl" type="url" placeholder="http://localhost:3000" />
+    <div class="dev-only" id="devPanel" hidden>
+      <label for="apiBaseUrl">API base URL (local)</label>
+      <input id="apiBaseUrl" type="url" placeholder="http://localhost:3000" />
+    </div>
 
     <div class="status" id="status"></div>
-    <p class="hint">
-      Connect opens HireIQ in a tab — sign in there, then return here. No special redirects or popup blockers.
+    <p class="hint" id="hint">
+      Already signed in on HireIQ? Connect links instantly. Otherwise sign in once in the tab that opens.
     </p>
 
-    <details>
-      <summary>Advanced</summary>
+    <details class="dev-only" id="advancedPanel" hidden>
+      <summary>Advanced (local / legacy)</summary>
       <button type="button" class="secondary" id="googleSignIn" style="margin-top: 8px; width: 100%">
         Sign in with Google (extension window)
       </button>

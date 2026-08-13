@@ -8,8 +8,12 @@ import { LogOut, Settings, Sun, Moon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
-  DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import { PRIMARY_NAV } from '@/components/shared/primary-nav'
 import type { Profile } from '@/types'
@@ -38,8 +42,8 @@ export function MobileNav({ profile, unreadCount: _unreadCount = 0 }: MobileNavP
   const settingsActive = pathname.startsWith('/dashboard/settings')
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#1a1d24] border-t border-black/30 z-50 text-white/70">
-      <div className="flex items-center justify-around px-2 py-2 safe-bottom">
+    <nav className="safe-bottom fixed bottom-0 left-0 right-0 z-50 border-t border-white/5 bg-[#070f1a]/95 text-white/65 backdrop-blur-xl md:hidden">
+      <div className="flex items-center justify-around px-2 py-2">
         {PRIMARY_NAV.map(({ href, icon: Icon, shortLabel, match }) => {
           const active = match(pathname)
           return (
@@ -47,12 +51,12 @@ export function MobileNav({ profile, unreadCount: _unreadCount = 0 }: MobileNavP
               key={href}
               href={href}
               className={cn(
-                'flex flex-col items-center gap-1 px-2 py-1.5 rounded-md min-w-[48px] transition-colors',
-                active ? 'text-white' : 'text-white/55'
+                'flex min-w-[48px] flex-col items-center gap-1 rounded-xl px-2 py-1.5 transition-colors',
+                active ? 'text-teal-200' : 'text-white/50',
               )}
               aria-current={active ? 'page' : undefined}
             >
-              <Icon className="w-5 h-5" />
+              <Icon className="h-5 w-5" strokeWidth={active ? 2.25 : 1.75} />
               <span className="text-[10px] font-medium">{shortLabel}</span>
             </Link>
           )
@@ -62,21 +66,21 @@ export function MobileNav({ profile, unreadCount: _unreadCount = 0 }: MobileNavP
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
-                'flex flex-col items-center gap-1 px-2 py-1.5 rounded-md min-w-[48px] outline-none transition-colors',
-                settingsActive ? 'text-white' : 'text-white/55'
+                'flex min-w-[48px] flex-col items-center gap-1 rounded-xl px-2 py-1.5 outline-none transition-colors',
+                settingsActive ? 'text-teal-200' : 'text-white/50',
               )}
               aria-label="Open account menu"
               aria-current={settingsActive ? 'page' : undefined}
             >
               <Avatar className="h-5 w-5">
-                <AvatarFallback className="text-[8px] bg-white/20 text-white leading-none">
+                <AvatarFallback className="bg-teal-500/25 text-[8px] leading-none text-teal-100">
                   {initials}
                 </AvatarFallback>
               </Avatar>
               <span className="text-[10px] font-medium">Account</span>
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" align="end" className="w-56 mb-2">
+          <DropdownMenuContent side="top" align="end" className="mb-2 w-56">
             <DropdownMenuLabel className="flex flex-col">
               <span className="truncate">
                 {`${profile?.first_name ?? ''} ${profile?.last_name ?? ''}`.trim() || 'Account'}
@@ -88,7 +92,7 @@ export function MobileNav({ profile, unreadCount: _unreadCount = 0 }: MobileNavP
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href="/dashboard/settings">
-                <Settings className="w-4 h-4" />
+                <Settings className="h-4 w-4" />
                 Settings
               </Link>
             </DropdownMenuItem>
@@ -98,7 +102,7 @@ export function MobileNav({ profile, unreadCount: _unreadCount = 0 }: MobileNavP
                 setTheme(theme === 'dark' ? 'light' : 'dark')
               }}
             >
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               {theme === 'dark' ? 'Light mode' : 'Dark mode'}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -106,7 +110,7 @@ export function MobileNav({ profile, unreadCount: _unreadCount = 0 }: MobileNavP
               onSelect={handleLogout}
               className="text-destructive focus:text-destructive"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="h-4 w-4" />
               Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>

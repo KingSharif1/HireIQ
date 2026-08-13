@@ -1,4 +1,5 @@
 import { getSettings, saveSettings, isSignedIn } from './settings'
+import { defaultApiBaseUrl, IS_DEV_BUILD, PROD_APP_URL } from './env'
 import { detectJobPage } from './detect'
 import {
   signInWithGoogle,
@@ -11,33 +12,64 @@ const apiBaseUrlEl = document.getElementById('apiBaseUrl') as HTMLInputElement
 const tokenEl = document.getElementById('token') as HTMLInputElement
 const statusEl = document.getElementById('status') as HTMLDivElement
 const pagePill = document.getElementById('pagePill') as HTMLDivElement
+const authPill = document.getElementById('authPill') as HTMLSpanElement
+const subtitleEl = document.getElementById('subtitle') as HTMLParagraphElement
+const hintEl = document.getElementById('hint') as HTMLParagraphElement
 const saveSettingsBtn = document.getElementById('saveSettings') as HTMLButtonElement
 const saveJobBtn = document.getElementById('saveJob') as HTMLButtonElement
 const connectBtn = document.getElementById('connectBtn') as HTMLButtonElement
 const googleBtn = document.getElementById('googleSignIn') as HTMLButtonElement
 const signOutBtn = document.getElementById('signOut') as HTMLButtonElement
+const devPanel = document.getElementById('devPanel') as HTMLDivElement
+const advancedPanel = document.getElementById('advancedPanel') as HTMLDetailsElement
 
 function setStatus(message: string, kind: 'ok' | 'err' | '' = '') {
   statusEl.textContent = message
   statusEl.className = `status${kind ? ` ${kind}` : ''}`
 }
 
+async function resolveApiBase(): Promise<string> {
+  if (!IS_DEV_BUILD) return PROD_APP_URL
+  const typed = apiBaseUrlEl.value.trim()
+  if (typed) return typed
+  const s = await getSettings()
+  return s.apiBaseUrl || defaultApiBaseUrl()
+}
+
 async function refreshAuthUi() {
   const s = await getSettings()
-  apiBaseUrlEl.value = s.apiBaseUrl
-  tokenEl.value = s.token
+  if (IS_DEV_BUILD) {
+    apiBaseUrlEl.value = s.apiBaseUrl
+    tokenEl.value = s.token
+  }
+
   if (s.accessToken) {
-    connectBtn.textContent = 'Reconnect HireIQ'
+    authPill.textContent = 'Connected'
+    authPill.className = 'auth-pill on'
+    connectBtn.textContent = 'Reconnect'
     signOutBtn.hidden = false
-    setStatus(s.userEmail ? `Connected as ${s.userEmail}` : 'Connected to HireIQ.', 'ok')
+    subtitleEl.textContent = s.userEmail
+      ? `Signed in as ${s.userEmail}`
+      : 'Extension linked to your HireIQ account.'
+    setStatus(s.userEmail ? `Ready · ${s.userEmail}` : 'Ready · connected to HireIQ.', 'ok')
+    hintEl.textContent = 'On a job page, use Save here or Autofill in the side panel.'
   } else if (s.token) {
+    authPill.textContent = 'Connected'
+    authPill.className = 'auth-pill on'
     connectBtn.textContent = 'Connect HireIQ'
     signOutBtn.hidden = false
+    subtitleEl.textContent = 'Linked with a legacy token.'
     setStatus('Connected with legacy token.', 'ok')
+    hintEl.textContent = 'Prefer Connect HireIQ (account sign-in) for production.'
   } else {
+    authPill.textContent = 'Not connected'
+    authPill.className = 'auth-pill off'
     connectBtn.textContent = 'Connect HireIQ'
     signOutBtn.hidden = true
-    setStatus('Connect HireIQ to Autofill and Save.')
+    subtitleEl.textContent = 'Link this extension to your HireIQ account.'
+    setStatus('Connect to Autofill and Save.')
+    hintEl.textContent =
+      'Already signed in on HireIQ? Connect links instantly. Otherwise sign in once in the tab that opens.'
   }
 }
 
@@ -62,6 +94,16 @@ async function refreshPagePill() {
 }
 
 async function load() {
+  if (IS_DEV_BUILD) {
+    devPanel.hidden = false
+    advancedPanel.hidden = false
+  } else {
+    devPanel.hidden = true
+    advancedPanel.hidden = true
+    // Ensure Store builds persist the prod API host.
+    await saveSettings({ apiBaseUrl: PROD_APP_URL })
+  }
+
   await refreshAuthUi()
   await refreshPagePill()
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
@@ -74,16 +116,14 @@ connectBtn.addEventListener('click', async () => {
   connectBtn.disabled = true
   setStatus('Opening HireIQ…')
   try {
-    const apiBase = apiBaseUrlEl.value.trim() || 'http://localhost:3000'
+    const apiBase = await resolveApiBase()
     await saveSettings({ apiBaseUrl: apiBase })
     await openWebsiteConnect(apiBase)
-    setStatus('Finish sign-in in the HireIQ tab — this popup will show Connected when done.')
-    // Poll storage briefly while user completes connect
-    for (let i = 0; i < 30; i++) {
+    setStatus('Finish in the HireIQ tab if asked — this popup updates when linked.')
+    for (let i = 0; i < 45; i++) {
       await new Promise(r => setTimeout(r, 1000))
       const s = await getSettings()
       if (s.accessToken) {
-        setStatus(s.userEmail ? `Connected as ${s.userEmail}` : 'Connected to HireIQ.', 'ok')
         await refreshAuthUi()
         break
       }
@@ -99,9 +139,7 @@ googleBtn.addEventListener('click', async () => {
   googleBtn.disabled = true
   setStatus('Opening Google sign-in…')
   try {
-    await saveSettings({
-      apiBaseUrl: apiBaseUrlEl.value.trim() || 'http://localhost:3000',
-    })
+    await saveSettings({ apiBaseUrl: await resolveApiBase() })
     const session = await signInWithGoogle()
     setStatus(session.email ? `Signed in as ${session.email}` : 'Signed in with Google.', 'ok')
     await refreshAuthUi()
@@ -121,7 +159,7 @@ signOutBtn.addEventListener('click', async () => {
 
 saveSettingsBtn.addEventListener('click', async () => {
   await saveSettings({
-    apiBaseUrl: apiBaseUrlEl.value.trim() || 'http://localhost:3000',
+    apiBaseUrl: await resolveApiBase(),
     token: tokenEl.value.trim(),
   })
   setStatus('Legacy token saved.', 'ok')
@@ -132,9 +170,7 @@ saveJobBtn.addEventListener('click', async () => {
   saveJobBtn.disabled = true
   setStatus('Saving…')
   try {
-    await saveSettings({
-      apiBaseUrl: apiBaseUrlEl.value.trim() || 'http://localhost:3000',
-    })
+    await saveSettings({ apiBaseUrl: await resolveApiBase() })
     const bearer = await ensureAccessToken()
     const settings = await getSettings()
     if (!isSignedIn(settings) && !bearer) throw new Error('Connect HireIQ first')

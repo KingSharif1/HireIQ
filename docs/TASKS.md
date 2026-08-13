@@ -378,6 +378,15 @@ Files changed: `.vercelignore`, docs STATUS/EMAIL/CHANGELOG
 
 ---
 
+## Task 144 — Extension prod popup UX + connect domains
+Status: DONE  
+Scope: `extension/src/{popup,settings,env,auth}*`, `manifest.config.ts`, `ExtensionConnectPanel`, docs  
+Goal: Production popup shows Connected / Not connected + Connect only (no localhost API field); local/dev keeps Advanced; `externally_connectable` includes `hireiq.kingsharif.com`.  
+Result: v0.9.6 — `IS_DEV_BUILD` gates UI; prod forces `https://hireiq.kingsharif.com`; dashboard panel demotes legacy token. True zero-click background link not possible (Chrome); already-logged-in site + Connect = instant link.  
+Files changed: `extension/src/popup.html`, `popup.ts`, `settings.ts`, `env.ts`, `auth.ts`, `manifest.config.ts`, `package.json`, `components/home/ExtensionConnectPanel.tsx`, docs  
+
+---
+
 ## Task 143 — Enable Supabase Google login (site + extension)
 Status: IN PROGRESS  
 Scope: `proxy.ts`, `lib/auth/messages.ts`, auth pages, `docs/AUTH.md`, extension auth error copy  

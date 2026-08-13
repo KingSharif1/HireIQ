@@ -1,5 +1,41 @@
 # Changelog
 
+## 2026-08-12 — Landing finale + CTA cleanup
+
+**What:** Closing aurora finale (“Less paperwork. More interviews.”) with one primary Get started. Sign in only in footer. Interactive scroll scenes + parallax BG; removed sticky empty void.
+
+**Files:** `components/marketing/{LandingPage,ProductScrollStory,ScrollParallaxBackground}.tsx`
+
+**Why:** Bottom felt flat; too many Sign in / Get started duplicates.
+
+**Next:** Google branding re-verify; optional Job Hub / Builder UI pass.
+
+---
+
+## 2026-08-12 — Task 144: Extension prod popup + connect domains
+
+**What:** Production builds (`npm run build`) hide API URL + Advanced; show Connected / Not connected + Connect. Dev builds keep localhost + legacy. Force prod API host; add `hireiq.kingsharif.com` to `externally_connectable`. Dashboard Chrome extension card demotes legacy token.
+
+**Files:** `extension/src/{popup.html,popup.ts,settings.ts,env.ts,auth.ts}`, `manifest.config.ts`, `ExtensionConnectPanel.tsx`, docs
+
+**Why:** Store users should not see localhost controls; Connect while already signed in on HireIQ still links in one click (Chrome blocks silent zero-click link).
+
+**Next:** Reload unpacked (dev) or build Store zip; smoke Connect on prod domain.
+
+---
+
+## 2026-08-12 — Dashboard shell + home visual refresh
+
+**What:** Primary tokens → logo teal. Ink sidebar/mobile nav with logo + teal active states. Home greeting + intentional action tiles; polished extension panel. Applications header lightly aligned.
+
+**Files:** `app/globals.css`, `components/shared/{DashboardShell,Sidebar,MobileNav}.tsx`, `components/home/*`, `app/dashboard/page.tsx`, `components/jobs/ApplicationsTracker.tsx`
+
+**Why:** Match marketing quality inside the product, not only on the landing page.
+
+**Next:** Optional deeper Job Hub / Builder pass.
+
+---
+
 ## 2026-08-12 — Cinematic landing: tailor + extension scroll story
 
 **What:** Hero with architectural grid + HireIQ-first thesis; sticky scrollytelling demos (tailor workbench → Chrome autofill → tracker). Stronger purpose copy for Google branding.

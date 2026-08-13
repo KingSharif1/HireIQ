@@ -1,19 +1,27 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-import { LogOut, Zap, Bell, Settings, Sun, Moon } from 'lucide-react'
+import { LogOut, Bell, Settings, Sun, Moon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
-  DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import { UnreadBadge } from '@/components/notifications/UnreadBadge'
 import {
-  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { PRIMARY_NAV } from '@/components/shared/primary-nav'
 import type { Profile } from '@/types'
@@ -43,16 +51,16 @@ export function Sidebar({ profile, unreadCount = 0 }: SidebarProps) {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <aside className="hidden md:flex flex-col items-center w-[60px] min-h-screen bg-[#1a1d24] text-white/70 py-3 fixed left-0 top-0 z-40 border-r border-black/20">
+      <aside className="fixed left-0 top-0 z-40 hidden min-h-screen w-[68px] flex-col items-center border-r border-white/5 bg-[#070f1a] py-4 text-white/65 md:flex">
         <Link
           href="/dashboard"
-          className="mb-4 w-9 h-9 rounded-md bg-white flex items-center justify-center flex-shrink-0"
+          className="mb-5 flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl shadow-lg shadow-teal-950/40 ring-1 ring-white/10 transition hover:ring-teal-400/40"
           aria-label="HireIQ Home"
         >
-          <Zap className="w-4 h-4 text-[#1a1d24]" fill="currentColor" />
+          <Image src="/logo.svg" alt="" width={40} height={40} className="h-10 w-10" />
         </Link>
 
-        <nav className="flex-1 flex flex-col items-center gap-1 w-full px-1.5">
+        <nav className="flex w-full flex-1 flex-col items-center gap-1.5 px-2">
           {PRIMARY_NAV.map(({ href, icon: Icon, label, match }) => {
             const active = match(pathname)
             return (
@@ -61,33 +69,38 @@ export function Sidebar({ profile, unreadCount = 0 }: SidebarProps) {
                   <Link
                     href={href}
                     className={cn(
-                      'flex items-center justify-center w-11 h-11 rounded-md transition-colors',
+                      'relative flex h-11 w-11 items-center justify-center rounded-xl transition-all duration-200',
                       active
-                        ? 'bg-white/15 text-white'
-                        : 'text-white/55 hover:bg-white/10 hover:text-white'
+                        ? 'bg-teal-500/20 text-teal-200 shadow-[inset_0_0_0_1px_rgba(45,212,191,0.35)]'
+                        : 'text-white/50 hover:bg-white/8 hover:text-white',
                     )}
                     aria-label={label}
                     aria-current={active ? 'page' : undefined}
                   >
-                    <Icon className="w-[18px] h-[18px]" />
+                    {active && (
+                      <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-teal-300" />
+                    )}
+                    <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2.25 : 1.75} />
                   </Link>
                 </TooltipTrigger>
-                <TooltipContent side="right">{label}</TooltipContent>
+                <TooltipContent side="right" className="font-medium">
+                  {label}
+                </TooltipContent>
               </Tooltip>
             )
           })}
         </nav>
 
-        <div className="flex flex-col items-center gap-1 w-full px-1.5 pb-1">
+        <div className="flex w-full flex-col items-center gap-1.5 px-2 pb-1">
           <Tooltip>
             <TooltipTrigger asChild>
               <Link
                 href="/dashboard/notifications"
-                className="relative flex items-center justify-center w-11 h-11 rounded-md text-white/55 hover:bg-white/10 hover:text-white"
+                className="relative flex h-11 w-11 items-center justify-center rounded-xl text-white/50 transition hover:bg-white/8 hover:text-white"
                 aria-label="Alerts"
               >
-                <Bell className="w-[18px] h-[18px]" />
-                <span className="absolute top-1.5 right-1.5">
+                <Bell className="h-[18px] w-[18px]" />
+                <span className="absolute right-1.5 top-1.5">
                   <UnreadBadge initialCount={unreadCount} className="scale-75" />
                 </span>
               </Link>
@@ -99,14 +112,16 @@ export function Sidebar({ profile, unreadCount = 0 }: SidebarProps) {
             <DropdownMenuTrigger asChild>
               <button
                 className={cn(
-                  'flex items-center justify-center w-11 h-11 rounded-md hover:bg-white/10 outline-none',
-                  settingsActive && 'bg-white/15'
+                  'flex h-11 w-11 items-center justify-center rounded-xl outline-none transition hover:bg-white/8',
+                  settingsActive && 'bg-teal-500/15 ring-1 ring-teal-400/30',
                 )}
                 aria-label="Open account menu"
                 aria-current={settingsActive ? 'page' : undefined}
               >
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="text-[10px] bg-white/20 text-white">{initials}</AvatarFallback>
+                <Avatar className="h-8 w-8 ring-1 ring-white/15">
+                  <AvatarFallback className="bg-teal-500/25 text-[10px] text-teal-100">
+                    {initials}
+                  </AvatarFallback>
                 </Avatar>
               </button>
             </DropdownMenuTrigger>
@@ -122,7 +137,7 @@ export function Sidebar({ profile, unreadCount = 0 }: SidebarProps) {
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/settings">
-                  <Settings className="w-4 h-4" />
+                  <Settings className="h-4 w-4" />
                   Settings
                 </Link>
               </DropdownMenuItem>
@@ -132,7 +147,7 @@ export function Sidebar({ profile, unreadCount = 0 }: SidebarProps) {
                   setTheme(theme === 'dark' ? 'light' : 'dark')
                 }}
               >
-                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 {theme === 'dark' ? 'Light mode' : 'Dark mode'}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -140,7 +155,7 @@ export function Sidebar({ profile, unreadCount = 0 }: SidebarProps) {
                 onSelect={handleLogout}
                 className="text-destructive focus:text-destructive"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="h-4 w-4" />
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>

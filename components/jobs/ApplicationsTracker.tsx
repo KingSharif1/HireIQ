@@ -149,12 +149,14 @@ export function ApplicationsTracker({
   const isOutreach = surface === 'outreach'
 
   return (
-    <div className="h-[calc(100dvh-5rem)] md:h-dvh flex flex-col bg-[#f6f7f9] dark:bg-background overflow-hidden">
-      <header className="flex-shrink-0 bg-white dark:bg-card border-b border-border">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+    <div className="flex h-[calc(100dvh-5rem)] flex-col overflow-hidden bg-transparent dark:bg-background md:h-dvh">
+      <header className="flex-shrink-0 border-b border-border/80 bg-card/80 backdrop-blur-md dark:bg-card">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5">
           <div className="min-w-0">
-            <h1 className="text-lg font-semibold tracking-tight text-foreground">Applications</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <h1 className="font-display text-xl font-semibold tracking-tight text-foreground">
+              Applications
+            </h1>
+            <p className="mt-0.5 text-xs text-muted-foreground">
               {isOutreach
                 ? `${outreachAll.length} message${outreachAll.length === 1 ? '' : 's'} across jobs`
                 : `${items.length} job${items.length === 1 ? '' : 's'}${statusFilter !== 'all' ? ' · filtered' : ''}`}
@@ -384,7 +386,7 @@ function SurfaceTab({
         <span className="tabular-nums text-xs text-muted-foreground">({count})</span>
       ) : null}
       {active ? (
-        <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-foreground" />
+        <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-teal-500" />
       ) : null}
     </button>
   )

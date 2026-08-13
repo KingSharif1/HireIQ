@@ -4,7 +4,7 @@ export default defineManifest({
   manifest_version: 3,
   name: 'HireIQ — Job Apply Copilot',
   description: 'Save jobs to HireIQ and autofill applications from your profile.',
-  version: '0.9.5',
+  version: '0.9.6',
   action: {
     default_popup: 'src/popup.html',
     default_title: 'HireIQ',
@@ -16,7 +16,14 @@ export default defineManifest({
   permissions: ['activeTab', 'storage', 'scripting', 'tabs', 'identity'],
   host_permissions: ['<all_urls>'],
   externally_connectable: {
-    matches: ['http://localhost:3000/*', 'https://localhost:3000/*', 'https://*.hireiq.app/*', 'https://hireiq.app/*'],
+    matches: [
+      'http://localhost:3000/*',
+      'https://localhost:3000/*',
+      'https://hireiq.kingsharif.com/*',
+      'https://*.vercel.app/*',
+      'https://*.hireiq.app/*',
+      'https://hireiq.app/*',
+    ],
   },
   content_scripts: [
     {

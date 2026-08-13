@@ -4,48 +4,49 @@
 
 @layer base {
   :root {
-    --background: 220 20% 98%;
-    --foreground: 222 35% 11%;
+    --background: 210 25% 98%;
+    --foreground: 215 35% 12%;
     --card: 0 0% 100%;
-    --card-foreground: 222 35% 11%;
+    --card-foreground: 215 35% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 35% 11%;
-    --primary: 262 83% 58%;
+    --popover-foreground: 215 35% 12%;
+    /* Logo teal #0d9488 */
+    --primary: 175 77% 32%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 14% 94%;
-    --secondary-foreground: 222 25% 25%;
-    --muted: 220 14% 94%;
-    --muted-foreground: 220 10% 46%;
-    --accent: 142 71% 40%;
-    --accent-foreground: 0 0% 100%;
+    --secondary: 210 18% 94%;
+    --secondary-foreground: 215 25% 25%;
+    --muted: 210 16% 94%;
+    --muted-foreground: 215 12% 42%;
+    --accent: 175 45% 94%;
+    --accent-foreground: 175 80% 22%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 14% 90%;
-    --input: 220 14% 96%;
-    --ring: 262 83% 58%;
+    --border: 214 18% 88%;
+    --input: 214 18% 96%;
+    --ring: 175 77% 32%;
     --radius: 0.75rem;
   }
 
   .dark {
-    --background: 220 30% 8%;
-    --foreground: 210 40% 95%;
-    --card: 220 25% 12%;
-    --card-foreground: 210 40% 95%;
-    --popover: 220 25% 12%;
-    --popover-foreground: 210 40% 95%;
-    --primary: 262 83% 64%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 20% 18%;
-    --secondary-foreground: 210 40% 85%;
-    --muted: 220 20% 18%;
-    --muted-foreground: 215 20% 55%;
-    --accent: 142 71% 45%;
-    --accent-foreground: 0 0% 100%;
+    --background: 220 32% 7%;
+    --foreground: 210 30% 96%;
+    --card: 220 28% 10%;
+    --card-foreground: 210 30% 96%;
+    --popover: 220 28% 10%;
+    --popover-foreground: 210 30% 96%;
+    --primary: 173 70% 42%;
+    --primary-foreground: 175 80% 8%;
+    --secondary: 220 22% 16%;
+    --secondary-foreground: 210 30% 88%;
+    --muted: 220 22% 16%;
+    --muted-foreground: 215 16% 58%;
+    --accent: 175 30% 16%;
+    --accent-foreground: 173 70% 70%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 20% 20%;
-    --input: 220 20% 18%;
-    --ring: 262 83% 64%;
+    --border: 220 20% 18%;
+    --input: 220 20% 16%;
+    --ring: 173 70% 42%;
   }
 }
 
@@ -92,6 +93,10 @@
 }
 
 .marketing .font-display {
+  font-family: var(--font-syne), var(--font-inter), system-ui, sans-serif;
+}
+
+.font-display {
   font-family: var(--font-syne), var(--font-inter), system-ui, sans-serif;
 }
 
