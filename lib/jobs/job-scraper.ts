@@ -5,6 +5,7 @@ import {
   isLinkedInJobUrl,
   isAggregatorJobUrl,
   parseWorkdayUrl,
+  parseGreenhouseUrl,
   LINKEDIN_PASTE_MESSAGE,
 } from '@/lib/jobs/url-detect'
 
@@ -77,10 +78,10 @@ async function scrapeWorkday(url: string): Promise<{ text: string; company: stri
 }
 
 async function scrapeGreenhouse(url: string): Promise<{ text: string; company: string; title: string }> {
-  const match = url.match(/greenhouse\.io\/([^/]+)\/jobs\/(\d+)/)
-  if (!match) throw new Error('Could not parse Greenhouse URL')
+  const parsed = parseGreenhouseUrl(url)
+  if (!parsed) throw new Error('Could not parse Greenhouse URL')
 
-  const [, boardToken, jobId] = match
+  const { boardToken, jobId } = parsed
   const apiUrl = `https://boards-api.greenhouse.io/v1/boards/${boardToken}/jobs/${jobId}`
   const res = await fetch(apiUrl, { headers: { 'User-Agent': 'HireIQ/1.0' } })
   if (!res.ok) throw new Error('Failed to fetch Greenhouse job')

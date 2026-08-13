@@ -5,6 +5,7 @@ import {
   isLinkedInJobUrl,
   isAggregatorJobUrl,
   parseWorkdayUrl,
+  parseGreenhouseUrl,
 } from '@/lib/jobs/url-detect'
 
 describe('url-detect', () => {
@@ -37,6 +38,14 @@ describe('url-detect', () => {
     expect(detectJobUrlKind('https://www.linkedin.com/jobs/view/1')).toBe('linkedin')
     expect(detectJobUrlKind('https://acme.wd1.myworkdayjobs.com/en-US/External/job/City/Role_R1')).toBe('workday')
     expect(detectJobUrlKind('https://boards.greenhouse.io/acme/jobs/1')).toBe('greenhouse')
+    expect(detectJobUrlKind('https://stripe.com/jobs/search?gh_jid=8077887')).toBe('greenhouse')
     expect(detectJobUrlKind('https://www.indeed.com/viewjob?jk=x')).toBe('aggregator')
+  })
+
+  it('parses Greenhouse embed URLs with gh_jid', () => {
+    expect(parseGreenhouseUrl('https://stripe.com/jobs/search?gh_jid=8077887')).toEqual({
+      boardToken: 'stripe',
+      jobId: '8077887',
+    })
   })
 })

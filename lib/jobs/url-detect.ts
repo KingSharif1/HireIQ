@@ -82,10 +82,31 @@ export function buildWorkdayApiUrl(parts: WorkdayUrlParts): string {
   return `${parts.origin}/wday/cxs/${parts.tenant}/${parts.board}/job/${parts.jobPath}`
 }
 
+export function parseGreenhouseUrl(url: string): { boardToken: string; jobId: string } | null {
+  const pathMatch = url.match(/greenhouse\.io\/([^/]+)\/jobs\/(\d+)/)
+  if (pathMatch) {
+    return { boardToken: pathMatch[1]!, jobId: pathMatch[2]! }
+  }
+
+  try {
+    const u = new URL(url.trim())
+    const ghJid = u.searchParams.get('gh_jid')
+    if (ghJid && /^\d+$/.test(ghJid)) {
+      const host = u.hostname.replace(/^www\./, '')
+      const boardToken = host.split('.')[0]
+      if (boardToken) return { boardToken, jobId: ghJid }
+    }
+  } catch {
+    return null
+  }
+
+  return null
+}
+
 export function detectJobUrlKind(url: string): JobUrlKind {
   if (isLinkedInJobUrl(url)) return 'linkedin'
   if (parseWorkdayUrl(url)) return 'workday'
-  if (url.includes('greenhouse.io')) return 'greenhouse'
+  if (parseGreenhouseUrl(url)) return 'greenhouse'
   if (url.includes('lever.co')) return 'lever'
   if (url.includes('ashbyhq.com')) return 'ashby'
   if (isAggregatorJobUrl(url)) return 'aggregator'
