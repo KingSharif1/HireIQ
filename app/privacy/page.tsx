@@ -191,6 +191,10 @@ export default function PrivacyPage() {
         <Link href="/privacy" className="underline-offset-2 hover:underline">
           Privacy
         </Link>
+        {' · '}
+        <Link href="/terms" className="underline-offset-2 hover:underline">
+          Terms
+        </Link>
       </footer>
     </div>
   )
