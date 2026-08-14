@@ -18,7 +18,7 @@ import {
   pickBestAttempt,
   seniorityLengthBudget,
   shouldRetryLoop,
-  sliceForPrompt,
+  jsonForPrompt,
   normalizeStructuredResume,
 } from '@/lib/ai/tailor-engine'
 
@@ -70,9 +70,9 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
   const attempts: { resume: StructuredResume; critique: TailorCritiqueReport }[] = []
 
   const generatePrompt = TAILOR_GENERATE_PROMPT
-    .replace('{structuredResume}', sliceForPrompt(resume, 5000))
-    .replace('{githubContext}', input.githubContext?.slice(0, 2500) ?? 'No GitHub repos synced.')
-    .replace('{jobAnalysis}', sliceForPrompt(job, 2000))
+    .replace('{structuredResume}', jsonForPrompt(resume))
+    .replace('{githubContext}', input.githubContext ?? 'No GitHub repos synced.')
+    .replace('{jobAnalysis}', jsonForPrompt(job))
     .replace('{enhancements}', enhancements)
     .replace('{realGaps}', realGaps)
     .replace('{adjacentMatches}', adjacentMatches)
@@ -84,14 +84,14 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
   let current = parseResume(genText)
 
   const critiquePromptBase = {
-    structuredResume: sliceForPrompt(resume, 4000),
-    jobAnalysis: sliceForPrompt(job, 2000),
+    structuredResume: jsonForPrompt(resume),
+    jobAnalysis: jsonForPrompt(job),
   }
 
   async function critiqueDraft(draft: StructuredResume, useStrongModel: boolean): Promise<TailorCritiqueReport> {
     const prompt = TAILOR_CRITIQUE_PROMPT
       .replace('{structuredResume}', critiquePromptBase.structuredResume)
-      .replace('{tailoredResume}', sliceForPrompt(draft, 5000))
+      .replace('{tailoredResume}', jsonForPrompt(draft))
       .replace('{jobAnalysis}', critiquePromptBase.jobAnalysis)
 
     const model = useStrongModel ? models.strong : models.fast
@@ -113,9 +113,9 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
         .replace('{weakSections}', (critique.weak_sections ?? []).join(', ') || 'summary, experience')
         .replace('{critiqueFlags}', JSON.stringify((critique.flags ?? []).slice(0, 10)))
         .replace('{suggestions}', (critique.suggestions ?? []).join('\n') || 'Improve ATS keyword alignment')
-        .replace('{structuredResume}', sliceForPrompt(resume, 4000))
-        .replace('{tailoredResume}', sliceForPrompt(current, 5000))
-        .replace('{jobAnalysis}', sliceForPrompt(job, 2000))
+        .replace('{structuredResume}', jsonForPrompt(resume))
+        .replace('{tailoredResume}', jsonForPrompt(current))
+        .replace('{jobAnalysis}', jsonForPrompt(job))
         .replace('{enhancements}', enhancements)
         .replace('{realGaps}', realGaps)
         .replace('{adjacentMatches}', adjacentMatches)

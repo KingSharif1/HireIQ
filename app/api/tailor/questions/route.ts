@@ -85,9 +85,9 @@ export async function POST(request: Request) {
   ].join('\n')
 
   const prompt = GAP_ANALYSIS_PROMPT
-    .replace('{structuredResume}', JSON.stringify(resume, null, 2).slice(0, 4000))
+    .replace('{structuredResume}', JSON.stringify(resume, null, 2))
     .replace('{githubContext}', githubContext)
-    .replace('{jobRequirements}', JSON.stringify(jobData, null, 2).slice(0, 2000))
+    .replace('{jobRequirements}', JSON.stringify(jobData, null, 2))
     .replace('{gaps}', gaps || 'No major gaps identified from ATS pre-scan')
 
   let ai

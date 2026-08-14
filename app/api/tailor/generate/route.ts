@@ -116,7 +116,7 @@ export async function POST(request: Request) {
   const job = jobRow.extracted_data
   log.step(
     'Context loaded',
-    `resume (${master.source}) · job ${job.title || 'role'} · GitHub ${ghRepos > 0 ? `${ghRepos} repos` : 'none'}`,
+    `full master resume (${JSON.stringify(master.structured).length.toLocaleString()} chars) · job ${job.title || 'role'} · GitHub ${ghRepos > 0 ? `${ghRepos} repos` : 'none'}`,
   )
 
   const resume = master.structured
