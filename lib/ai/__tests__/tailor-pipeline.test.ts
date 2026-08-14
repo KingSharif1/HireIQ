@@ -82,4 +82,29 @@ describe('runTailorPipeline', () => {
     expect(result.meta.warning).toBeTruthy()
     expect(result.changes.length).toBeGreaterThan(0)
   })
+
+  it('survives incomplete Claude JSON in fastMode (missing bullets/projects)', async () => {
+    const incomplete = {
+      contact: { name: 'Jane' },
+      summary: 'Tailored for Acme',
+      experience: [{ id: 'exp-1', title: 'SE', company: 'Acme' }],
+      skills: { technical: ['TypeScript'] },
+    }
+    const generate = vi.fn()
+      .mockResolvedValueOnce(JSON.stringify(incomplete))
+      .mockResolvedValueOnce(passCritique)
+
+    const result = await runTailorPipeline({
+      resume: sampleStructuredResume(),
+      job,
+      answers: {},
+      generate,
+      fastMode: true,
+    })
+
+    expect(result.tailoredResume.summary).toContain('Tailored')
+    expect(result.tailoredResume.experience[0].bullets).toEqual([])
+    expect(result.tailoredResume.projects).toEqual([])
+    expect(generate).toHaveBeenCalledTimes(2)
+  })
 })

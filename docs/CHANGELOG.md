@@ -1,3 +1,12 @@
+## 2026-08-14 — Fix tailor crash: `.join` on missing Claude arrays
+
+**What:** Claude drafts often omit `bullets` / `projects`. Pipeline now normalizes the JSON before diffing so we never call `.join` on undefined.
+
+**Files:** `lib/ai/tailor-engine.ts`, `lib/ai/tailor-pipeline.ts`, `lib/scoring/ats-scorer.ts`
+
+**Why:** Generate succeeded (4.7k chars) then crashed: `Cannot read properties of undefined (reading 'join')`.
+
+---
 ## 2026-08-14 — Fast tailor path (skip gap-analysis API)
 
 **What:** Default AI tailor now loads resume + job from DB instantly (`GET /api/tailor/context`), then one `/api/tailor/generate` call in **fastMode** (2 Claude calls). Skips the slow `/api/tailor/questions` gap-analysis step unless user chooses "Try gap questions (slower)".
