@@ -109,10 +109,16 @@ describe('recordBulletEdit', () => {
 })
 
 describe('mergePendingSuggestions', () => {
-  it('dedupes by id', () => {
+  it('dedupes by id and keeps first by default', () => {
     const a = [{ id: '1', section: 'experience' as const, proposedText: 'a', reason: '', sourceTailoredResumeId: '', jobLabel: '', createdAt: '' }]
     const b = [{ id: '1', section: 'experience' as const, proposedText: 'b', reason: '', sourceTailoredResumeId: '', jobLabel: '', createdAt: '' }]
-    expect(mergePendingSuggestions(a, b)).toHaveLength(1)
+    expect(mergePendingSuggestions(a, b)[0].proposedText).toBe('a')
+  })
+
+  it('can prefer incoming when refreshing', () => {
+    const a = [{ id: '1', section: 'experience' as const, proposedText: 'a', reason: '', sourceTailoredResumeId: '', jobLabel: '', createdAt: '' }]
+    const b = [{ id: '1', section: 'experience' as const, proposedText: 'b', reason: '', sourceTailoredResumeId: '', jobLabel: '', createdAt: '' }]
+    expect(mergePendingSuggestions(a, b, { preferIncoming: true })[0].proposedText).toBe('b')
   })
 })
 

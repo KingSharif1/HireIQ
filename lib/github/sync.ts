@@ -6,7 +6,7 @@ import {
   githubSuggestionsFromRepos,
   linkProjectGithubUrls,
 } from './suggestions'
-import { mergePendingSuggestions, normalizeProfileData } from '@/lib/profile/provenance'
+import { mergeGitHubPendingSuggestions, normalizeProfileData } from '@/lib/profile/provenance'
 import type { Profile, ProfileData } from '@/types'
 
 export async function getGitHubConnection(
@@ -92,8 +92,8 @@ export async function syncGitHubForUser(
     projects: linkProjectGithubUrls(profileData.projects, repos),
   }
 
-  const incoming = githubSuggestionsFromRepos(repos, profileData, profileData.pendingSuggestions ?? [])
-  const mergedPending = mergePendingSuggestions(profileData.pendingSuggestions ?? [], incoming)
+  const incoming = githubSuggestionsFromRepos(repos, profileData)
+  const mergedPending = mergeGitHubPendingSuggestions(profileData.pendingSuggestions ?? [], incoming)
   profileData = { ...profileData, pendingSuggestions: mergedPending }
 
   await supabase.from('github_connections').upsert({
