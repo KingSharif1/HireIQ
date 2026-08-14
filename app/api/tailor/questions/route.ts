@@ -7,6 +7,8 @@ import { generateAiText } from '@/lib/ai/complete'
 import { normalizeGapAnalysis } from '@/lib/ai/gap-analysis'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { getMasterResumeContext } from '@/lib/profile/master'
+import { formatGitHubContextForAi } from '@/lib/profile/github-context'
+import type { GitHubProfileData } from '@/lib/github/types'
 
 export const runtime = 'nodejs'
 export const maxDuration = 45
@@ -20,21 +22,28 @@ export async function POST(request: Request) {
   const { resumeId, jobId } = await request.json()
   if (!jobId) return NextResponse.json({ error: 'jobId required' }, { status: 400 })
 
-  const master = await getMasterResumeContext(supabase, user.id, resumeId)
+  const [master, jobRes, profileRes] = await Promise.all([
+    getMasterResumeContext(supabase, user.id, resumeId),
+    supabase
+      .from('jobs')
+      .select('extracted_data')
+      .eq('id', jobId)
+      .eq('user_id', user.id)
+      .single(),
+    supabase.from('profiles').select('github_data').eq('id', user.id).maybeSingle(),
+  ])
+
   if ('error' in master) {
     return NextResponse.json({ error: master.error }, { status: master.status })
   }
 
-  const { data: job } = await supabase
-    .from('jobs')
-    .select('extracted_data')
-    .eq('id', jobId)
-    .eq('user_id', user.id)
-    .single()
-
+  const job = jobRes.data
   if (!job?.extracted_data) {
     return NextResponse.json({ error: 'Resume or job not found' }, { status: 404 })
   }
+
+  const githubData = profileRes.data?.github_data as GitHubProfileData | null | undefined
+  const githubContext = formatGitHubContextForAi(githubData ?? null)
 
   const resume = master.structured
   const jobData = job.extracted_data
@@ -47,6 +56,7 @@ export async function POST(request: Request) {
 
   const prompt = GAP_ANALYSIS_PROMPT
     .replace('{structuredResume}', JSON.stringify(resume, null, 2).slice(0, 4000))
+    .replace('{githubContext}', githubContext)
     .replace('{jobRequirements}', JSON.stringify(jobData, null, 2).slice(0, 2000))
     .replace('{gaps}', gaps || 'No major gaps identified from ATS pre-scan')
 

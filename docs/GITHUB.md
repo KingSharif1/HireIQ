@@ -55,8 +55,10 @@ Alternatively, create a classic **OAuth App** (no `Iv1.` prefix) — those use `
 1. User clicks **Connect GitHub** → `/api/github/connect` → GitHub authorize
 2. GitHub redirects to `/api/github/callback` → token stored in `github_connections`
 3. Initial sync fetches up to 30 non-fork repos → `profiles.github_data`
-4. Unmatched repos become **pending suggestions** (accept/decline)
-5. **Sync** re-fetches repos on demand
+4. **Deep context per repo:** README excerpt, root folder layout, and notable tools from `package.json` (when present)
+5. Empty or placeholder repos (no README/code signal) are **not** suggested
+6. Unmatched repos become **pending suggestions** (accept/decline)
+7. **Sync** re-fetches repos on demand
 
 ## API routes
 

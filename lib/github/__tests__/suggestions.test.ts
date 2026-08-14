@@ -16,6 +16,10 @@ const baseRepo = (over: Partial<GitHubRepoSnapshot> = {}): GitHubRepoSnapshot =>
   topics: [],
   isFork: false,
   isPrivate: false,
+  readmeExcerpt:
+    'HireIQ is an AI resume tailoring platform with job gap analysis, GitHub sync, and hosted auto-apply for developers.',
+  rootPaths: ['app', 'src', 'components'],
+  tools: ['next', 'supabase'],
   ...over,
 })
 
@@ -50,6 +54,27 @@ describe('githubSuggestionsFromRepos', () => {
   it('skips archived unmatched repos', () => {
     const data = emptyProfileData()
     const suggestions = githubSuggestionsFromRepos([baseRepo({ status: 'archived' })], data)
+    expect(suggestions).toHaveLength(0)
+  })
+
+  it('skips empty repos with no real signal', () => {
+    const data = emptyProfileData()
+    const suggestions = githubSuggestionsFromRepos(
+      [
+        baseRepo({
+          id: 99,
+          name: 'placeholder',
+          fullName: 'dev/placeholder',
+          description: null,
+          languages: [],
+          readmeExcerpt: '# placeholder',
+          stars: 0,
+          rootPaths: ['README.md'],
+          tools: [],
+        }),
+      ],
+      data
+    )
     expect(suggestions).toHaveLength(0)
   })
 })

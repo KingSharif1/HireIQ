@@ -1,4 +1,6 @@
 import type { GitHubRepoSnapshot } from './types'
+import { buildRepoHighlight } from './repo-enrichment'
+import { isMeaningfulRepo } from './repo-quality'
 import { repoMatchesProject } from './repo-status'
 import type { PendingSuggestion, ProfileData, ResumeProject } from '@/types'
 import { uid } from '@/lib/profile/data'
@@ -6,10 +8,21 @@ import { uid } from '@/lib/profile/data'
 const GITHUB_SOURCE_ID = 'github-sync'
 
 function buildProjectBullet(repo: GitHubRepoSnapshot): string {
-  const langs = repo.languages.slice(0, 4).join(', ')
-  const stars = repo.stars > 0 ? `${repo.stars} stars · ` : ''
-  const desc = repo.description?.trim() || 'Open-source project'
-  return `${desc}${langs ? ` — built with ${langs}` : ''} (${stars}${repo.status} on GitHub)`
+  return buildRepoHighlight(repo)
+}
+
+function buildSuggestionReason(repo: GitHubRepoSnapshot, matched?: ResumeProject): string {
+  const signals: string[] = []
+  if (repo.readmeExcerpt) signals.push('README')
+  if (repo.rootPaths?.length) signals.push('repo structure')
+  if (repo.tools?.length) signals.push('dependencies')
+  if (repo.languages.length) signals.push('languages')
+  const context = signals.length ? ` (from ${signals.join(', ')})` : ''
+
+  if (matched) {
+    return `GitHub repo "${repo.fullName}" matches your project "${matched.name}". We read the repo${context} — add a specific bullet?`
+  }
+  return `Repo "${repo.fullName}" looks like real work${context} but isn't in your profile projects yet.`
 }
 
 export function githubSuggestionsFromRepos(
@@ -32,14 +45,18 @@ export function githubSuggestionsFromRepos(
 
     if (matched) {
       const alreadyLinked = matched.github?.includes(repo.fullName) || matched.github?.includes(repo.name)
-      if (alreadyLinked && matched.description?.trim()) continue
+      const hasRichBullet = matched.bullets.some(b => b.trim().length > 40)
+      if (alreadyLinked && matched.description?.trim() && hasRichBullet) continue
+
+      // Matched projects: only suggest if we have meaningful repo context.
+      if (!isMeaningfulRepo(repo) && !repo.readmeExcerpt && !repo.description?.trim()) continue
 
       suggestions.push({
         id: suggestionId,
         section: 'projects',
         targetEntryId: matched.id,
         proposedText: buildProjectBullet(repo),
-        reason: `GitHub repo "${repo.fullName}" matches your project "${matched.name}". Add a bullet from repo activity?`,
+        reason: buildSuggestionReason(repo, matched),
         sourceTailoredResumeId: GITHUB_SOURCE_ID,
         jobLabel: 'GitHub sync',
         createdAt: now,
@@ -49,21 +66,27 @@ export function githubSuggestionsFromRepos(
     }
 
     if (repo.status === 'archived') continue
+    if (!isMeaningfulRepo(repo)) continue
+
+    const description =
+      repo.description?.trim() ||
+      repo.readmeExcerpt?.split(/[.!?]/)[0]?.trim().slice(0, 160) ||
+      repo.name
 
     suggestions.push({
       id: suggestionId,
       section: 'projects',
-      proposedText: repo.description?.trim() || repo.name,
-      reason: `Repo "${repo.fullName}" is on GitHub but not in your profile projects.`,
+      proposedText: description,
+      reason: buildSuggestionReason(repo),
       sourceTailoredResumeId: GITHUB_SOURCE_ID,
       jobLabel: 'GitHub sync',
       createdAt: now,
       source: 'github',
       newProject: {
         name: repo.name,
-        description: repo.description?.trim() ?? '',
+        description,
         github: repo.htmlUrl,
-        technologies: repo.languages.slice(0, 8),
+        technologies: [...new Set([...(repo.tools ?? []), ...repo.languages])].slice(0, 8),
         bullets: [buildProjectBullet(repo)],
       },
     })

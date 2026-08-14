@@ -1,4 +1,5 @@
 import type { GitHubApiRepo, GitHubApiUser, GitHubRepoSnapshot } from './types'
+import { enrichReposBatch } from './repo-enrichment'
 import { repoStatus } from './repo-status'
 
 const GITHUB_API = 'https://api.github.com'
@@ -49,9 +50,15 @@ export async function snapshotRepos(repos: GitHubApiRepo[], token: string): Prom
   const owned = repos.filter(r => !r.fork)
   const top = owned.slice(0, 30)
 
+  const enrichments = await enrichReposBatch(top, token, 4)
+
   return Promise.all(
     top.map(async repo => {
       const languages = await fetchRepoLanguages(repo.full_name, token)
+      const enriched = enrichments.get(repo.id)
+      const tools = enriched?.tools ?? []
+      const mergedTools = [...new Set([...tools, ...languages.slice(0, 3)])].slice(0, 10)
+
       return {
         id: repo.id,
         name: repo.name,
@@ -65,6 +72,9 @@ export async function snapshotRepos(repos: GitHubApiRepo[], token: string): Prom
         topics: repo.topics ?? [],
         isFork: repo.fork,
         isPrivate: repo.private,
+        readmeExcerpt: enriched?.readmeExcerpt || undefined,
+        rootPaths: enriched?.rootPaths?.length ? enriched.rootPaths : undefined,
+        tools: mergedTools.length ? mergedTools : undefined,
       }
     })
   )
