@@ -13,6 +13,8 @@ import {
   normalizeApplicationStatus,
 } from '@/lib/jobs/status'
 import { buildOutreachFeed, filterOutreachFeed, type UnmatchedInboundRow } from '@/lib/applications/outreach'
+import { fetchActiveTailorRuns, type TailorRunDto } from '@/lib/api/client'
+import { isBusyTailorStatus } from '@/lib/tailor/run-types'
 import { cn } from '@/lib/utils'
 import type { ApplicationEmailLogEntry, ApplicationStatus, ApplicationTrackerItem } from '@/types'
 
@@ -48,6 +50,26 @@ export function ApplicationsTracker({
   useEffect(() => {
     setItems(initialItems)
   }, [initialItems])
+
+  const hasBusyTailor = items.some(item => isBusyTailorStatus(item.tailorRunStatus ?? ''))
+
+  useEffect(() => {
+    if (!hasBusyTailor) return
+    const tick = window.setInterval(() => {
+      void fetchActiveTailorRuns()
+        .then((runs: TailorRunDto[]) => {
+          const byJob = new Map(runs.map(run => [run.job_id, run.status] as const))
+          setItems(prev =>
+            prev.map(item => ({
+              ...item,
+              tailorRunStatus: byJob.get(item.job_id) ?? (isBusyTailorStatus(item.tailorRunStatus ?? '') ? null : item.tailorRunStatus),
+            })),
+          )
+        })
+        .catch(() => undefined)
+    }, 4000)
+    return () => window.clearInterval(tick)
+  }, [hasBusyTailor])
 
   useEffect(() => {
     try {

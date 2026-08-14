@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { ArrowLeft, Check, Copy, ExternalLink, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ActivityPanel, type AddActivityEventInput } from '@/components/jobs/detail/ActivityPanel'
@@ -20,6 +20,9 @@ import {
 } from '@/components/jobs/detail/JobSummary'
 import { AutoApplyWithHireIQ } from '@/components/jobs/detail/AutoApplyWithHireIQ'
 import { QuestionsPanel } from '@/components/jobs/detail/QuestionsPanel'
+import { TailorRunChip } from '@/components/jobs/detail/TailorRunChip'
+import { fetchTailorRun } from '@/lib/api/client'
+import { isBusyTailorStatus } from '@/lib/tailor/run-types'
 import { buildActivityFeed } from '@/lib/applications/activity'
 import { buildInboxThreads, emailThreadKey } from '@/lib/applications/email'
 import { normalizeFormAnswers } from '@/lib/applications/form-answers'
@@ -97,7 +100,6 @@ export function JobDetailPage({
   emailTrackingEnabled = true,
   applyEmail = null,
 }: JobDetailPageProps) {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const visibleTabs = useMemo(
     () => (emailTrackingEnabled ? TABS : TABS.filter(t => t.id !== 'email')),
@@ -132,6 +134,21 @@ export function JobDetailPage({
   const [railOpen, setRailOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copiedApplyEmail, setCopiedApplyEmail] = useState(false)
+  const [tailorRunStatus, setTailorRunStatus] = useState(item.tailorRunStatus ?? null)
+
+  useEffect(() => {
+    setTailorRunStatus(item.tailorRunStatus ?? null)
+  }, [item.tailorRunStatus])
+
+  useEffect(() => {
+    if (!isBusyTailorStatus(tailorRunStatus ?? '')) return
+    const tick = window.setInterval(() => {
+      void fetchTailorRun(item.job_id)
+        .then(({ run }) => setTailorRunStatus(run?.status ?? null))
+        .catch(() => undefined)
+    }, 4000)
+    return () => window.clearInterval(tick)
+  }, [item.job_id, tailorRunStatus])
 
   async function copyApplyEmail() {
     if (!applyEmail) return
@@ -336,7 +353,8 @@ export function JobDetailPage({
     })
     setSelectedDocId(result.tailoredId)
     setCurrentScore(result.score)
-    router.refresh()
+    // Do not router.refresh() here — that remounts this page, re-opens AI tailor
+    // from the URL, and auto-starts another paid Claude call (132 versions in 8 min).
   }
 
   return (
@@ -378,6 +396,10 @@ export function JobDetailPage({
                     {currentScore}% match
                   </span>
                 ) : null}
+                <TailorRunChip
+                  status={tailorRunStatus}
+                  onOpen={() => openDocuments('ai-tailor')}
+                />
                 {headerFacts.map(fact => (
                   <span
                     key={fact.label}
@@ -483,6 +505,9 @@ export function JobDetailPage({
               >
                 {itemTab.label}
                 {count > 0 ? <span className="ml-1 text-xs text-muted-foreground">({count})</span> : null}
+                {itemTab.id === 'documents' && tailorRunStatus && tailorRunStatus !== 'failed' ? (
+                  <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-teal-600" aria-label="Tailor in progress" />
+                ) : null}
                 {tab === itemTab.id ? (
                   <span className="absolute inset-x-0 bottom-0 h-0.5 bg-foreground" />
                 ) : null}
@@ -556,6 +581,8 @@ export function JobDetailPage({
               onMode={setDocumentMode}
               onVersionSaved={handleVersionSaved}
               jobExtracted={item.job.extracted_data}
+              tailorRunStatus={tailorRunStatus}
+              onOpenTailor={() => openDocuments('ai-tailor')}
             />
           ) : null}
 

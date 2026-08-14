@@ -16,13 +16,12 @@ import { insertNotifications } from '@/lib/supabase/queries'
 import { withChangeIds, initialDecisions } from '@/lib/tailor/change-decisions'
 import { createProcessLog } from '@/lib/tailor/process-log'
 import { gapAnalysisFromAts } from '@/lib/tailor/ats-gap-hints'
-import type { GapAnalysis } from '@/types'
+import { beginAiOnce, endAiOnce, AI_IN_FLIGHT_MESSAGE } from '@/lib/ai/once'
+import { claimTailorJob, releaseTailorJob } from '@/lib/ai/tailor-lock'
+import type { GapAnalysis, TailoringStatus } from '@/types'
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
-
-/** Same-instance guard — React re-renders were firing overlapping tailor POSTs. */
-const inflightTailors = new Set<string>()
 
 export async function POST(request: Request) {
   const log = createProcessLog()
@@ -78,19 +77,20 @@ export async function POST(request: Request) {
   if (!jobId) return NextResponse.json({ error: 'jobId required', processLog: log.entries }, { status: 400 })
 
   const lockKey = `${user.id}:${jobId}`
-  if (inflightTailors.has(lockKey)) {
+  if (!beginAiOnce(lockKey)) {
     log.fail('Blocked overlapping run', 'A tailor for this job is already in progress')
     return NextResponse.json(
-      { error: 'A tailor run is already in progress for this job. Wait for it to finish — do not refresh.', processLog: log.entries },
+      { error: AI_IN_FLIGHT_MESSAGE, processLog: log.entries },
       { status: 429 },
     )
   }
-  inflightTailors.add(lockKey)
 
+  let revertStatus: TailoringStatus | null = null
+  try {
   const answerCount = Object.values(answers ?? {}).filter(a => a?.trim()).length
   log.step(
     'Request validated',
-    `${answerCount} gap answer(s) · ${fastMode ? 'fast tailor (1 Claude call, no loop)' : 'full tailor'} · jobId ${jobId.slice(0, 8)}…`,
+    `${answerCount} gap answer(s) · 1 Claude rewrite (no retry) · jobId ${jobId.slice(0, 8)}…`,
   )
 
   // Resolve questionId → real question text so the model and the saved record
@@ -104,7 +104,6 @@ export async function POST(request: Request) {
   const master = await getMasterResumeContext(supabase, user.id, resumeId)
   if ('error' in master) {
     log.fail('Load profile/resume', master.error)
-    inflightTailors.delete(lockKey)
     return NextResponse.json({ error: master.error, processLog: log.entries }, { status: master.status })
   }
 
@@ -120,9 +119,18 @@ export async function POST(request: Request) {
 
   if (!jobRow?.extracted_data) {
     log.fail('Load job', 'Job not found or missing extracted_data')
-    inflightTailors.delete(lockKey)
     return NextResponse.json({ error: 'Job not found', processLog: log.entries }, { status: 404 })
   }
+
+  const claim = await claimTailorJob(supabase, user.id, jobId)
+  if (!claim.ok) {
+    log.fail('Blocked overlapping run', 'Server lock — another tailor is already running for this job')
+    return NextResponse.json(
+      { error: AI_IN_FLIGHT_MESSAGE, processLog: log.entries },
+      { status: 429 },
+    )
+  }
+  revertStatus = claim.previousStatus === 'tailored' ? 'tailored' : 'not_started'
 
   const githubContext = formatGitHubContextForAi(
     profileRow?.github_data as GitHubProfileData | null | undefined
@@ -166,7 +174,7 @@ export async function POST(request: Request) {
 
   let pipelineResult
   try {
-    log.step('Tailor pipeline', 'Draft → critique loop → score', 'pending')
+    log.step('Tailor pipeline', 'One Claude rewrite (no retry)', 'pending')
     pipelineResult = await runTailorPipeline({
       resume,
       job,
@@ -187,7 +195,6 @@ export async function POST(request: Request) {
     }
   } catch (err) {
     log.fail('Tailor pipeline', err instanceof Error ? err.message : 'Pipeline failed')
-    inflightTailors.delete(lockKey)
     return aiErrorResponse(err, 'Failed to tailor resume', log.entries)
   }
 
@@ -227,7 +234,6 @@ export async function POST(request: Request) {
 
   if (dbErr) {
     log.fail('Save tailored resume', dbErr.message)
-    inflightTailors.delete(lockKey)
     return NextResponse.json({ error: 'Failed to save tailored resume', processLog: log.entries }, { status: 500 })
   }
 
@@ -241,6 +247,7 @@ export async function POST(request: Request) {
     .update({ tailoring_status: 'tailored', updated_at: new Date().toISOString() })
     .eq('id', jobId)
     .eq('user_id', user.id)
+  revertStatus = null
 
   const jobLabel = `${job.title || 'Role'} @ ${job.company || 'Company'}`
   // Explicit Suggest for master only — do not auto-queue pending on generate
@@ -248,7 +255,6 @@ export async function POST(request: Request) {
     buildTailorCompleteNotification(user.id, jobLabel, tailoredRow.id),
   ])
 
-  inflightTailors.delete(lockKey)
   return NextResponse.json({
     tailoredResumeId: tailoredRow.id,
     tailoredData: tailoredResume,
@@ -272,4 +278,10 @@ export async function POST(request: Request) {
     },
     processLog: log.entries,
   })
+  } finally {
+    endAiOnce(lockKey)
+    if (revertStatus) {
+      await releaseTailorJob(supabase, user.id, jobId, revertStatus)
+    }
+  }
 }

@@ -157,6 +157,24 @@ Files changed: `016_gmail_sync.sql`, `017_inbound_provider.sql`, `lib/google/*`,
 
 ---
 
+## Task 151 — Durable tailor run (one Claude session, survives refresh)
+Status: DONE  
+Scope: `tailor_runs` migration, `lib/tailor/{runs,execute-run,run-types}`, `/api/tailor/runs`, AiTailorFlow, tracker chips  
+Goal: One tailor session per job. Refresh / leave / come back attaches to the same run. Never start a second Claude call while the first is running.  
+Result: Context from DB (0 calls) → ATS gaps → optional 1 Claude questions → wait → 1 Claude rewrite. Unique index + CAS `gap_reserved` / `generate_reserved`. Tracker/job chips: Tailoring… / Needs your answers / Needs review.  
+Files changed: `023_tailor_runs.sql`, `lib/tailor/*`, `app/api/tailor/runs/**`, `AiTailorFlow.tsx`, tracker + job detail, docs
+
+---
+
+## Task 150 — Never retry paid AI / auto-apply / autofill
+Status: DONE  
+Scope: `lib/ai/*`, AI API routes, auto-apply queue/UI, extension autofill, cover letter  
+Goal: If a paid Claude call or auto-apply messes up, **stop**. Do not loop, critique-retry, or SDK-retry to “fix” it.  
+Result: AI SDK `maxRetries: 0`; tailor pipeline 1 call; once-guards (429); **DB job lock** so Vercel remounts cannot fork-bomb; `router.refresh` removed from tailor complete. Deleted 132 Apple loop versions in prod. Auto-apply refuses re-queue after fail unless explicit new run.  
+Files changed: `lib/ai/{complete,once,models,tailor-pipeline}.ts`, AI routes, `AutoApplyWithHireIQ.tsx`, `lib/apply/queue.ts`, `CoverLetterPanel.tsx`, docs
+
+---
+
 ## Task 149 — BYOK AI key, model picker, usage/cost
 Status: DONE  
 Scope: Settings AI tab, `lib/ai/runtime`, usage events, migration 022  

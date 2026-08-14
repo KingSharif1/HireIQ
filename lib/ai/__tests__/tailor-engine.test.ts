@@ -49,15 +49,8 @@ describe('passesTailorGate', () => {
 })
 
 describe('shouldRetryLoop', () => {
-  it('retries when gate fails and under max', () => {
-    expect(shouldRetryLoop(0, critique({ language_overlap_percent: 50 }))).toBe(true)
-  })
-
-  it('stops after max retries', () => {
-    expect(shouldRetryLoop(TAILOR_MAX_RETRIES, critique({ language_overlap_percent: 50 }))).toBe(false)
-  })
-
-  it('does not retry when gate passes', () => {
+  it('never retries — a failed draft must not spend more credits', () => {
+    expect(shouldRetryLoop(0, critique({ language_overlap_percent: 50 }))).toBe(false)
     expect(shouldRetryLoop(0, critique({ language_overlap_percent: 85 }))).toBe(false)
   })
 })
@@ -130,8 +123,8 @@ describe('pickBestAttempt', () => {
 
 describe('cost guard constants', () => {
   it('bounds retries and AI calls', () => {
-    expect(TAILOR_MAX_RETRIES).toBe(2)
-    expect(TAILOR_MAX_AI_CALLS).toBeLessThanOrEqual(10)
+    expect(TAILOR_MAX_RETRIES).toBe(0)
+    expect(TAILOR_MAX_AI_CALLS).toBe(1)
   })
 })
 

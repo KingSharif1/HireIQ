@@ -1,3 +1,31 @@
+## 2026-08-14 — Durable tailor run (attach on refresh, max 2 Claude calls)
+
+**What:** Tailor is now a background session (`tailor_runs`). Opening AI tailor attaches to the in-flight run instead of starting another. Flow: DB resume + JD → ATS compare → at most 1 Claude gap call → wait for answers → 1 Claude rewrite. Applications list/board and job detail show Tailoring… / Needs your answers / Needs review.
+
+**Files:** `023_tailor_runs.sql`, `lib/tailor/{runs,execute-run,run-types}.ts`, `app/api/tailor/runs/**`, `AiTailorFlow.tsx`, tracker, `JobDetailPage.tsx`, `DocumentsWorkspace.tsx`
+
+**Why:** Refresh and `router.refresh()` used to remount and burn a new Claude call (132 versions). User: keep the first one running even if they leave.
+
+**Decisions:** Max 2 Claude calls, never overlapping, never retried. Stale busy runs fail after 3 minutes (after the 120s worker is gone) instead of starting a second paid call.
+
+---
+
+
+**What:** Deleted 132 Apple tailored versions (and their toasts) created in 8 minutes. Root cause: `router.refresh()` after each generate remounted the page and auto-started another Claude call. Removed that refresh. Added a Postgres job lock (`in_progress`) so overlapping serverless invokes cannot start a second paid call. sessionStorage blocks remount auto-start.
+
+**Files:** `lib/ai/tailor-lock.ts`, `lib/tailor/auto-start.ts`, `app/api/tailor/generate/route.ts`, `JobDetailPage.tsx`, `AiTailorFlow.tsx`
+
+**Why:** In-memory `Set` does not lock across Vercel lambdas. 273 tailor API calls / ~$10 estimated.
+
+---
+
+**What:** Hard stop after one attempt. The Vercel AI SDK default of **2 retries** (3 paid Claude calls) is now `maxRetries: 0`. Tailor is one rewrite, no critique loop. Overlapping tailor/gap/analyze/parse/autofill/cover-letter calls return 429. Auto-apply will not re-queue a failed/finished run unless the user explicitly starts a new billed run. If it fails, it stops.
+
+**Files:** `lib/ai/{complete,once,models,tailor-pipeline}.ts`, AI API routes, `CoverLetterPanel.tsx`, `AutoApplyWithHireIQ.tsx`, `lib/apply/queue.ts`, `lib/apply/process-run.ts`, jobs page, extension autofill
+
+**Why:** A React re-render loop plus SDK retries burned Anthropic credits. User rule: mess up → stop, don’t loop to “fix” it.
+
+---
 ## 2026-08-14 — Kill tailor credit loop
 
 **What:** Opening AI tailor re-fired Claude on every React re-render because `onComplete` was a new function each time. Guard: run once per screen, ignore overlapping clicks, skip critique loop in fast mode (1 Claude call), reject overlapping POSTs (429).

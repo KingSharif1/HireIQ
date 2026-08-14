@@ -77,7 +77,7 @@ export default async function TrackerJobDetailPage({
       ? (profile as { masked_email?: string | null }).masked_email ?? null
       : null
 
-  const [eventsRes, tailoredRes] = await Promise.all([
+  const [eventsRes, tailoredRes, runRes] = await Promise.all([
     supabase
       .from('application_events')
       .select('*')
@@ -92,6 +92,15 @@ export default async function TrackerJobDetailPage({
       .eq('user_id', user.id)
       .eq('job_id', jobId)
       .order('version', { ascending: false }),
+    supabase
+      .from('tailor_runs')
+      .select('status')
+      .eq('user_id', user.id)
+      .eq('job_id', jobId)
+      .in('status', ['analyzing_gaps', 'awaiting_answers', 'generating', 'needs_review'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
 
   const rawVersions = (tailoredRes.data ?? []) as Array<{
@@ -117,6 +126,8 @@ export default async function TrackerJobDetailPage({
     score,
     tailored: rawVersions.length > 0,
     tailoredResumeId: latest?.id ?? null,
+    tailorRunStatus:
+      (runRes.data?.status as ApplicationTrackerItem['tailorRunStatus']) ?? null,
   }
 
   const events = (eventsRes.data ?? []) as ApplicationEvent[]

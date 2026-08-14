@@ -4,9 +4,9 @@
  */
 
 export const AI_MODELS = {
-  /** Main generate + final critique */
+  /** Main generate (one call, no retry) */
   strong: 'claude-sonnet-4-6',
-  /** Loop critique passes (cheap / fast) */
+  /** Cheap / fast — autofill drafts only. Never used to "fix" a failed tailor. */
   fast: 'claude-haiku-4-5-20251001',
 } as const
 
@@ -30,7 +30,7 @@ export const AI_FEATURES: {
   { id: 'job_analyze', label: 'Analyze job posting', uses: 'strong', where: 'Save / paste a job' },
   { id: 'resume_parse', label: 'Parse uploaded resume', uses: 'strong', where: 'Resume upload' },
   { id: 'gap_questions', label: 'Gap questions', uses: 'strong', where: 'Tailor Q&A' },
-  { id: 'tailor_resume', label: 'Tailor resume', uses: 'strong+fast', where: 'Job documents / tailor' },
+  { id: 'tailor_resume', label: 'Tailor resume', uses: 'strong', where: 'Job documents / tailor' },
   { id: 'cover_letter', label: 'Cover letter', uses: 'strong', where: 'Job → Cover letter' },
   { id: 'autofill_draft', label: 'Application question drafts', uses: 'fast', where: 'Chrome extension' },
   { id: 'auto_apply', label: 'Auto-apply with HireIQ', uses: 'infra', where: 'Job → Auto-apply' },
@@ -138,7 +138,7 @@ export const TYPICAL_ACTION_TOKENS: Record<
   job_analyze: { strongIn: 1400, strongOut: 800, fastIn: 0, fastOut: 0 },
   resume_parse: { strongIn: 1600, strongOut: 2200, fastIn: 0, fastOut: 0 },
   gap_questions: { strongIn: 2500, strongOut: 900, fastIn: 0, fastOut: 0 },
-  tailor_resume: { strongIn: 22000, strongOut: 4800, fastIn: 12800, fastOut: 800 },
+  tailor_resume: { strongIn: 22000, strongOut: 4800, fastIn: 0, fastOut: 0 },
   cover_letter: { strongIn: 2300, strongOut: 700, fastIn: 0, fastOut: 0 },
   autofill_draft: { strongIn: 0, strongOut: 0, fastIn: 2800, fastOut: 900 },
 }
@@ -159,11 +159,17 @@ export function charsToTokens(chars: number): number {
   return Math.max(0, Math.ceil(chars / 4))
 }
 
-/** Hard cap on tailor loop retries (Q5). */
-export const TAILOR_MAX_RETRIES = 2
+/**
+ * Vercel AI SDK `generateText` / `streamText` default is 2 retries (3 paid calls).
+ * We never retry a failed paid call — fail once, stop.
+ */
+export const AI_SDK_MAX_RETRIES = 0
+
+/** Hard cap: never retry / loop paid tailor calls. One draft, then stop. */
+export const TAILOR_MAX_RETRIES = 0
 
 /** Language overlap gate threshold (Q5). */
 export const TAILOR_OVERLAP_GATE = 70
 
-/** Max AI calls per tailor run (cost guard). */
-export const TAILOR_MAX_AI_CALLS = 8
+/** Max AI calls per tailor run (cost guard). One rewrite. No critique loop. */
+export const TAILOR_MAX_AI_CALLS = 1

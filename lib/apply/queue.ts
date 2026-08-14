@@ -8,6 +8,7 @@ import {
   estimateApplyComplexity,
   type ApplyIdentityPayload,
   type ApplyRunRow,
+  type ApplyRunStatus,
   type ServerApplyContext,
 } from '@/lib/apply/types'
 import type { ProfileData } from '@/types'
@@ -65,6 +66,24 @@ async function buildIdentity(userId: string): Promise<ApplyIdentityPayload> {
 }
 
 /**
+ * One apply attempt. If it fails or finishes, do not queue another unless the user
+ * explicitly starts a new run (`force`).
+ */
+export function applyRerunBlock(
+  latestStatus: ApplyRunStatus | undefined,
+  force: boolean,
+): string | null {
+  if (!latestStatus) return null
+  if (latestStatus === 'queued' || latestStatus === 'running') {
+    return 'An auto-apply is already queued or running for this job'
+  }
+  if (!force && (latestStatus === 'failed' || latestStatus === 'applied' || latestStatus === 'needs_user')) {
+    return 'The last auto-apply already finished. We will not retry it automatically.'
+  }
+  return null
+}
+
+/**
  * Queue a server auto-apply run for a job owned by the user.
  */
 export async function queueServerApply(opts: {
@@ -72,6 +91,8 @@ export async function queueServerApply(opts: {
   jobId: string
   /** When true, worker may click Submit. Default false (fill + verify only). */
   submit?: boolean
+  /** User explicitly starts a new run after a finished/failed attempt. */
+  force?: boolean
 }): Promise<ApplyRunRow> {
   const admin = createAdminClient()
 
@@ -104,17 +125,18 @@ export async function queueServerApply(opts: {
     .eq('job_id', opts.jobId)
     .maybeSingle()
 
-  const { data: active } = await admin
+  const { data: latest } = await admin
     .from('apply_runs')
     .select('id, status')
     .eq('user_id', opts.userId)
     .eq('job_id', opts.jobId)
-    .in('status', ['queued', 'running'])
+    .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
 
-  if (active) {
-    throw new ApplyQueueError('An auto-apply is already queued or running for this job', 409)
+  const rerunBlock = applyRerunBlock(latest?.status as ApplyRunStatus | undefined, Boolean(opts.force))
+  if (rerunBlock) {
+    throw new ApplyQueueError(rerunBlock, 409)
   }
 
   const board = boardFromApplyUrl(applyUrl)

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { AiConfigError } from '@/lib/ai/runtime'
+import { AiInFlightError } from '@/lib/ai/once'
 import type { TailorProcessLogEntry } from '@/lib/tailor/process-log'
 
 /** Log and return a JSON error — surfaces real message in development. */
@@ -9,6 +10,9 @@ export function aiErrorResponse(
   processLog?: TailorProcessLogEntry[],
 ) {
   console.error('[AI]', err)
+  if (err instanceof AiInFlightError) {
+    return NextResponse.json({ error: err.message, processLog }, { status: 429 })
+  }
   if (err instanceof AiConfigError) {
     return NextResponse.json(
       { error: err.message, processLog },

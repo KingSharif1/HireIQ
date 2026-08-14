@@ -87,6 +87,7 @@ export function AutoApplyWithHireIQ({ jobId, hasApplyUrl }: Props) {
   const [dispatchNote, setDispatchNote] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const startLockRef = useRef(false)
 
   const stopPoll = useCallback(() => {
     if (pollRef.current) {
@@ -137,7 +138,15 @@ export function AutoApplyWithHireIQ({ jobId, hasApplyUrl }: Props) {
     }
   }, [run])
 
-  async function startApply() {
+  async function startApply(force = false) {
+    if (startLockRef.current || busy) return
+    if (run && ['queued', 'running'].includes(run.status)) return
+    if (run && ['failed', 'applied', 'needs_user'].includes(run.status) && !force) {
+      setOpen(true)
+      setError('Stopped after that attempt — we will not retry automatically.')
+      return
+    }
+    startLockRef.current = true
     setError(null)
     setDispatchNote(null)
     setBusy(true)
@@ -146,7 +155,7 @@ export function AutoApplyWithHireIQ({ jobId, hasApplyUrl }: Props) {
       const res = await fetch(`/api/apply/jobs/${jobId}/queue`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ submit: false }),
+        body: JSON.stringify({ submit: false, force }),
       })
       const body = (await res.json().catch(() => ({}))) as {
         run?: ApplyRunRow
@@ -173,6 +182,8 @@ export function AutoApplyWithHireIQ({ jobId, hasApplyUrl }: Props) {
     } catch (cause) {
       setBusy(false)
       setError(cause instanceof Error ? cause.message : 'Could not start auto-apply')
+    } finally {
+      startLockRef.current = false
     }
   }
 
@@ -316,6 +327,19 @@ export function AutoApplyWithHireIQ({ jobId, hasApplyUrl }: Props) {
                 >
                   {error || dispatchNote || run?.error}
                 </p>
+              ) : null}
+
+              {run && ['failed', 'applied', 'needs_user'].includes(run.status) ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="relative mt-3 w-full text-[11px]"
+                  disabled={busy}
+                  onClick={() => void startApply(true)}
+                >
+                  Start a new run (billed again)
+                </Button>
               ) : null}
             </div>
           </motion.div>

@@ -12,10 +12,19 @@ import { MatchScore } from '@/components/tailor/MatchScore'
 import { ResumePreview } from '@/components/resume/ResumePreview'
 import { DEFAULT_RESUME_THEME } from '@/lib/export/theme'
 import { buildApprovedResume, initialDecisions } from '@/lib/tailor/change-decisions'
-import { generateQuestions, tailorResume, fetchTailorContext, APIError } from '@/lib/api/client'
+import {
+  APIError,
+  continueTailorRun,
+  fetchTailorRun,
+  pollTailorRun,
+  startTailorRun,
+  type TailorRunDto,
+  type TailorRunSnapshot,
+} from '@/lib/api/client'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { TailorProcessLog } from '@/components/tailor/TailorProcessLog'
-import { mergeProcessLogs, type TailorProcessLogEntry } from '@/lib/tailor/process-log'
+import type { TailorProcessLogEntry } from '@/lib/tailor/process-log'
+import { isBusyTailorStatus } from '@/lib/tailor/run-types'
 import type {
   ChangeDecision,
   GapAnalysis,
@@ -29,13 +38,12 @@ import { cn, scoreColor } from '@/lib/utils'
 const CONNECT_STAGES = [
   { id: 'resume', label: 'Reading your resume' },
   { id: 'job', label: 'Pulling job requirements' },
-  { id: 'gaps', label: 'Finding gaps & strengths' },
+  { id: 'gaps', label: 'Finding gaps (1 Claude call)' },
 ] as const
 
 const GENERATE_STAGES = [
-  { id: 'draft', label: 'Drafting tailored resume', detail: 'Matching keywords to your experience' },
-  { id: 'critique', label: 'Critiquing & refining', detail: 'Checking claims stay honest' },
-  { id: 'score', label: 'Scoring match', detail: 'Calculating ATS fit' },
+  { id: 'draft', label: 'Drafting tailored resume', detail: 'Call 2 of 2 — one rewrite, then stop' },
+  { id: 'score', label: 'Scoring match', detail: 'Local ATS score, not another AI call' },
 ] as const
 
 type FlowPhase = 'connect' | 'questions' | 'generate' | 'review'
@@ -51,7 +59,6 @@ export type AiTailorCompletePayload = {
 type AiTailorFlowProps = {
   jobId: string
   jobExtracted: JobExtractedData | null
-  /** When set, re-open review for an existing AI-generated version */
   reviewOnly?: {
     tailoredId: string
     original: StructuredResume
@@ -74,11 +81,11 @@ export function AiTailorFlow({
 }: AiTailorFlowProps) {
   const [phase, setPhase] = useState<FlowPhase>(reviewOnly ? 'review' : 'connect')
   const [connectIndex, setConnectIndex] = useState(0)
-  const [connectDetail, setConnectDetail] = useState<string | undefined>()
   const [generateIndex, setGenerateIndex] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [runId, setRunId] = useState<string | null>(null)
+  const [runStatus, setRunStatus] = useState<TailorRunDto['status'] | null>(null)
 
-  const [baseResumeId, setBaseResumeId] = useState<string | null>(null)
   const [gapAnalysis, setGapAnalysis] = useState<GapAnalysis | null>(null)
   const [questions, setQuestions] = useState<GapQuestion[]>([])
   const [answers, setAnswers] = useState<Record<string, string>>({})
@@ -88,7 +95,7 @@ export function AiTailorFlow({
   const [tailored, setTailored] = useState<StructuredResume | null>(reviewOnly?.tailored ?? null)
   const [changes, setChanges] = useState<ResumeDiffChange[]>(reviewOnly?.changes ?? [])
   const [decisions, setDecisions] = useState<Record<string, ChangeDecision>>(
-    reviewOnly?.decisions ?? {}
+    reviewOnly?.decisions ?? {},
   )
   const [matchScore, setMatchScore] = useState<number | null>(reviewOnly?.matchScore ?? null)
   const [tailoredScore, setTailoredScore] = useState<number | null>(reviewOnly?.tailoredScore ?? null)
@@ -96,229 +103,97 @@ export function AiTailorFlow({
   const [showPreview, setShowPreview] = useState(false)
   const [processLog, setProcessLog] = useState<TailorProcessLogEntry[]>([])
   const [logExpanded, setLogExpanded] = useState(true)
-  const logStarted = useMemo(() => Date.now(), [])
   const startedRef = useRef(false)
-  const inFlightRef = useRef(false)
   const onCompleteRef = useRef(onComplete)
   onCompleteRef.current = onComplete
 
-  const appendLog = useCallback(
-    (label: string, detail?: string, status: TailorProcessLogEntry['status'] = 'ok') => {
-      setProcessLog(prev => [
-        ...prev,
-        {
-          id: `c${prev.length}`,
-          at: new Date().toISOString(),
-          label,
-          detail,
-          status,
-          ms: Date.now() - logStarted,
-        },
-      ])
-    },
-    [logStarted]
-  )
-
-  const mergeServerLog = useCallback((entries?: TailorProcessLogEntry[]) => {
-    if (!entries?.length) return
-    setProcessLog(prev => mergeProcessLogs(prev.filter(e => !e.id.startsWith('s')), entries))
+  const applySnapshot = useCallback((snapshot: TailorRunSnapshot | null) => {
+    if (!snapshot) return
+    setTailoredId(snapshot.id)
+    setOriginal(snapshot.original_structured_data ?? snapshot.structured_data)
+    setTailored(snapshot.structured_data)
+    setChanges(snapshot.changes ?? [])
+    setDecisions(snapshot.change_decisions ?? initialDecisions(snapshot.changes ?? []))
+    setMatchScore(snapshot.match_score)
+    setTailoredScore(snapshot.tailored_score)
+    onCompleteRef.current({
+      tailoredId: snapshot.id,
+      version: snapshot.version,
+      structuredData: snapshot.structured_data,
+      score: snapshot.tailored_score,
+      matchScore: snapshot.match_score,
+    })
   }, [])
 
-  const runQuickTailor = useCallback(async () => {
-    if (inFlightRef.current) return
-    inFlightRef.current = true
-    setPhase('generate')
-    setGenerateIndex(0)
-    setError(null)
-    setProcessLog([])
-    setLogExpanded(true)
-    appendLog('Quick tailor', 'Loading resume + job from database (no AI yet)', 'pending')
+  const applyRun = useCallback(
+    (run: TailorRunDto, snapshot: TailorRunSnapshot | null) => {
+      setRunId(run.id)
+      setRunStatus(run.status)
+      setProcessLog(run.process_log ?? [])
+      setGapAnalysis(run.gap_analysis ?? null)
+      setQuestions(run.questions ?? [])
+      setAnswers(run.answers ?? {})
+      setError(run.status === 'failed' ? run.error : null)
+      if (run.status === 'awaiting_answers') setPhase('questions')
+      else if (run.status === 'generating') setPhase('generate')
+      else if (run.status === 'needs_review') {
+        applySnapshot(snapshot)
+        setPhase('review')
+      } else if (run.status === 'failed') setPhase('connect')
+      else setPhase('connect')
+    },
+    [applySnapshot],
+  )
 
+  const attachOrStart = useCallback(async () => {
     try {
-      const ctx = await fetchTailorContext(jobId)
-      mergeServerLog(ctx.processLog)
-      setBaseResumeId(ctx.baseResumeId)
-      appendLog(
-        'Context ready',
-        `${ctx.atsScore}% ATS baseline · one Claude rewrite (no critique loop)`,
-      )
-
-      const longWait = window.setTimeout(() => {
-        appendLog('Still tailoring', 'Claude is rewriting your resume (~20–60s)', 'pending')
-      }, 20_000)
-
-      appendLog('Calling /api/tailor/generate', 'fastMode — 1 Claude call, no retry loop', 'pending')
-      const result = await tailorResume({
-        resumeId: ctx.baseResumeId,
-        jobId,
-        answers: {},
-        fastMode: true,
-      })
-
-      window.clearTimeout(longWait)
-      mergeServerLog(result.processLog)
-      setGenerateIndex(GENERATE_STAGES.length - 1)
-      appendLog(
-        'Tailor complete',
-        `Score ${result.matchScore}% → ${result.tailoredScore}% · ${result.changes.length} changes`,
-      )
-
-      setTailoredId(result.tailoredResumeId)
-      setOriginal(result.originalData ?? result.tailoredData)
-      setTailored(result.tailoredData)
-      setChanges(result.changes)
-      setDecisions(initialDecisions(result.changes))
-      setMatchScore(result.matchScore)
-      setTailoredScore(result.tailoredScore)
-
-      onCompleteRef.current({
-        tailoredId: result.tailoredResumeId,
-        version: result.version ?? 1,
-        structuredData: result.tailoredData,
-        score: result.tailoredScore,
-        matchScore: result.matchScore,
-      })
-
-      setPhase('review')
-    } catch (err) {
-      if (err instanceof APIError) {
-        mergeServerLog(err.details?.processLog as TailorProcessLogEntry[] | undefined)
-        appendLog('Tailoring failed', err.message, 'error')
-        setError(err.message)
-      } else {
-        appendLog('Tailoring failed', 'Unknown error', 'error')
-        setError('Tailoring failed')
+      const existing = await fetchTailorRun(jobId)
+      if (existing.run) {
+        applyRun(existing.run, existing.tailored)
+        return
       }
-      setPhase('generate')
-      setLogExpanded(true)
-    } finally {
-      inFlightRef.current = false
-    }
-  }, [appendLog, jobId, mergeServerLog])
-
-  const loadQuestions = useCallback(async () => {
-    setPhase('connect')
-    setError(null)
-    setConnectDetail(undefined)
-    setConnectIndex(0)
-    setProcessLog([])
-    setLogExpanded(true)
-    appendLog('Starting gap analysis', 'Loading resume, job, and GitHub context', 'pending')
-
-    const resumeTimer = window.setTimeout(() => {
-      setConnectIndex(1)
-    }, 700)
-
-    const longWaitTimer = window.setTimeout(() => {
-      setConnectDetail('Reading your resume, GitHub projects, and job requirements — usually 15–30s.')
-      appendLog('Still working', 'Claude is comparing your profile to the job (up to 55s)', 'pending')
-    }, 12_000)
-
-    try {
-      appendLog('Calling /api/tailor/questions', undefined, 'pending')
-      const result = await generateQuestions('', jobId)
-      window.clearTimeout(resumeTimer)
-      window.clearTimeout(longWaitTimer)
-      mergeServerLog(result.processLog)
-      setConnectIndex(2)
-      setConnectDetail(undefined)
-      setBaseResumeId(result.baseResumeId ?? null)
-      setGapAnalysis(result.gapAnalysis ?? null)
-      setQuestions(result.questions ?? [])
-      appendLog(
-        'Gap analysis ready',
-        `${result.questions?.length ?? 0} question(s) · ${result.keySource === 'byok' ? 'your API key' : 'HireIQ key'}`,
-      )
-      await new Promise(r => window.setTimeout(r, 350))
-      setPhase('questions')
+      const started = await startTailorRun(jobId)
+      applyRun(started.run, started.tailored)
     } catch (err) {
-      window.clearTimeout(resumeTimer)
-      window.clearTimeout(longWaitTimer)
-      setConnectDetail(undefined)
-      if (err instanceof APIError) {
-        mergeServerLog(err.details?.processLog as TailorProcessLogEntry[] | undefined)
-        appendLog('Gap analysis failed', err.message, 'error')
-        setError(err.message)
-      } else {
-        appendLog('Gap analysis failed', 'Could not analyze gaps', 'error')
-        setError('Could not analyze gaps')
-      }
-      setPhase('connect')
-      setConnectIndex(0)
-      setLogExpanded(true)
+      setError(err instanceof APIError ? err.message : 'Could not start tailor')
     }
-  }, [appendLog, jobId, mergeServerLog])
+  }, [applyRun, jobId])
 
   useEffect(() => {
     if (reviewOnly) return
     if (startedRef.current) return
     startedRef.current = true
-    void runQuickTailor()
-  }, [runQuickTailor, reviewOnly])
+    void attachOrStart()
+  }, [attachOrStart, reviewOnly])
 
-  async function runGenerate() {
+  useEffect(() => {
+    if (!runId) return
+    if (!isBusyTailorStatus(runStatus ?? '')) return
+    const tick = window.setInterval(() => {
+      void pollTailorRun(runId)
+        .then(({ run, tailored: snapshot }) => applyRun(run, snapshot))
+        .catch(() => undefined)
+    }, 2000)
+    return () => window.clearInterval(tick)
+  }, [applyRun, runId, runStatus])
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setConnectIndex(i => Math.min(i + 1, CONNECT_STAGES.length - 1))
+      setGenerateIndex(i => Math.min(i + 1, GENERATE_STAGES.length - 1))
+    }, 4000)
+    return () => window.clearInterval(id)
+  }, [])
+
+  async function submitAnswers() {
+    if (!runId) return
     setPhase('generate')
-    setGenerateIndex(0)
-    setError(null)
-    setLogExpanded(true)
-    appendLog('Starting tailor generate', `${Object.keys(answers).length} answer(s) sent`, 'pending')
+    setRunStatus('generating')
     try {
-      const tick = window.setInterval(() => {
-        setGenerateIndex(i => Math.min(i + 1, GENERATE_STAGES.length - 1))
-      }, 4200)
-
-      const longWait = window.setTimeout(() => {
-        appendLog('Still tailoring', 'Draft + critique passes can take up to 2 minutes', 'pending')
-      }, 25_000)
-
-      appendLog('Calling /api/tailor/generate', undefined, 'pending')
-      const result = await tailorResume({
-        resumeId: baseResumeId ?? '',
-        jobId,
-        answers,
-        questions: questions.map(q => ({ id: q.id, question: q.question })),
-        gapAnalysis: gapAnalysis ?? undefined,
-      })
-
-      window.clearInterval(tick)
-      window.clearTimeout(longWait)
-      mergeServerLog(result.processLog)
-      setGenerateIndex(GENERATE_STAGES.length - 1)
-
-      appendLog(
-        'Tailor complete',
-        `Score ${result.matchScore}% → ${result.tailoredScore}% · ${result.changes.length} changes`,
-      )
-
-      setTailoredId(result.tailoredResumeId)
-      setOriginal(result.originalData ?? result.tailoredData)
-      setTailored(result.tailoredData)
-      setChanges(result.changes)
-      setDecisions(initialDecisions(result.changes))
-      setMatchScore(result.matchScore)
-      setTailoredScore(result.tailoredScore)
-
-      // Notify parent so version appears in list while user reviews
-      onComplete({
-        tailoredId: result.tailoredResumeId,
-        version: result.version ?? 1,
-        structuredData: result.tailoredData,
-        score: result.tailoredScore,
-        matchScore: result.matchScore,
-      })
-
-      setPhase('review')
+      const result = await continueTailorRun(runId, answers)
+      applyRun(result.run, null)
     } catch (err) {
-      if (err instanceof APIError) {
-        mergeServerLog(err.details?.processLog as TailorProcessLogEntry[] | undefined)
-        appendLog('Tailoring failed', err.message, 'error')
-        setError(err.message)
-      } else {
-        appendLog('Tailoring failed', 'Unknown error', 'error')
-        setError('Tailoring failed')
-      }
-      setPhase('questions')
-      setLogExpanded(true)
+      setError(err instanceof APIError ? err.message : 'Could not continue tailor')
     }
   }
 
@@ -356,7 +231,7 @@ export function AiTailorFlow({
       if (!scoreRes.ok) throw new Error(scoreBody.error || 'Could not update score')
 
       const finalScore = scoreBody.score?.total ?? tailoredScore
-      onComplete({
+      onCompleteRef.current({
         tailoredId,
         version: 0,
         structuredData: approvedPreview ?? tailored!,
@@ -371,6 +246,8 @@ export function AiTailorFlow({
     }
   }
 
+  const busy = isBusyTailorStatus(runStatus ?? '')
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background pb-20 md:pb-0 md:left-[68px]">
       <header className="flex-shrink-0 border-b border-border px-3 py-2.5 md:px-4">
@@ -379,8 +256,13 @@ export function AiTailorFlow({
             <h1 className="truncate text-sm font-semibold text-foreground">
               {phase === 'review' ? 'Review AI changes' : 'AI resume tailor'}
             </h1>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              {busy
+                ? 'Safe to leave — this keeps running. Come back to the same progress.'
+                : 'At most 2 Claude calls: gaps, then one rewrite after your answers.'}
+            </p>
             <div className="mt-0.5">
-              <AiModelHint uses="strong+fast" />
+              <AiModelHint uses="strong" />
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -403,14 +285,6 @@ export function AiTailorFlow({
       {error ? (
         <div className="mx-4 mt-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
           {error}
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Button type="button" size="sm" variant="outline" onClick={() => void runQuickTailor()}>
-              Retry tailor
-            </Button>
-            <Button type="button" size="sm" variant="ghost" onClick={() => void loadQuestions()}>
-              Try gap questions (slower)
-            </Button>
-          </div>
         </div>
       ) : null}
 
@@ -424,10 +298,8 @@ export function AiTailorFlow({
         {phase === 'connect' ? (
           <AiFlowLoader
             title="Connecting your profile to this job"
-            subtitle="We compare your resume and GitHub projects against what the role asks for."
-            stages={CONNECT_STAGES.map((stage, i) =>
-              i === connectIndex && connectDetail ? { ...stage, detail: connectDetail } : stage
-            )}
+            subtitle="Full resume + job from the database, then one Claude gap check."
+            stages={[...CONNECT_STAGES]}
             activeIndex={connectIndex}
           />
         ) : null}
@@ -440,12 +312,12 @@ export function AiTailorFlow({
                 questions={questions}
                 answers={answers}
                 onAnswer={(id, val) => setAnswers(prev => ({ ...prev, [id]: val }))}
-                onComplete={() => void runGenerate()}
+                onComplete={() => void submitAnswers()}
               />
             ) : (
               <div className="space-y-3 text-center">
                 <p className="text-sm text-muted-foreground">No extra questions — ready to tailor.</p>
-                <Button type="button" onClick={() => void runGenerate()}>
+                <Button type="button" onClick={() => void submitAnswers()}>
                   Tailor my resume
                 </Button>
               </div>
@@ -456,7 +328,7 @@ export function AiTailorFlow({
         {phase === 'generate' && !error ? (
           <AiFlowLoader
             title="Tailoring your resume"
-            subtitle="This usually takes 20–40 seconds."
+            subtitle="One Claude rewrite. You can go to Applications — we’ll keep going."
             stages={[...GENERATE_STAGES]}
             activeIndex={generateIndex}
           />
@@ -488,7 +360,6 @@ export function AiTailorFlow({
                 className="h-full min-h-[480px] p-4"
               />
             </div>
-            {/* Mobile preview toggle */}
             <div className="border-t border-border p-3 lg:hidden">
               <Button
                 type="button"

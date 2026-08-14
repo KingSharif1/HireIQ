@@ -21,32 +21,11 @@ const job: JobExtractedData = {
   summary: 'Backend engineer role',
 }
 
-const passCritique = JSON.stringify({
-  language_overlap_percent: 85,
-  ats_pass: true,
-  human_pass: true,
-  flags: [],
-  weak_sections: [],
-  suggestions: [],
-})
-
-const failCritique = JSON.stringify({
-  language_overlap_percent: 55,
-  ats_pass: false,
-  human_pass: false,
-  flags: [{ type: 'vague', section: 'summary', detail: 'too generic' }],
-  weak_sections: ['summary'],
-  suggestions: ['Add job keywords to summary'],
-})
-
 const tailoredResume = sampleStructuredResume({ summary: 'Tailored for Acme backend APIs' })
 
 describe('runTailorPipeline', () => {
-  it('skips retry loop when first draft passes gate', async () => {
-    const generate = vi.fn()
-      .mockResolvedValueOnce(JSON.stringify(tailoredResume))
-      .mockResolvedValueOnce(passCritique)
-      .mockResolvedValueOnce(passCritique)
+  it('makes exactly one Claude call — never retries or critiques', async () => {
+    const generate = vi.fn().mockResolvedValueOnce(JSON.stringify(tailoredResume))
 
     const result = await runTailorPipeline({
       resume: sampleStructuredResume(),
@@ -55,43 +34,31 @@ describe('runTailorPipeline', () => {
       generate,
     })
 
-    expect(result.meta.passedGate).toBe(true)
+    expect(result.meta.aiCallsUsed).toBe(1)
     expect(result.meta.attempts).toBe(1)
-    expect(generate).toHaveBeenCalledTimes(3)
+    expect(generate).toHaveBeenCalledTimes(1)
     expect(result.tailoredResume.summary).toContain('Tailored')
   })
 
-  it('retries weak sections up to max then returns best attempt', async () => {
-    const generate = vi.fn()
-      .mockResolvedValueOnce(JSON.stringify(tailoredResume))
-      .mockResolvedValueOnce(failCritique)
-      .mockResolvedValueOnce(JSON.stringify({ ...tailoredResume, summary: 'Improved draft' }))
-      .mockResolvedValueOnce(failCritique)
-      .mockResolvedValueOnce(JSON.stringify({ ...tailoredResume, summary: 'Improved draft v2' }))
-      .mockResolvedValueOnce(failCritique)
-      .mockResolvedValueOnce(failCritique)
-
-    const result = await runTailorPipeline({
+  it('does not call Claude again when the draft is weak', async () => {
+    const generate = vi.fn().mockResolvedValueOnce(JSON.stringify(tailoredResume))
+    await runTailorPipeline({
       resume: sampleStructuredResume(),
       job,
       answers: {},
       generate,
     })
-
-    expect(result.meta.attempts).toBeGreaterThan(1)
-    expect(result.meta.warning).toBeTruthy()
-    expect(result.changes.length).toBeGreaterThan(0)
+    expect(generate).toHaveBeenCalledTimes(1)
   })
 
-  it('survives incomplete Claude JSON in fastMode (missing bullets/projects)', async () => {
+  it('survives incomplete Claude JSON (missing bullets/projects)', async () => {
     const incomplete = {
       contact: { name: 'Jane' },
       summary: 'Tailored for Acme',
       experience: [{ id: 'exp-1', title: 'SE', company: 'Acme' }],
       skills: { technical: ['TypeScript'] },
     }
-    const generate = vi.fn()
-      .mockResolvedValueOnce(JSON.stringify(incomplete))
+    const generate = vi.fn().mockResolvedValueOnce(JSON.stringify(incomplete))
 
     const result = await runTailorPipeline({
       resume: sampleStructuredResume(),
@@ -104,18 +71,6 @@ describe('runTailorPipeline', () => {
     expect(result.tailoredResume.summary).toContain('Tailored')
     expect(result.tailoredResume.experience[0].bullets).toEqual([])
     expect(result.tailoredResume.projects).toEqual([])
-    expect(generate).toHaveBeenCalledTimes(1)
-  })
-
-  it('fastMode never enters the critique/retry loop', async () => {
-    const generate = vi.fn().mockResolvedValueOnce(JSON.stringify(tailoredResume))
-    await runTailorPipeline({
-      resume: sampleStructuredResume(),
-      job,
-      answers: {},
-      generate,
-      fastMode: true,
-    })
     expect(generate).toHaveBeenCalledTimes(1)
   })
 })

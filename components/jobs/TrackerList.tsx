@@ -8,6 +8,7 @@ import {
   applicationStatusLabel,
   normalizeApplicationStatus,
 } from '@/lib/jobs/status'
+import { TailorRunChip } from '@/components/jobs/detail/TailorRunChip'
 import type { ApplicationTrackerItem } from '@/types'
 
 interface TrackerListProps {
@@ -63,6 +64,11 @@ export function TrackerList({ items, selectedJobId, onSelect }: TrackerListProps
                   >
                     <td className="px-4 py-3 font-medium text-foreground max-w-[260px]">
                       <span className="line-clamp-1">{item.job.title}</span>
+                      {item.tailorRunStatus ? (
+                        <span className="mt-1 block">
+                          <TailorRunChip status={item.tailorRunStatus} jobId={item.job_id} />
+                        </span>
+                      ) : null}
                     </td>
                     <td className="px-3 py-3 text-foreground/80 max-w-[180px]">
                       <span className="line-clamp-1">{item.job.company}</span>

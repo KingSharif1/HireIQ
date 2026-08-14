@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { estimateTokenCostUsd, formatUsd, typicalActionCostUsd } from '@/lib/ai/models'
+import { AI_SDK_MAX_RETRIES, TAILOR_MAX_AI_CALLS, TAILOR_MAX_RETRIES, estimateTokenCostUsd, formatUsd, typicalActionCostUsd } from '@/lib/ai/models'
 import { extractTokenUsage } from '@/lib/ai/usage'
 
 describe('estimateTokenCostUsd', () => {
@@ -16,6 +16,12 @@ describe('estimateTokenCostUsd', () => {
     const cost = typicalActionCostUsd('tailor_resume')
     expect(cost).toBeGreaterThan(0.05)
     expect(cost).toBeLessThan(0.5)
+  })
+
+  it('never retries paid SDK or tailor calls', () => {
+    expect(AI_SDK_MAX_RETRIES).toBe(0)
+    expect(TAILOR_MAX_RETRIES).toBe(0)
+    expect(TAILOR_MAX_AI_CALLS).toBe(1)
   })
 
   it('formats small per-request prices with extra digits', () => {

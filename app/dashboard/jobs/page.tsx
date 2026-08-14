@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
@@ -38,6 +38,7 @@ export default function JobsPage() {
   const [activeTab, setActiveTab] = useState<'url' | 'paste'>('url')
   const [extractedData, setExtractedData] = useState<JobExtractedData | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
+  const analyzeLock = useRef(false)
 
   const linkedInDetected = useMemo(() => isLinkedInJobUrl(url), [url])
 
@@ -52,7 +53,8 @@ export default function JobsPage() {
   }
 
   async function handleFetchUrl() {
-    if (!url.trim() || linkedInDetected) return
+    if (!url.trim() || linkedInDetected || analyzeLock.current) return
+    analyzeLock.current = true
     setLoading(true)
     setLoadingMode('url')
     setLoadingStage(0)
@@ -100,12 +102,14 @@ export default function JobsPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch job')
     } finally {
+      analyzeLock.current = false
       setLoading(false)
     }
   }
 
   async function handleAnalyzeText() {
-    if (!description.trim()) return
+    if (!description.trim() || analyzeLock.current) return
+    analyzeLock.current = true
     setLoading(true)
     setLoadingMode('paste')
     setLoadingStage(0)
@@ -129,6 +133,7 @@ export default function JobsPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to analyze job')
     } finally {
+      analyzeLock.current = false
       setLoading(false)
     }
   }

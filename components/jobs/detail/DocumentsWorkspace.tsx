@@ -18,7 +18,9 @@ import { cn, scoreColor } from '@/lib/utils'
 import type { ATSScore, ChangeDecision, JobExtractedData, ProfileData, ResumeDiffChange, StructuredResume, TailorGapAnswer } from '@/types'
 import { DocumentCreateChooser } from '@/components/jobs/detail/DocumentCreateChooser'
 import { AiTailorFlow } from '@/components/jobs/detail/AiTailorFlow'
+import { TailorRunChip } from '@/components/jobs/detail/TailorRunChip'
 import { countPendingDecisions } from '@/lib/tailor/change-decisions'
+import { isBusyTailorStatus, type TailorRunStatus } from '@/lib/tailor/run-types'
 
 export type JobDetailTailoredVersion = {
   id: string
@@ -52,6 +54,8 @@ type DocumentsWorkspaceProps = {
     version?: number
   }) => void
   jobExtracted?: JobExtractedData | null
+  tailorRunStatus?: TailorRunStatus | null
+  onOpenTailor?: () => void
 }
 
 export function DocumentsWorkspace({
@@ -65,6 +69,8 @@ export function DocumentsWorkspace({
   onMode,
   onVersionSaved,
   jobExtracted = null,
+  tailorRunStatus = null,
+  onOpenTailor,
 }: DocumentsWorkspaceProps) {
   const selected = versions.find(version => version.id === selectedId) ?? versions[0] ?? null
   const score = selected ? selected.tailored_score ?? selected.match_score : null
@@ -215,6 +221,26 @@ export function DocumentsWorkspace({
           </Button>
         )}
       </div>
+
+      {listTab === 'resume' && tailorRunStatus && tailorRunStatus !== 'failed' ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-secondary/40 px-3 py-2.5">
+          <div className="min-w-0">
+            <TailorRunChip status={tailorRunStatus} />
+            <p className="mt-1 text-xs text-muted-foreground">
+              {isBusyTailorStatus(tailorRunStatus)
+                ? 'Still running in the background. Refresh won’t start another Claude call.'
+                : tailorRunStatus === 'awaiting_answers'
+                  ? 'Answer a few questions, then we’ll do the one rewrite.'
+                  : 'Your tailored resume is ready to review.'}
+            </p>
+          </div>
+          {onOpenTailor ? (
+            <Button type="button" size="sm" variant="outline" onClick={onOpenTailor}>
+              {isBusyTailorStatus(tailorRunStatus) ? 'View progress' : 'Continue'}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
 
       <div
         role="tablist"
