@@ -184,6 +184,15 @@ export function JobResumeEditor({
             <Button type="button" variant="outline" size="sm" className="hidden sm:inline-flex" onClick={onDone}>
               Done
             </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="hidden md:inline-flex"
+              onClick={() => void saveTailoredResume()}
+              disabled={saving}
+            >
+              {saving ? 'Saving…' : 'Save & score'}
+            </Button>
           </div>
         </div>
 
