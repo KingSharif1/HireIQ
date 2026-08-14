@@ -12,7 +12,7 @@ import { MatchScore } from '@/components/tailor/MatchScore'
 import { ResumePreview } from '@/components/resume/ResumePreview'
 import { DEFAULT_RESUME_THEME } from '@/lib/export/theme'
 import { buildApprovedResume, initialDecisions } from '@/lib/tailor/change-decisions'
-import { generateQuestions, tailorResume, APIError } from '@/lib/api/client'
+import { generateQuestions, tailorResume, fetchTailorContext, APIError } from '@/lib/api/client'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { TailorProcessLog } from '@/components/tailor/TailorProcessLog'
 import { mergeProcessLogs, type TailorProcessLogEntry } from '@/lib/tailor/process-log'
@@ -120,7 +120,76 @@ export function AiTailorFlow({
     setProcessLog(prev => mergeProcessLogs(prev.filter(e => !e.id.startsWith('s')), entries))
   }, [])
 
+  const runQuickTailor = useCallback(async () => {
+    setPhase('generate')
+    setGenerateIndex(0)
+    setError(null)
+    setProcessLog([])
+    setLogExpanded(true)
+    appendLog('Quick tailor', 'Loading resume + job from database (no AI yet)', 'pending')
+
+    try {
+      const ctx = await fetchTailorContext(jobId)
+      mergeServerLog(ctx.processLog)
+      setBaseResumeId(ctx.baseResumeId)
+      appendLog(
+        'Context ready',
+        `${ctx.atsScore}% ATS baseline · tailoring with 2 Claude calls (draft + check)`,
+      )
+
+      const longWait = window.setTimeout(() => {
+        appendLog('Still tailoring', 'Claude is rewriting your resume (~20–60s)', 'pending')
+      }, 20_000)
+
+      appendLog('Calling /api/tailor/generate', 'fastMode — skipped gap-analysis API', 'pending')
+      const result = await tailorResume({
+        resumeId: ctx.baseResumeId,
+        jobId,
+        answers: {},
+        fastMode: true,
+      })
+
+      window.clearTimeout(longWait)
+      mergeServerLog(result.processLog)
+      setGenerateIndex(GENERATE_STAGES.length - 1)
+      appendLog(
+        'Tailor complete',
+        `Score ${result.matchScore}% → ${result.tailoredScore}% · ${result.changes.length} changes`,
+      )
+
+      setTailoredId(result.tailoredResumeId)
+      setOriginal(result.originalData ?? result.tailoredData)
+      setTailored(result.tailoredData)
+      setChanges(result.changes)
+      setDecisions(initialDecisions(result.changes))
+      setMatchScore(result.matchScore)
+      setTailoredScore(result.tailoredScore)
+
+      onComplete({
+        tailoredId: result.tailoredResumeId,
+        version: result.version ?? 1,
+        structuredData: result.tailoredData,
+        score: result.tailoredScore,
+        matchScore: result.matchScore,
+      })
+
+      setPhase('review')
+    } catch (err) {
+      if (err instanceof APIError) {
+        mergeServerLog(err.details?.processLog as TailorProcessLogEntry[] | undefined)
+        appendLog('Tailoring failed', err.message, 'error')
+        setError(err.message)
+      } else {
+        appendLog('Tailoring failed', 'Unknown error', 'error')
+        setError('Tailoring failed')
+      }
+      setPhase('generate')
+      setLogExpanded(true)
+    }
+  }, [appendLog, jobId, mergeServerLog, onComplete])
+
   const loadQuestions = useCallback(async () => {
+    setPhase('connect')
     setError(null)
     setConnectDetail(undefined)
     setConnectIndex(0)
@@ -174,8 +243,8 @@ export function AiTailorFlow({
 
   useEffect(() => {
     if (reviewOnly) return
-    void loadQuestions()
-  }, [loadQuestions, reviewOnly])
+    void runQuickTailor()
+  }, [runQuickTailor, reviewOnly])
 
   async function runGenerate() {
     setPhase('generate')
@@ -324,11 +393,14 @@ export function AiTailorFlow({
       {error ? (
         <div className="mx-4 mt-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
           {error}
-          {phase === 'connect' ? (
-            <Button type="button" size="sm" variant="outline" className="ml-2" onClick={() => void loadQuestions()}>
-              Retry
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button type="button" size="sm" variant="outline" onClick={() => void runQuickTailor()}>
+              Retry tailor
             </Button>
-          ) : null}
+            <Button type="button" size="sm" variant="ghost" onClick={() => void loadQuestions()}>
+              Try gap questions (slower)
+            </Button>
+          </div>
         </div>
       ) : null}
 
@@ -371,7 +443,7 @@ export function AiTailorFlow({
           </div>
         ) : null}
 
-        {phase === 'generate' ? (
+        {phase === 'generate' && !error ? (
           <AiFlowLoader
             title="Tailoring your resume"
             subtitle="This usually takes 20–40 seconds."

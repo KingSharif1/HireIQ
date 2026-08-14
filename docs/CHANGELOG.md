@@ -1,3 +1,12 @@
+## 2026-08-14 — Fast tailor path (skip gap-analysis API)
+
+**What:** Default AI tailor now loads resume + job from DB instantly (`GET /api/tailor/context`), then one `/api/tailor/generate` call in **fastMode** (2 Claude calls). Skips the slow `/api/tailor/questions` gap-analysis step unless user chooses "Try gap questions (slower)".
+
+**Files:** `app/api/tailor/context/route.ts`, `lib/tailor/ats-gap-hints.ts`, `AiTailorFlow.tsx`, tailor pipeline
+
+**Why:** DB reads are milliseconds; 40s+ waits were Claude gap analysis + multi-pass critique, not fetching context.
+
+---
 ## 2026-08-14 — Tailor process log (visible debugging)
 
 **What:** AI tailor shows a live **Process log** — resume/job/GitHub loaded, Claude calls, pipeline passes, save — with timings. Failures show where it stopped.
