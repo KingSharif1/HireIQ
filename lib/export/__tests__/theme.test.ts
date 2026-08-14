@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_RESUME_THEME,
+  applyDensity,
+  inferDensity,
   mergeResumeTheme,
   themeToPdfPadding,
 } from '@/lib/export/theme'
@@ -64,5 +66,20 @@ describe('mergeResumeTheme', () => {
     const order = ['experience', 'summary']
     const merged = mergeResumeTheme(DEFAULT_RESUME_THEME, { sectionOrder: order })
     expect(merged.sectionOrder).toEqual(order)
+  })
+})
+
+describe('density presets', () => {
+  it('compact shrinks type and spacing for one-page ATS layouts', () => {
+    const compact = applyDensity(DEFAULT_RESUME_THEME, 'compact')
+    expect(inferDensity(compact)).toBe('compact')
+    expect(compact.bodyFontSize).toBe(9)
+    expect(compact.entrySpacing.experience).toBeLessThan(DEFAULT_RESUME_THEME.entrySpacing.experience)
+  })
+
+  it('spacious is easier to read for a human recruiter', () => {
+    const spacious = applyDensity(DEFAULT_RESUME_THEME, 'spacious')
+    expect(inferDensity(spacious)).toBe('spacious')
+    expect(spacious.lineHeight).toBeGreaterThan(DEFAULT_RESUME_THEME.lineHeight)
   })
 })

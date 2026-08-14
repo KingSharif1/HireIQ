@@ -1,16 +1,16 @@
 # HireIQ Status
 
 **As of:** 2026-08-14  
-**Branch:** `main` · **Production:** https://hireiq.kingsharif.com  
-**Tests:** 264 unit · 11 live URL · extension **v0.9.9** · Task **148** worker live on Cloud Run (`hireiq-505323`)
+**Branch:** `cursor/better-tailor-edit-d22e` · **Production:** https://hireiq.kingsharif.com  
+**Tests:** 276 unit · 11 live URL · extension **v0.9.9** · Task **148** worker live on Cloud Run (`hireiq-505323`)
 
 ## Session handoff
 
 | | |
 |--|--|
-| **Working on** | Task **151** durable tailor run (background attach, max 2 Claude calls) |
+| **Working on** | Task **152** better tailor + edit (questions, pen, mobile design, match highlights) |
 | **Blocked** | Task 143 Google Auth provider |
-| **Next** | Merge PR #17 · deploy · smoke one Apple tailor · Task **147** |
+| **Next** | Merge this PR · smoke an Apple tailor that **asks** on ATS gaps · Task **147** |
 | **Roadmap** | [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md) |
 
 ## System snapshot

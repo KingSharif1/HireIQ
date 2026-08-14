@@ -81,6 +81,22 @@ describe('buildResumeChanges', () => {
     const changes = buildResumeChanges(before, after)
     expect(changes.some(c => c.section === 'summary' && c.changeType === 'changed')).toBe(true)
     expect(changes.some(c => c.section === 'experience' && c.field === 'bullets')).toBe(true)
+    expect(changes.find(c => c.section === 'summary')?.reason).toBeTruthy()
+  })
+
+  it('attaches Claude tailoring_notes as the user-facing reason', () => {
+    const before = sampleStructuredResume()
+    const after = sampleStructuredResume({
+      summary: 'Backend engineer for Acme APIs',
+    })
+    const changes = buildResumeChanges(before, after, [
+      {
+        section: 'summary',
+        change: 'Backend engineer for Acme APIs',
+        reason: 'Summary now leads with Acme’s API work because that is the job.',
+      },
+    ])
+    expect(changes.find(c => c.section === 'summary')?.reason).toContain('API work')
   })
 
   it('does not throw when Claude omits bullets/projects arrays', () => {

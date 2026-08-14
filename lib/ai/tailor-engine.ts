@@ -1,7 +1,8 @@
 import { diffArrays } from 'diff'
-import type { StructuredResume, ResumeDiffChange, JobExtractedData, ResumeExperience, ResumeProject } from '@/types'
+import type { StructuredResume, ResumeDiffChange, JobExtractedData, ResumeExperience, ResumeProject, TailoringNote } from '@/types'
 import type { TailorCritiqueReport, TailorCritiqueFlag, WriteBackSuggestion } from './tailor-types'
 import { TAILOR_MAX_RETRIES, TAILOR_OVERLAP_GATE } from './models'
+import { reasonForChange } from '@/lib/tailor/change-copy'
 
 function asStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter(v => typeof v === 'string') : []
@@ -108,12 +109,11 @@ function inferWeakSections(flags: TailorCritiqueFlag[]): string[] {
 export function buildResumeChanges(
   before: StructuredResume,
   after: StructuredResume,
-  notes?: { section: string; reason: string }[]
+  notes?: TailoringNote[]
 ): ResumeDiffChange[] {
   const prev = normalizeStructuredResume(before)
   const next = normalizeStructuredResume(after)
   const changes: ResumeDiffChange[] = []
-  const noteFor = (section: string) => notes?.find(n => n.section === section)?.reason
 
   if (prev.summary !== next.summary) {
     changes.push({
@@ -122,7 +122,7 @@ export function buildResumeChanges(
       before: prev.summary,
       after: next.summary,
       changeType: 'changed',
-      reason: noteFor('summary'),
+      reason: reasonForChange(notes, 'summary', next.summary),
     })
   }
 
@@ -136,6 +136,7 @@ export function buildResumeChanges(
         before: `${exp.title} @ ${exp.company}`,
         after: '',
         changeType: 'removed',
+        reason: reasonForChange(notes, 'experience', exp.company),
       })
       continue
     }
@@ -148,7 +149,7 @@ export function buildResumeChanges(
         before: exp.bullets,
         after: tailoredExp.bullets,
         changeType: bulletChangeType(exp.bullets, tailoredExp.bullets),
-        reason: noteFor('experience'),
+        reason: reasonForChange(notes, 'experience', tailoredExp.bullets, exp.company),
       })
     }
   }
@@ -162,6 +163,7 @@ export function buildResumeChanges(
         before: '',
         after: `${exp.title} @ ${exp.company}`,
         changeType: 'added',
+        reason: reasonForChange(notes, 'experience', `${exp.title} @ ${exp.company}`, exp.company),
       })
     }
   }
@@ -175,7 +177,7 @@ export function buildResumeChanges(
       before: skillBefore,
       after: skillAfter,
       changeType: 'reordered',
-      reason: noteFor('skills'),
+      reason: reasonForChange(notes, 'skills', skillAfter),
     })
   }
 
@@ -189,7 +191,7 @@ export function buildResumeChanges(
         before: proj.bullets,
         after: tailoredProj.bullets,
         changeType: 'changed',
-        reason: noteFor('projects'),
+        reason: reasonForChange(notes, 'projects', tailoredProj.bullets, proj.name),
       })
     }
   }

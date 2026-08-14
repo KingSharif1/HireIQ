@@ -131,6 +131,57 @@ export const DEFAULT_RESUME_THEME: ResumeTheme = {
   },
 }
 
+export type ResumeDensity = 'compact' | 'standard' | 'spacious'
+
+export const DENSITY_PRESETS: Record<
+  ResumeDensity,
+  Pick<
+    ResumeTheme,
+    'bodyFontSize' | 'nameFontSize' | 'lineHeight' | 'listLineHeight' | 'marginX' | 'marginY' | 'entrySpacing' | 'contentSpacing'
+  >
+> = {
+  compact: {
+    bodyFontSize: 9,
+    nameFontSize: 18,
+    lineHeight: 1.22,
+    listLineHeight: 1.22,
+    marginX: 0.4,
+    marginY: 0.4,
+    entrySpacing: { section: 8, experience: 4, education: 3, project: 3 },
+    contentSpacing: { heading: 2, subheading: 1, body: 2, listItem: 1 },
+  },
+  standard: {
+    bodyFontSize: 10,
+    nameFontSize: 22,
+    lineHeight: 1.4,
+    listLineHeight: 1.4,
+    marginX: 0.5,
+    marginY: 0.5,
+    entrySpacing: { section: 14, experience: 8, education: 6, project: 6 },
+    contentSpacing: { heading: 4, subheading: 2, body: 4, listItem: 2 },
+  },
+  spacious: {
+    bodyFontSize: 11,
+    nameFontSize: 24,
+    lineHeight: 1.55,
+    listLineHeight: 1.5,
+    marginX: 0.6,
+    marginY: 0.6,
+    entrySpacing: { section: 18, experience: 12, education: 8, project: 10 },
+    contentSpacing: { heading: 6, subheading: 3, body: 6, listItem: 3 },
+  },
+}
+
+export function applyDensity(theme: ResumeTheme, density: ResumeDensity): ResumeTheme {
+  return mergeResumeTheme(theme, DENSITY_PRESETS[density])
+}
+
+export function inferDensity(theme: ResumeTheme): ResumeDensity {
+  if (theme.bodyFontSize <= 9.2 && theme.lineHeight <= 1.28) return 'compact'
+  if (theme.bodyFontSize >= 10.8 || theme.lineHeight >= 1.5) return 'spacious'
+  return 'standard'
+}
+
 const POINTS_PER_INCH = 72
 
 /** Convert theme margin inches to react-pdf padding (points). */

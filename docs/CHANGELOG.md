@@ -1,3 +1,16 @@
+## 2026-08-14 — Task 152: Better tailor + real edit
+
+**What:** Tailor now asks when ATS still has skill/keyword gaps (even if Claude returns 0 questions). The one rewrite targets both ATS parsers and a human recruiter while keeping the user’s voice. Job Edit: teal pen edits actual text (not just include/exclude), Design (section order + compact/standard/spacious) on mobile, Match tab shows real before/after + reason and highlights those lines on the preview and in the content section.
+
+**Files:** `lib/ai/prompts.ts`, `tailor-pipeline.ts`, `tailor-engine.ts`, `ats-gap-hints.ts`, `change-copy.ts`, `execute-run.ts`, `ContentEditor.tsx`, `EditableText.tsx`, `AnalyzerPanel.tsx`, `DesignerPanel.tsx`, `JobResumeEditor.tsx`, `ResumePreview.tsx`, `theme.ts`
+
+**Why:** Apple resume scored 55% with 6 changes and 0 gap answers — a weak fast rewrite, not an interview-ready tailor. User was right: checkboxes are not editing; Match was generic health, not “what changed.”
+
+**Decisions:** Still max 2 Claude calls, no critique/retry. ATS-derived questions (max 3) if Claude asks nothing. Job editor writes the tailored snapshot only.
+
+**Next:** Smoke a new Apple tailor after deploy; expect questions when skills are missing.
+
+---
 ## 2026-08-14 — Durable tailor run (attach on refresh, max 2 Claude calls)
 
 **What:** Tailor is now a background session (`tailor_runs`). Opening AI tailor attaches to the in-flight run instead of starting another. Flow: DB resume + JD → ATS compare → at most 1 Claude gap call → wait for answers → 1 Claude rewrite. Applications list/board and job detail show Tailoring… / Needs your answers / Needs review.

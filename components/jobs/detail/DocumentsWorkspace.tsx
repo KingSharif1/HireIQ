@@ -164,6 +164,7 @@ export function DocumentsWorkspace({
         jobId={jobId}
         data={profileData}
         onUpdate={onProfileData}
+        jobExtracted={jobExtracted}
         onDone={() => onMode('list')}
         onSaved={result =>
           onVersionSaved({

@@ -157,6 +157,15 @@ Files changed: `016_gmail_sync.sql`, `017_inbound_provider.sql`, `lib/google/*`,
 
 ---
 
+## Task 152 — Better tailor + edit (questions, pen, mobile design, match highlights)
+Status: DONE  
+Scope: tailor prompts/pipeline, ContentEditor, JobResumeEditor, DesignerPanel, AnalyzerPanel, ResumePreview  
+Goal: Weak 55% Apple tailor with 0 questions was not a finished resume. Ask when ATS has gaps; rewrite for ATS + human; let users edit real text; Design on mobile; Match shows real change descriptions on preview and in the edited section.  
+Result: ATS-fallback questions if Claude returns none; generate prompt targets interview chance (ATS + recruiter, still the user’s voice); Content teal pen edits snapshot text (not just checkboxes); Design tab + compact/standard/spacious on mobile; Match tab lists before/after + reason and highlights preview + content rows. Still max 2 Claude calls, no retry loop.  
+Files changed: `lib/ai/prompts.ts`, `lib/ai/tailor-pipeline.ts`, `lib/ai/tailor-engine.ts`, `lib/tailor/{ats-gap-hints,change-copy,execute-run}.ts`, `app/api/tailor/questions/route.ts`, `components/builder/{ContentEditor,EditableText,AnalyzerPanel,designer/DesignerPanel}.tsx`, `components/jobs/detail/JobResumeEditor.tsx`, `components/resume/ResumePreview.tsx`, `lib/export/theme.ts`, tests, docs
+
+---
+
 ## Task 151 — Durable tailor run (one Claude session, survives refresh)
 Status: DONE  
 Scope: `tailor_runs` migration, `lib/tailor/{runs,execute-run,run-types}`, `/api/tailor/runs`, AiTailorFlow, tracker chips  

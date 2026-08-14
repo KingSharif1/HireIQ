@@ -9,7 +9,7 @@ import { formatGitHubContextForAi } from '@/lib/profile/github-context'
 import type { GitHubProfileData } from '@/lib/github/types'
 import { runTailorPipeline } from '@/lib/ai/tailor-pipeline'
 import type { GenerateFn } from '@/lib/ai/tailor-types'
-import { gapAnalysisFromAts } from '@/lib/tailor/ats-gap-hints'
+import { gapAnalysisFromAts, withAtsFallbackQuestions } from '@/lib/tailor/ats-gap-hints'
 import { withChangeIds, initialDecisions } from '@/lib/tailor/change-decisions'
 import { createProcessLog } from '@/lib/tailor/process-log'
 import { buildTailorCompleteNotification } from '@/lib/notifications'
@@ -114,7 +114,10 @@ export async function executeGapPhase(runId: string, userId: string): Promise<vo
         maxOutputTokens: 2500,
       }),
     )
-    gapAnalysis = normalizeGapAnalysis(JSON.parse(extractJSON(result.text)))
+    gapAnalysis = withAtsFallbackQuestions(
+      normalizeGapAnalysis(JSON.parse(extractJSON(result.text))),
+      score,
+    )
     const last = log.entries[log.entries.length - 1]
     if (last) {
       last.status = 'ok'
@@ -132,7 +135,7 @@ export async function executeGapPhase(runId: string, userId: string): Promise<vo
 
   const questions = gapAnalysis.questions_for_user
   if (questions.length === 0) {
-    log.step('No questions', 'Claude had nothing to ask — starting the one rewrite')
+    log.step('No questions', 'No ATS gaps and Claude had nothing to ask — starting the one rewrite')
     await patchTailorRun(admin, runId, {
       status: 'generating',
       gap_analysis: gapAnalysis,

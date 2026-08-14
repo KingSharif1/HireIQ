@@ -1,5 +1,24 @@
 # HireIQ Decisions
 
+## 2026-08-14 — Tailor for interviews, not a light rewrite (Task 152)
+
+**Context:** An Apple IS&T tailor scored 55% with 0 questions and 6 shallow changes. User asked if it even tailored, and whether the product should ask questions, edit real text (Teal pen), expose Design on mobile, and show honest change highlights. That product sense is correct: optimize for ATS + a human recruiter, still sounding like the candidate.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Questions | If ATS missing skills/keywords, always ask (Claude’s questions, else ATS fallback, max 3). Skip Q&A only when ATS is clean |
+| Rewrite | One Claude call. Prompt: weave JD language into real bullets; no stuffing; keep the user’s voice |
+| Edit | Pen edits the tailored snapshot text; checkboxes remain include/exclude; master profile not written |
+| Mobile Design | Content / Design / Match all available; Compact / Standard / Spacious + section order |
+| Match | Live diff + reasons; highlight preview lines and the matching content section |
+| Cost | No critique loop, no retries. Max 2 Claude calls remains |
+
+**Tradeoff:** Asking 1–3 questions adds a wait, but skipping them is how you get a 55% “tailor.”
+
+**Revisit if:** Fallback ATS questions feel generic — then ground them in the user’s actual company names from the resume without another Claude call.
+
+---
 ## 2026-08-14 — Durable tailor session (Task 151)
 
 **Context:** Refresh / navigation remounted AI tailor and started another Claude call. User wants one session: full resume + JD from DB, compare gaps, ask questions, wait, then one rewrite — and see progress from Applications.

@@ -38,6 +38,9 @@ describe('runTailorPipeline', () => {
     expect(result.meta.attempts).toBe(1)
     expect(generate).toHaveBeenCalledTimes(1)
     expect(result.tailoredResume.summary).toContain('Tailored')
+    const prompt = generate.mock.calls[0][0].prompt as string
+    expect(prompt).toContain('ATS GAPS TO CLOSE')
+    expect(prompt).toContain('human recruiter')
   })
 
   it('does not call Claude again when the draft is weak', async () => {

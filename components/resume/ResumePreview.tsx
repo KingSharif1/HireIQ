@@ -13,6 +13,7 @@ import {
   type ResumeTheme,
 } from '@/lib/export/theme'
 import type { StructuredResume } from '@/types'
+import type { PreviewHighlights } from '@/lib/tailor/change-copy'
 
 /**
  * WYSIWYG preview of the exported PDF. Mirrors lib/export/pdf-generator.tsx
@@ -34,6 +35,8 @@ interface ResumePreviewProps {
   className?: string
   /** Live measured page count from the letter preview. */
   onPageCount?: (pageCount: number) => void
+  /** Teal highlight for tailored / edited lines (Match tab). */
+  highlights?: PreviewHighlights | null
 }
 
 const MIN_ZOOM = 0.4
@@ -54,6 +57,7 @@ export function ResumePreview({
   enablePan = false,
   className,
   onPageCount,
+  highlights = null,
 }: ResumePreviewProps) {
   const data = useMemo(() => normalizeResumeForDisplay(rawData), [rawData])
   const resolvedTheme = useMemo(
@@ -175,7 +179,7 @@ export function ResumePreview({
     lineHeight: resolvedTheme.lineHeight,
   }
 
-  const body = <ResumeBody data={data} theme={resolvedTheme} />
+  const body = <ResumeBody data={data} theme={resolvedTheme} highlights={highlights} />
 
   return (
     <div className={cn('w-full', enablePan && 'flex flex-col min-h-0 h-full', className)}>
@@ -343,7 +347,24 @@ function HealthPanel({ checks, score }: { checks: ReturnType<typeof checkResumeH
   )
 }
 
-function ResumeBody({ data, theme }: { data: StructuredResume; theme: ResumeTheme }) {
+function highlightStyle(on: boolean): React.CSSProperties {
+  if (!on) return {}
+  return {
+    backgroundColor: 'rgba(13, 148, 136, 0.16)',
+    boxShadow: 'inset 3px 0 0 #0d9488',
+    borderRadius: 2,
+  }
+}
+
+function ResumeBody({
+  data,
+  theme,
+  highlights,
+}: {
+  data: StructuredResume
+  theme: ResumeTheme
+  highlights: PreviewHighlights | null
+}) {
   const contactLine = [
     data.contact?.email,
     data.contact?.phone,
@@ -367,6 +388,7 @@ function ResumeBody({ data, theme }: { data: StructuredResume; theme: ResumeThem
               color: '#333',
               marginTop: theme.contentSpacing.body,
               lineHeight: theme.lineHeight,
+              ...highlightStyle(Boolean(highlights?.summary)),
             }}
           >
             {data.summary}
@@ -378,7 +400,7 @@ function ResumeBody({ data, theme }: { data: StructuredResume; theme: ResumeThem
       data.experience?.length > 0 ? (
         <Section key="experience" title={sectionLabel('experience', 'Experience')} theme={theme}>
           {data.experience.map(exp => (
-            <ExperienceEntry key={exp.id} exp={exp} theme={theme} />
+            <ExperienceEntry key={exp.id} exp={exp} theme={theme} highlights={highlights} />
           ))}
         </Section>
       ) : null,
@@ -386,7 +408,7 @@ function ResumeBody({ data, theme }: { data: StructuredResume; theme: ResumeThem
     skills: () =>
       allSkills.length > 0 ? (
         <Section key="skills" title={sectionLabel('skills', 'Skills')} theme={theme}>
-          <SkillsContent skills={allSkills} theme={theme} />
+          <SkillsContent skills={allSkills} theme={theme} highlighted={Boolean(highlights?.skills)} />
         </Section>
       ) : null,
 
@@ -411,7 +433,9 @@ function ResumeBody({ data, theme }: { data: StructuredResume; theme: ResumeThem
                 </div>
               )}
               {proj.bullets?.map((b, i) => (
-                <Bullet key={i} theme={theme}>{b}</Bullet>
+                <Bullet key={i} theme={theme} highlighted={Boolean(highlights?.projectIds.has(proj.id) || highlights?.bullets.has(b))}>
+                  {b}
+                </Bullet>
               ))}
             </div>
           ))}
@@ -473,9 +497,24 @@ function Section({ title, children, theme }: { title: string; children: React.Re
   )
 }
 
-function Bullet({ children, theme }: { children: React.ReactNode; theme: ResumeTheme }) {
+function Bullet({
+  children,
+  theme,
+  highlighted,
+}: {
+  children: React.ReactNode
+  theme: ResumeTheme
+  highlighted?: boolean
+}) {
   return (
-    <div style={{ display: 'flex', marginTop: theme.contentSpacing.listItem, paddingLeft: 8 }}>
+    <div
+      style={{
+        display: 'flex',
+        marginTop: theme.contentSpacing.listItem,
+        paddingLeft: 8,
+        ...highlightStyle(Boolean(highlighted)),
+      }}
+    >
       <span style={{ width: 8, color: '#555' }}>•</span>
       <span
         style={{
@@ -490,7 +529,15 @@ function Bullet({ children, theme }: { children: React.ReactNode; theme: ResumeT
   )
 }
 
-function SkillsContent({ skills, theme }: { skills: string[]; theme: ResumeTheme }) {
+function SkillsContent({
+  skills,
+  theme,
+  highlighted,
+}: {
+  skills: string[]
+  theme: ResumeTheme
+  highlighted?: boolean
+}) {
   if (theme.skillsLayout === 'columns') {
     return (
       <div
@@ -499,6 +546,7 @@ function SkillsContent({ skills, theme }: { skills: string[]; theme: ResumeTheme
           flexWrap: 'wrap',
           gap: 4,
           marginTop: theme.contentSpacing.body,
+          ...highlightStyle(Boolean(highlighted)),
         }}
       >
         {skills.map(skill => (
@@ -521,7 +569,14 @@ function SkillsContent({ skills, theme }: { skills: string[]; theme: ResumeTheme
 
   const separator = theme.skillsLayout === 'comma' ? ', ' : ' · '
   return (
-    <p style={{ fontSize: theme.bodyFontSize - 0.5, color: '#333', marginTop: theme.contentSpacing.body }}>
+    <p
+      style={{
+        fontSize: theme.bodyFontSize - 0.5,
+        color: '#333',
+        marginTop: theme.contentSpacing.body,
+        ...highlightStyle(Boolean(highlighted)),
+      }}
+    >
       {skills.join(separator)}
     </p>
   )
@@ -530,9 +585,11 @@ function SkillsContent({ skills, theme }: { skills: string[]; theme: ResumeTheme
 function ExperienceEntry({
   exp,
   theme,
+  highlights,
 }: {
   exp: StructuredResume['experience'][number]
   theme: ResumeTheme
+  highlights: PreviewHighlights | null
 }) {
   const { showBy, showLocationBy, showDatesBy } = theme.experienceSettings
   const dateStr = `${exp.startDate} – ${exp.endDate}`
@@ -556,9 +613,17 @@ function ExperienceEntry({
         ? `${primaryText}${locationSuffix}`
         : primaryText
 
+  const entryOn = Boolean(highlights?.experienceIds.has(exp.id))
+
   if (showDatesBy === 'inline') {
     return (
-      <div style={{ marginTop: theme.entrySpacing.experience, marginBottom: theme.contentSpacing.subheading }}>
+      <div
+        style={{
+          marginTop: theme.entrySpacing.experience,
+          marginBottom: theme.contentSpacing.subheading,
+          ...highlightStyle(entryOn),
+        }}
+      >
         <div style={{ fontWeight: 700, fontSize: theme.bodyFontSize }}>
           {primaryWithLocation}
           <span style={{ fontWeight: 400, fontSize: theme.bodyFontSize - 1, color: '#666', fontStyle: 'italic' }}>
@@ -569,14 +634,22 @@ function ExperienceEntry({
           <div style={{ fontSize: theme.bodyFontSize - 0.5, color: '#444' }}>{secondaryWithLocation}</div>
         )}
         {exp.bullets?.map((b, i) => (
-          <Bullet key={i} theme={theme}>{b}</Bullet>
+          <Bullet key={i} theme={theme} highlighted={Boolean(highlights?.bullets.has(b))}>
+            {b}
+          </Bullet>
         ))}
       </div>
     )
   }
 
   return (
-    <div style={{ marginTop: theme.entrySpacing.experience, marginBottom: theme.contentSpacing.subheading }}>
+    <div
+      style={{
+        marginTop: theme.entrySpacing.experience,
+        marginBottom: theme.contentSpacing.subheading,
+        ...highlightStyle(entryOn),
+      }}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
         <div>
           <div style={{ fontWeight: 700, fontSize: theme.bodyFontSize }}>{primaryWithLocation}</div>
@@ -589,7 +662,9 @@ function ExperienceEntry({
         </div>
       </div>
       {exp.bullets?.map((b, i) => (
-        <Bullet key={i} theme={theme}>{b}</Bullet>
+        <Bullet key={i} theme={theme} highlighted={Boolean(highlights?.bullets.has(b))}>
+          {b}
+        </Bullet>
       ))}
     </div>
   )
