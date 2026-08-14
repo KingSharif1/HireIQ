@@ -14,25 +14,34 @@ import {
 } from '@/lib/notifications'
 import { insertNotifications } from '@/lib/supabase/queries'
 import { withChangeIds, initialDecisions } from '@/lib/tailor/change-decisions'
+import { createProcessLog } from '@/lib/tailor/process-log'
 import type { GapAnalysis } from '@/types'
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
 
 export async function POST(request: Request) {
+  const log = createProcessLog()
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  log.step('Authenticated')
 
   let ai
   try {
     ai = await resolveAiRuntime(user.id)
+    log.step(
+      'AI configured',
+      `${ai.keySource === 'byok' ? 'Your Anthropic key' : 'HireIQ key'} · strong ${ai.models.strong} · fast ${ai.models.fast}`,
+    )
   } catch (err) {
-    return aiErrorResponse(err, 'AI is not configured')
+    log.fail('AI configuration', err instanceof Error ? err.message : 'Not configured')
+    return aiErrorResponse(err, 'AI is not configured', log.entries)
   }
 
   const generateFn: GenerateFn = async ({ model, prompt, maxOutputTokens }) => {
+    log.step('Claude generate pass', `model ${model}`, 'pending')
     const result = await generateAiText({
       runtime: ai,
       feature: 'tailor_resume',
@@ -41,6 +50,15 @@ export async function POST(request: Request) {
       maxOutputTokens,
       modelOverride: model,
     })
+    const last = log.entries[log.entries.length - 1]
+    if (last?.status === 'pending') {
+      log.entries[log.entries.length - 1] = {
+        ...last,
+        status: 'ok',
+        label: 'Claude generate pass done',
+        detail: `${result.text.length.toLocaleString()} chars returned`,
+      }
+    }
     return result.text
   }
 
@@ -52,7 +70,10 @@ export async function POST(request: Request) {
     gapAnalysis?: GapAnalysis | null
   }
 
-  if (!jobId) return NextResponse.json({ error: 'jobId required' }, { status: 400 })
+  if (!jobId) return NextResponse.json({ error: 'jobId required', processLog: log.entries }, { status: 400 })
+
+  const answerCount = Object.values(answers ?? {}).filter(a => a?.trim()).length
+  log.step('Request validated', `${answerCount} gap answer(s) · jobId ${jobId.slice(0, 8)}…`)
 
   // Resolve questionId → real question text so the model and the saved record
   // both see the actual question asked (not a meaningless "q1" id).
@@ -64,7 +85,8 @@ export async function POST(request: Request) {
 
   const master = await getMasterResumeContext(supabase, user.id, resumeId)
   if ('error' in master) {
-    return NextResponse.json({ error: master.error }, { status: master.status })
+    log.fail('Load profile/resume', master.error)
+    return NextResponse.json({ error: master.error, processLog: log.entries }, { status: master.status })
   }
 
   const [{ data: jobRow }, { data: profileRow }] = await Promise.all([
@@ -78,15 +100,21 @@ export async function POST(request: Request) {
   ])
 
   if (!jobRow?.extracted_data) {
-    return NextResponse.json({ error: 'Job not found' }, { status: 404 })
+    log.fail('Load job', 'Job not found or missing extracted_data')
+    return NextResponse.json({ error: 'Job not found', processLog: log.entries }, { status: 404 })
   }
 
   const githubContext = formatGitHubContextForAi(
     profileRow?.github_data as GitHubProfileData | null | undefined
   )
+  const ghRepos = (profileRow?.github_data as GitHubProfileData | null)?.repos?.length ?? 0
+  const job = jobRow.extracted_data
+  log.step(
+    'Context loaded',
+    `resume (${master.source}) · job ${job.title || 'role'} · GitHub ${ghRepos > 0 ? `${ghRepos} repos` : 'none'}`,
+  )
 
   const resume = master.structured
-  const job = jobRow.extracted_data
   const baseResumeId = master.baseResumeId
   const gapAnswers = answers ?? {}
 
@@ -108,6 +136,7 @@ export async function POST(request: Request) {
 
   let pipelineResult
   try {
+    log.step('Tailor pipeline', 'Draft → critique loop → score', 'pending')
     pipelineResult = await runTailorPipeline({
       resume,
       job,
@@ -118,8 +147,16 @@ export async function POST(request: Request) {
       generate: generateFn,
       models: ai.models,
     })
+    const { meta } = pipelineResult
+    log.entries[log.entries.length - 1] = {
+      ...log.entries[log.entries.length - 1],
+      status: meta.passedGate ? 'ok' : 'warn',
+      label: meta.passedGate ? 'Tailor pipeline complete' : 'Tailor pipeline finished with warnings',
+      detail: `${meta.aiCallsUsed} AI calls · ${meta.attempts} attempt(s) · overlap ${meta.finalOverlapPercent}%${meta.warning ? ` · ${meta.warning}` : ''}`,
+    }
   } catch (err) {
-    return aiErrorResponse(err, 'Failed to tailor resume')
+    log.fail('Tailor pipeline', err instanceof Error ? err.message : 'Pipeline failed')
+    return aiErrorResponse(err, 'Failed to tailor resume', log.entries)
   }
 
   const { tailoredResume, changes, writeBackSuggestions, meta } = pipelineResult
@@ -156,7 +193,15 @@ export async function POST(request: Request) {
     .select()
     .single()
 
-  if (dbErr) return NextResponse.json({ error: 'Failed to save tailored resume' }, { status: 500 })
+  if (dbErr) {
+    log.fail('Save tailored resume', dbErr.message)
+    return NextResponse.json({ error: 'Failed to save tailored resume', processLog: log.entries }, { status: 500 })
+  }
+
+  log.step(
+    'Saved tailored version',
+    `v${tailoredRow.version} · score ${matchScore}% → ${tailoredScore}% · ${changesWithIds.length} changes`,
+  )
 
   await supabase
     .from('jobs')
@@ -191,5 +236,6 @@ export async function POST(request: Request) {
       models: ai.models,
       keySource: ai.keySource,
     },
+    processLog: log.entries,
   })
 }
