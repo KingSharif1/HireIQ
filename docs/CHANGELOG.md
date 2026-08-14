@@ -1,4 +1,12 @@
-## 2026-08-14 — Never retry paid AI / apply on failure
+## 2026-08-14 — Delete loop junk + DB lock so tailor cannot fork-bomb
+
+**What:** Deleted 132 Apple tailored versions (and their toasts) created in 8 minutes. Root cause: `router.refresh()` after each generate remounted the page and auto-started another Claude call. Removed that refresh. Added a Postgres job lock (`in_progress`) so overlapping serverless invokes cannot start a second paid call. sessionStorage blocks remount auto-start.
+
+**Files:** `lib/ai/tailor-lock.ts`, `lib/tailor/auto-start.ts`, `app/api/tailor/generate/route.ts`, `JobDetailPage.tsx`, `AiTailorFlow.tsx`
+
+**Why:** In-memory `Set` does not lock across Vercel lambdas. 273 tailor API calls / ~$10 estimated.
+
+---
 
 **What:** Hard stop after one attempt. The Vercel AI SDK default of **2 retries** (3 paid Claude calls) is now `maxRetries: 0`. Tailor is one rewrite, no critique loop. Overlapping tailor/gap/analyze/parse/autofill/cover-letter calls return 429. Auto-apply will not re-queue a failed/finished run unless the user explicitly starts a new billed run. If it fails, it stops.
 

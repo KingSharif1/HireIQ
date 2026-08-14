@@ -12,6 +12,7 @@
 | Overlap | In-flight lock → 429, do not start a second paid call |
 | Auto-apply | One queue attempt. Failed/applied/needs_user does not re-queue unless user clicks “Start a new run (billed again)” |
 | Autofill drafts | One Haiku call per click; overlap → 429 |
+| Tailor remount | Never `router.refresh()` on generate complete; sessionStorage + jobs.`in_progress` lock |
 
 **Tradeoff:** Transient Anthropic blips fail instead of succeeding on retry. Credits > convenience.
 

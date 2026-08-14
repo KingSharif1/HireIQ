@@ -17,7 +17,8 @@ import { withChangeIds, initialDecisions } from '@/lib/tailor/change-decisions'
 import { createProcessLog } from '@/lib/tailor/process-log'
 import { gapAnalysisFromAts } from '@/lib/tailor/ats-gap-hints'
 import { beginAiOnce, endAiOnce, AI_IN_FLIGHT_MESSAGE } from '@/lib/ai/once'
-import type { GapAnalysis } from '@/types'
+import { claimTailorJob, releaseTailorJob } from '@/lib/ai/tailor-lock'
+import type { GapAnalysis, TailoringStatus } from '@/types'
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
@@ -84,6 +85,7 @@ export async function POST(request: Request) {
     )
   }
 
+  let revertStatus: TailoringStatus | null = null
   try {
   const answerCount = Object.values(answers ?? {}).filter(a => a?.trim()).length
   log.step(
@@ -119,6 +121,16 @@ export async function POST(request: Request) {
     log.fail('Load job', 'Job not found or missing extracted_data')
     return NextResponse.json({ error: 'Job not found', processLog: log.entries }, { status: 404 })
   }
+
+  const claim = await claimTailorJob(supabase, user.id, jobId)
+  if (!claim.ok) {
+    log.fail('Blocked overlapping run', 'Server lock — another tailor is already running for this job')
+    return NextResponse.json(
+      { error: AI_IN_FLIGHT_MESSAGE, processLog: log.entries },
+      { status: 429 },
+    )
+  }
+  revertStatus = claim.previousStatus === 'tailored' ? 'tailored' : 'not_started'
 
   const githubContext = formatGitHubContextForAi(
     profileRow?.github_data as GitHubProfileData | null | undefined
@@ -235,6 +247,7 @@ export async function POST(request: Request) {
     .update({ tailoring_status: 'tailored', updated_at: new Date().toISOString() })
     .eq('id', jobId)
     .eq('user_id', user.id)
+  revertStatus = null
 
   const jobLabel = `${job.title || 'Role'} @ ${job.company || 'Company'}`
   // Explicit Suggest for master only — do not auto-queue pending on generate
@@ -267,5 +280,8 @@ export async function POST(request: Request) {
   })
   } finally {
     endAiOnce(lockKey)
+    if (revertStatus) {
+      await releaseTailorJob(supabase, user.id, jobId, revertStatus)
+    }
   }
 }

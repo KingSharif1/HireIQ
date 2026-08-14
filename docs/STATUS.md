@@ -8,7 +8,7 @@
 
 | | |
 |--|--|
-| **Working on** | Task **150** never retry paid AI / auto-apply |
+| **Working on** | Task **150** never retry — loop junk deleted, DB lock added |
 | **Blocked** | Task 143 Google Auth provider |
 | **Next** | Deploy Task 150 · Settings → AI if Claude credits are empty · smoke auto-apply · Task **147** |
 | **Roadmap** | [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md) |

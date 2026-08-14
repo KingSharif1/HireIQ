@@ -16,6 +16,12 @@ import { generateQuestions, tailorResume, fetchTailorContext, APIError } from '@
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { TailorProcessLog } from '@/components/tailor/TailorProcessLog'
 import { mergeProcessLogs, type TailorProcessLogEntry } from '@/lib/tailor/process-log'
+import {
+  clearTailorSession,
+  readTailorSession,
+  shouldAutoStartTailor,
+  writeTailorSession,
+} from '@/lib/tailor/auto-start'
 import type {
   ChangeDecision,
   GapAnalysis,
@@ -128,6 +134,7 @@ export function AiTailorFlow({
   const runQuickTailor = useCallback(async () => {
     if (inFlightRef.current) return
     inFlightRef.current = true
+    writeTailorSession(jobId, 'running')
     setPhase('generate')
     setGenerateIndex(0)
     setError(null)
@@ -181,6 +188,7 @@ export function AiTailorFlow({
       })
 
       setPhase('review')
+      writeTailorSession(jobId, 'done')
     } catch (err) {
       if (err instanceof APIError) {
         mergeServerLog(err.details?.processLog as TailorProcessLogEntry[] | undefined)
@@ -192,6 +200,7 @@ export function AiTailorFlow({
       }
       setPhase('generate')
       setLogExpanded(true)
+      clearTailorSession(jobId)
     } finally {
       inFlightRef.current = false
     }
@@ -257,13 +266,16 @@ export function AiTailorFlow({
   useEffect(() => {
     if (reviewOnly) return
     if (startedRef.current) return
+    if (!shouldAutoStartTailor(readTailorSession(jobId))) return
     startedRef.current = true
+    writeTailorSession(jobId, 'running')
     void runQuickTailor()
-  }, [runQuickTailor, reviewOnly])
+  }, [runQuickTailor, reviewOnly, jobId])
 
   async function runGenerate() {
     if (inFlightRef.current) return
     inFlightRef.current = true
+    writeTailorSession(jobId, 'running')
     setPhase('generate')
     setGenerateIndex(0)
     setError(null)
@@ -306,7 +318,7 @@ export function AiTailorFlow({
       setTailoredScore(result.tailoredScore)
 
       // Notify parent so version appears in list while user reviews
-      onComplete({
+      onCompleteRef.current({
         tailoredId: result.tailoredResumeId,
         version: result.version ?? 1,
         structuredData: result.tailoredData,
@@ -315,6 +327,7 @@ export function AiTailorFlow({
       })
 
       setPhase('review')
+      writeTailorSession(jobId, 'done')
     } catch (err) {
       if (err instanceof APIError) {
         mergeServerLog(err.details?.processLog as TailorProcessLogEntry[] | undefined)
@@ -326,6 +339,7 @@ export function AiTailorFlow({
       }
       setPhase('questions')
       setLogExpanded(true)
+      clearTailorSession(jobId)
     } finally {
       if (tick) window.clearInterval(tick)
       if (longWait) window.clearTimeout(longWait)
@@ -367,7 +381,7 @@ export function AiTailorFlow({
       if (!scoreRes.ok) throw new Error(scoreBody.error || 'Could not update score')
 
       const finalScore = scoreBody.score?.total ?? tailoredScore
-      onComplete({
+      onCompleteRef.current({
         tailoredId,
         version: 0,
         structuredData: approvedPreview ?? tailored!,

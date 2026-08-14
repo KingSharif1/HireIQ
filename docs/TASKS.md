@@ -161,7 +161,7 @@ Files changed: `016_gmail_sync.sql`, `017_inbound_provider.sql`, `lib/google/*`,
 Status: DONE  
 Scope: `lib/ai/*`, AI API routes, auto-apply queue/UI, extension autofill, cover letter  
 Goal: If a paid Claude call or auto-apply messes up, **stop**. Do not loop, critique-retry, or SDK-retry to “fix” it.  
-Result: AI SDK `maxRetries: 0`; tailor pipeline 1 call; once-guards (429); auto-apply refuses re-queue after fail unless explicit new run.  
+Result: AI SDK `maxRetries: 0`; tailor pipeline 1 call; once-guards (429); **DB job lock** so Vercel remounts cannot fork-bomb; `router.refresh` removed from tailor complete. Deleted 132 Apple loop versions in prod. Auto-apply refuses re-queue after fail unless explicit new run.  
 Files changed: `lib/ai/{complete,once,models,tailor-pipeline}.ts`, AI routes, `AutoApplyWithHireIQ.tsx`, `lib/apply/queue.ts`, `CoverLetterPanel.tsx`, docs
 
 ---

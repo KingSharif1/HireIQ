@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { ArrowLeft, Check, Copy, ExternalLink, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ActivityPanel, type AddActivityEventInput } from '@/components/jobs/detail/ActivityPanel'
@@ -97,7 +97,6 @@ export function JobDetailPage({
   emailTrackingEnabled = true,
   applyEmail = null,
 }: JobDetailPageProps) {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const visibleTabs = useMemo(
     () => (emailTrackingEnabled ? TABS : TABS.filter(t => t.id !== 'email')),
@@ -336,7 +335,8 @@ export function JobDetailPage({
     })
     setSelectedDocId(result.tailoredId)
     setCurrentScore(result.score)
-    router.refresh()
+    // Do not router.refresh() here — that remounts this page, re-opens AI tailor
+    // from the URL, and auto-starts another paid Claude call (132 versions in 8 min).
   }
 
   return (
