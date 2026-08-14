@@ -27,11 +27,9 @@ function buildSuggestionReason(repo: GitHubRepoSnapshot, matched?: ResumeProject
 
 export function githubSuggestionsFromRepos(
   repos: GitHubRepoSnapshot[],
-  profileData: ProfileData,
-  existingPending: PendingSuggestion[] = []
+  profileData: ProfileData
 ): PendingSuggestion[] {
   const now = new Date().toISOString()
-  const existingIds = new Set(existingPending.map(s => s.id))
   const suggestions: PendingSuggestion[] = []
   const projects = profileData.projects ?? []
 
@@ -40,8 +38,6 @@ export function githubSuggestionsFromRepos(
 
     const matched = projects.find(p => repoMatchesProject(repo, p))
     const suggestionId = `gh-${repo.id}`
-
-    if (existingIds.has(suggestionId)) continue
 
     if (matched) {
       const alreadyLinked = matched.github?.includes(repo.fullName) || matched.github?.includes(repo.name)

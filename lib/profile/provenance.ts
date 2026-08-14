@@ -42,13 +42,25 @@ export function pendingCountForSection(data: ProfileData, section: PendingSugges
 
 export function mergePendingSuggestions(
   existing: PendingSuggestion[],
-  incoming: PendingSuggestion[]
+  incoming: PendingSuggestion[],
+  options?: { preferIncoming?: boolean }
 ): PendingSuggestion[] {
   const byId = new Map(existing.map(s => [s.id, s]))
   for (const s of incoming) {
-    if (!byId.has(s.id)) byId.set(s.id, s)
+    if (!byId.has(s.id) || options?.preferIncoming) {
+      byId.set(s.id, s)
+    }
   }
   return [...byId.values()]
+}
+
+/** Replace GitHub-sync pending items while keeping tailor/write-back suggestions. */
+export function mergeGitHubPendingSuggestions(
+  existing: PendingSuggestion[],
+  incoming: PendingSuggestion[]
+): PendingSuggestion[] {
+  const kept = existing.filter(s => s.source !== 'github')
+  return mergePendingSuggestions(kept, incoming, { preferIncoming: true })
 }
 
 export function writeBackToPending(

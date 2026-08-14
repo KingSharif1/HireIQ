@@ -1,3 +1,14 @@
+## 2026-08-14 — GitHub deep sync + tailor loader fixes
+
+**What:** GitHub sync now reads README, root folder layout, and `package.json` tools before suggesting profile bullets. Empty/placeholder repos are skipped. AI tailor gap analysis and generate steps include GitHub project context. Tailor connect screen shows honest progress, long-wait hint, and 55s timeout with retry.
+
+**Files:** `lib/github/{repo-enrichment,repo-quality,client,suggestions}.ts`, `lib/profile/github-context.ts`, `app/api/tailor/{questions,generate}/route.ts`, `lib/ai/{prompts,tailor-pipeline}.ts`, `components/jobs/detail/AiTailorFlow.tsx`, `lib/api/client.ts`, `docs/GITHUB.md`
+
+**Why:** Users stuck on “Pulling job requirements” with no error; GitHub suggestions were generic language lists without README/code context.
+
+**Next:** Re-sync GitHub on Profile/Builder so pending suggestions refresh with richer bullets.
+
+---
 ## 2026-08-14 — Per-action Claude prices + historical backfill
 
 **What:** Settings → AI shows $ per action (tailor / cover / analyze) for the selected models, and reconstructs past HireIQ Claude spend onto the testing account.

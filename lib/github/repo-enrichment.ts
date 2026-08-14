@@ -84,17 +84,86 @@ async function githubFetch<T>(path: string, token: string): Promise<T | null> {
   }
 }
 
-async function fetchReadmeExcerpt(fullName: string, token: string): Promise<string> {
+async function fetchReadmeExcerpt(fullName: string, token: string, isPrivate: boolean): Promise<string> {
   const data = await githubFetch<GitHubReadme>(`/repos/${fullName}/readme`, token)
-  if (!data?.content) return ''
-  const raw = decodeBase64Utf8(data.content)
-  return cleanReadmeExcerpt(raw)
+  if (data?.content) {
+    const raw = decodeBase64Utf8(data.content)
+    const cleaned = cleanReadmeExcerpt(raw)
+    if (cleaned.length >= 40) return cleaned
+  }
+
+  if (isPrivate) return ''
+
+  const [owner, repo] = fullName.split('/')
+  if (!owner || !repo) return ''
+
+  for (const branch of ['main', 'master', 'develop']) {
+    try {
+      const res = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/${branch}/README.md`, {
+        next: { revalidate: 0 },
+      })
+      if (!res.ok) continue
+      const cleaned = cleanReadmeExcerpt(await res.text())
+      if (cleaned.length >= 40) return cleaned
+    } catch {
+      continue
+    }
+  }
+  return ''
 }
 
-async function fetchRootPaths(fullName: string, token: string): Promise<string[]> {
+async function fetchRootPaths(fullName: string, token: string, isPrivate: boolean): Promise<string[]> {
   const items = await githubFetch<GitHubContentItem[]>(`/repos/${fullName}/contents`, token)
-  if (!Array.isArray(items)) return []
-  return items.filter(i => i.type === 'dir' || i.type === 'file').map(i => i.name)
+  if (Array.isArray(items) && items.length) {
+    return items.filter(i => i.type === 'dir' || i.type === 'file').map(i => i.name)
+  }
+
+  if (isPrivate) return []
+
+  const [owner, repo] = fullName.split('/')
+  if (!owner || !repo) return []
+
+  for (const branch of ['main', 'master']) {
+    const items = await githubFetch<GitHubContentItem[]>(
+      `/repos/${fullName}/contents?ref=${branch}`,
+      token
+    )
+    if (Array.isArray(items) && items.length) {
+      return items.filter(i => i.type === 'dir' || i.type === 'file').map(i => i.name)
+    }
+  }
+  return []
+}
+
+async function fetchPackageTools(fullName: string, token: string, isPrivate: boolean): Promise<string[]> {
+  const data = await githubFetch<GitHubContentItem & { content?: string }>(
+    `/repos/${fullName}/contents/package.json`,
+    token
+  )
+  if (data?.content) {
+    const tools = toolsFromPackageJson(decodeBase64Utf8(data.content))
+    if (tools.length) return tools
+  }
+
+  if (isPrivate) return []
+
+  const [owner, repo] = fullName.split('/')
+  if (!owner || !repo) return []
+
+  for (const branch of ['main', 'master']) {
+    try {
+      const res = await fetch(
+        `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/package.json`,
+        { next: { revalidate: 0 } }
+      )
+      if (!res.ok) continue
+      const tools = toolsFromPackageJson(await res.text())
+      if (tools.length) return tools
+    } catch {
+      continue
+    }
+  }
+  return []
 }
 
 function toolsFromPackageJson(text: string): string[] {
@@ -121,27 +190,12 @@ function toolsFromPackageJson(text: string): string[] {
   }
 }
 
-async function fetchPackageTools(fullName: string, token: string): Promise<string[]> {
-  const data = await githubFetch<GitHubContentItem & { content?: string }>(
-    `/repos/${fullName}/contents/package.json`,
-    token
-  )
-  if (!data?.content) return []
-  const raw = decodeBase64Utf8(data.content)
-  return toolsFromPackageJson(raw)
-}
-
-export interface RepoEnrichment {
-  readmeExcerpt: string
-  rootPaths: string[]
-  tools: string[]
-}
-
 export async function enrichRepo(repo: GitHubApiRepo, token: string): Promise<RepoEnrichment> {
+  const isPrivate = repo.private
   const [readmeExcerpt, rootPaths, tools] = await Promise.all([
-    fetchReadmeExcerpt(repo.full_name, token),
-    fetchRootPaths(repo.full_name, token),
-    fetchPackageTools(repo.full_name, token),
+    fetchReadmeExcerpt(repo.full_name, token, isPrivate),
+    fetchRootPaths(repo.full_name, token, isPrivate),
+    fetchPackageTools(repo.full_name, token, isPrivate),
   ])
   return { readmeExcerpt, rootPaths, tools }
 }
@@ -161,32 +215,58 @@ export async function enrichReposBatch(
   return out
 }
 
-export function buildRepoHighlight(repo: GitHubRepoSnapshot): string {
-  const fromReadme = repo.readmeExcerpt?.trim()
-  const fromDesc = repo.description?.trim()
-  const headline =
-    (fromReadme && fromReadme.length >= 40 ? fromReadme.split(/[.!?]/)[0]?.trim() : '') ||
-    fromDesc ||
-    repo.name
+export interface RepoEnrichment {
+  readmeExcerpt: string
+  rootPaths: string[]
+  tools: string[]
+}
 
-  const toolSet = new Set<string>()
-  for (const t of repo.tools ?? []) toolSet.add(t)
-  for (const lang of repo.languages.slice(0, 4)) toolSet.add(lang)
-  const tools = [...toolSet].slice(0, 6)
+function headlineFromRepo(repo: GitHubRepoSnapshot): string {
+  const fromReadme = repo.readmeExcerpt?.trim()
+  if (fromReadme && fromReadme.length >= 40) {
+    const sentence = fromReadme.match(/^[^.!?]+[.!?]?/)?.[0]?.trim()
+    if (sentence && sentence.length >= 30) return sentence.replace(/[.!?]+$/, '')
+    return fromReadme.slice(0, 140).trim()
+  }
+  const fromDesc = repo.description?.trim()
+  if (fromDesc) return fromDesc
+  if (repo.topics.length) {
+    return `${repo.name} — ${repo.topics.slice(0, 4).join(', ')} project`
+  }
+  return repo.name
+}
+
+export function buildRepoHighlight(repo: GitHubRepoSnapshot): string {
+  let headline = headlineFromRepo(repo)
+  if (repo.readmeExcerpt && headline.length >= 30 && !/^built\b/i.test(headline)) {
+    headline = `Built ${repo.name} — ${headline.charAt(0).toLowerCase()}${headline.slice(1)}`
+  }
+
+  const packageTools = (repo.tools ?? []).filter(t => !repo.languages.includes(t))
+  const stackParts = [...new Set([...packageTools, ...repo.languages.slice(0, 3)])].slice(0, 5)
 
   const structureBits: string[] = []
   if (hasCodeStructure(repo.rootPaths)) {
     const dirs = (repo.rootPaths ?? [])
-      .filter(p => ['src', 'app', 'components', 'lib', 'api', 'services', 'packages'].includes(p.toLowerCase()))
+      .filter(p =>
+        ['src', 'app', 'components', 'lib', 'api', 'services', 'packages'].includes(p.toLowerCase())
+      )
       .slice(0, 3)
-    if (dirs.length) structureBits.push(`${dirs.join('/')} layout`)
+    if (dirs.length) structureBits.push(`${dirs.join('/')} structure`)
   }
 
   const parts: string[] = [headline]
-  if (tools.length) parts.push(`Stack: ${tools.join(', ')}`)
+  if (packageTools.length) {
+    parts.push(`Tools: ${packageTools.join(', ')}`)
+  } else if (stackParts.length && (repo.readmeExcerpt || repo.description)) {
+    parts.push(`Tech: ${stackParts.join(', ')}`)
+  }
   if (structureBits.length) parts.push(structureBits[0])
+  if (repo.topics.length && !repo.description && !repo.readmeExcerpt) {
+    parts.push(`Topics: ${repo.topics.slice(0, 4).join(', ')}`)
+  }
 
-  let bullet = parts.join(' — ')
-  if (repo.stars > 0) bullet += ` (${repo.stars} GitHub stars)`
-  return bullet.length > 220 ? `${bullet.slice(0, 217).trim()}…` : bullet
+  let bullet = parts.join(' · ')
+  if (repo.stars > 0) bullet += ` · ${repo.stars} GitHub stars`
+  return bullet.length > 240 ? `${bullet.slice(0, 237).trim()}…` : bullet
 }
