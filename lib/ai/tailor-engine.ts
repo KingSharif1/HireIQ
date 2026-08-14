@@ -1,7 +1,61 @@
 import { diffArrays } from 'diff'
-import type { StructuredResume, ResumeDiffChange, JobExtractedData } from '@/types'
+import type { StructuredResume, ResumeDiffChange, JobExtractedData, ResumeExperience, ResumeProject } from '@/types'
 import type { TailorCritiqueReport, TailorCritiqueFlag, WriteBackSuggestion } from './tailor-types'
 import { TAILOR_MAX_RETRIES, TAILOR_OVERLAP_GATE } from './models'
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter(v => typeof v === 'string') : []
+}
+
+/** Claude often omits arrays — fill so .join / .find never crash. */
+export function normalizeStructuredResume(raw: Partial<StructuredResume> | null | undefined): StructuredResume {
+  const r = raw ?? {}
+  const skills = r.skills ?? { technical: [], soft: [], tools: [], languages: [] }
+  return {
+    contact: r.contact ?? {
+      name: '',
+      email: '',
+      phone: '',
+      location: '',
+      linkedin: '',
+      github: '',
+      portfolio: '',
+      website: '',
+    },
+    summary: typeof r.summary === 'string' ? r.summary : '',
+    experience: (Array.isArray(r.experience) ? r.experience : []).map((e, i) => ({
+      id: e?.id || `exp_${i + 1}`,
+      company: e?.company ?? '',
+      title: e?.title ?? '',
+      location: e?.location ?? '',
+      startDate: e?.startDate ?? '',
+      endDate: e?.endDate ?? '',
+      current: Boolean(e?.current),
+      bullets: asStringArray(e?.bullets),
+      skills_used: asStringArray(e?.skills_used),
+    })) as ResumeExperience[],
+    education: Array.isArray(r.education) ? r.education : [],
+    skills: {
+      technical: asStringArray(skills.technical),
+      soft: asStringArray(skills.soft),
+      tools: asStringArray(skills.tools),
+      languages: asStringArray(skills.languages),
+    },
+    projects: (Array.isArray(r.projects) ? r.projects : []).map((p, i) => ({
+      id: p?.id || `proj_${i + 1}`,
+      name: p?.name ?? '',
+      description: p?.description ?? '',
+      bullets: asStringArray(p?.bullets),
+      technologies: asStringArray(p?.technologies),
+      url: p?.url ?? '',
+      github: p?.github ?? '',
+    })) as ResumeProject[],
+    certifications: Array.isArray(r.certifications) ? r.certifications : [],
+    volunteer: Array.isArray(r.volunteer) ? r.volunteer : [],
+    awards: Array.isArray(r.awards) ? r.awards : [],
+    tailoring_notes: Array.isArray(r.tailoring_notes) ? r.tailoring_notes : undefined,
+  }
+}
 
 export function seniorityLengthBudget(seniority: string): string {
   const s = seniority.toLowerCase()
@@ -56,22 +110,24 @@ export function buildResumeChanges(
   after: StructuredResume,
   notes?: { section: string; reason: string }[]
 ): ResumeDiffChange[] {
+  const prev = normalizeStructuredResume(before)
+  const next = normalizeStructuredResume(after)
   const changes: ResumeDiffChange[] = []
   const noteFor = (section: string) => notes?.find(n => n.section === section)?.reason
 
-  if (before.summary !== after.summary) {
+  if (prev.summary !== next.summary) {
     changes.push({
       section: 'summary',
       field: 'text',
-      before: before.summary,
-      after: after.summary,
+      before: prev.summary,
+      after: next.summary,
       changeType: 'changed',
       reason: noteFor('summary'),
     })
   }
 
-  for (const exp of before.experience) {
-    const tailoredExp = after.experience.find(e => e.id === exp.id)
+  for (const exp of prev.experience) {
+    const tailoredExp = next.experience.find(e => e.id === exp.id)
     if (!tailoredExp) {
       changes.push({
         section: 'experience',
@@ -97,8 +153,8 @@ export function buildResumeChanges(
     }
   }
 
-  for (const exp of after.experience) {
-    if (!before.experience.find(e => e.id === exp.id)) {
+  for (const exp of next.experience) {
+    if (!prev.experience.find(e => e.id === exp.id)) {
       changes.push({
         section: 'experience',
         field: 'entry',
@@ -110,8 +166,8 @@ export function buildResumeChanges(
     }
   }
 
-  const skillBefore = [...(before.skills?.technical ?? []), ...(before.skills?.tools ?? [])]
-  const skillAfter = [...(after.skills?.technical ?? []), ...(after.skills?.tools ?? [])]
+  const skillBefore = [...prev.skills.technical, ...prev.skills.tools]
+  const skillAfter = [...next.skills.technical, ...next.skills.tools]
   if (skillBefore.join('|') !== skillAfter.join('|')) {
     changes.push({
       section: 'skills',
@@ -123,8 +179,8 @@ export function buildResumeChanges(
     })
   }
 
-  for (const proj of before.projects) {
-    const tailoredProj = after.projects.find(p => p.id === proj.id)
+  for (const proj of prev.projects) {
+    const tailoredProj = next.projects.find(p => p.id === proj.id)
     if (tailoredProj && proj.bullets.join('|') !== tailoredProj.bullets.join('|')) {
       changes.push({
         section: 'projects',

@@ -33,14 +33,17 @@ const ACTION_VERBS = [
 ]
 
 function resumeFullText(resume: StructuredResume): string {
+  const experience = resume.experience ?? []
+  const education = resume.education ?? []
+  const projects = resume.projects ?? []
   const parts: string[] = [
     resume.summary || '',
-    ...resume.experience.flatMap(e => [e.title, e.company, ...e.bullets, ...e.skills_used]),
-    ...resume.education.map(e => `${e.degree} ${e.field} ${e.institution}`),
+    ...experience.flatMap(e => [e.title, e.company, ...(e.bullets ?? []), ...(e.skills_used ?? [])]),
+    ...education.map(e => `${e.degree} ${e.field} ${e.institution}`),
     ...(resume.skills?.technical || []),
     ...(resume.skills?.tools || []),
     ...(resume.skills?.languages || []),
-    ...resume.projects.flatMap(p => [p.name, p.description, ...p.bullets, ...p.technologies]),
+    ...projects.flatMap(p => [p.name, p.description, ...(p.bullets ?? []), ...(p.technologies ?? [])]),
   ]
   return parts.join(' ').toLowerCase()
 }
@@ -76,8 +79,8 @@ function calculateSkillScore(resume: StructuredResume, job: JobExtractedData) {
     ...(resume.skills?.technical || []),
     ...(resume.skills?.tools || []),
     ...(resume.skills?.languages || []),
-    ...resume.experience.flatMap(e => e.skills_used),
-    ...resume.projects.flatMap(p => p.technologies),
+    ...(resume.experience ?? []).flatMap(e => e.skills_used ?? []),
+    ...(resume.projects ?? []).flatMap(p => p.technologies ?? []),
   ].map(normalizeSkill)
 
   const matched: string[] = []
@@ -147,7 +150,7 @@ function calculateFormatScore(resume: StructuredResume): { score: number } {
   if (resume.experience?.length > 0) score += 10
   if (resume.experience?.some(e => e.bullets?.length >= 2)) score += 15
 
-  const allBullets = resume.experience.flatMap(e => e.bullets)
+  const allBullets = (resume.experience ?? []).flatMap(e => e.bullets ?? [])
   const bulletsWithVerbs = allBullets.filter(b => {
     const first = b.toLowerCase().split(' ')[0]
     return ACTION_VERBS.some(v => first.startsWith(v))

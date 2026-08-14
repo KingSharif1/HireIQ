@@ -19,6 +19,7 @@ import {
   seniorityLengthBudget,
   shouldRetryLoop,
   sliceForPrompt,
+  normalizeStructuredResume,
 } from '@/lib/ai/tailor-engine'
 
 interface PipelineInput {
@@ -50,7 +51,7 @@ async function callGenerate(
 }
 
 function parseResume(text: string): StructuredResume {
-  return JSON.parse(extractJSON(text)) as StructuredResume
+  return normalizeStructuredResume(JSON.parse(extractJSON(text)) as Partial<StructuredResume>)
 }
 
 function parseCritique(text: string): TailorCritiqueReport {
@@ -58,7 +59,8 @@ function parseCritique(text: string): TailorCritiqueReport {
 }
 
 export async function runTailorPipeline(input: PipelineInput): Promise<TailorPipelineResult> {
-  const { resume, job, answers, questionLabels, gapAnalysis, generate } = input
+  const resume = normalizeStructuredResume(input.resume)
+  const { job, answers, questionLabels, gapAnalysis, generate } = input
   const models = input.models ?? { strong: AI_MODELS.strong, fast: AI_MODELS.fast }
   const enhancements = formatEnhancements(answers, questionLabels)
   const realGaps = formatRealGapsForPrompt(gapAnalysis?.real_gaps ?? [])
@@ -108,9 +110,9 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
       attempt += 1
 
       const regenPrompt = TAILOR_REGENERATE_PROMPT
-        .replace('{weakSections}', critique.weak_sections.join(', ') || 'summary, experience')
-        .replace('{critiqueFlags}', JSON.stringify(critique.flags.slice(0, 10)))
-        .replace('{suggestions}', critique.suggestions.join('\n') || 'Improve ATS keyword alignment')
+        .replace('{weakSections}', (critique.weak_sections ?? []).join(', ') || 'summary, experience')
+        .replace('{critiqueFlags}', JSON.stringify((critique.flags ?? []).slice(0, 10)))
+        .replace('{suggestions}', (critique.suggestions ?? []).join('\n') || 'Improve ATS keyword alignment')
         .replace('{structuredResume}', sliceForPrompt(resume, 4000))
         .replace('{tailoredResume}', sliceForPrompt(current, 5000))
         .replace('{jobAnalysis}', sliceForPrompt(job, 2000))

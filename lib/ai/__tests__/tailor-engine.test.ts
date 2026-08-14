@@ -12,6 +12,7 @@ import {
 import { TAILOR_MAX_RETRIES, TAILOR_OVERLAP_GATE, TAILOR_MAX_AI_CALLS } from '@/lib/ai/models'
 import { sampleStructuredResume } from '@/lib/profile/__tests__/fixtures'
 import type { TailorCritiqueReport } from '@/lib/ai/tailor-types'
+import type { StructuredResume } from '@/types'
 
 function critique(overrides: Partial<TailorCritiqueReport>): TailorCritiqueReport {
   return normalizeCritique({
@@ -86,6 +87,18 @@ describe('buildResumeChanges', () => {
     const changes = buildResumeChanges(before, after)
     expect(changes.some(c => c.section === 'summary' && c.changeType === 'changed')).toBe(true)
     expect(changes.some(c => c.section === 'experience' && c.field === 'bullets')).toBe(true)
+  })
+
+  it('does not throw when Claude omits bullets/projects arrays', () => {
+    const before = sampleStructuredResume()
+    const after = {
+      summary: 'Tailored',
+      experience: [{ id: 'exp-1', title: 'SE', company: 'Acme' }],
+      skills: { technical: ['TypeScript'] },
+    } as unknown as StructuredResume
+    expect(() => buildResumeChanges(before, after)).not.toThrow()
+    const changes = buildResumeChanges(before, after)
+    expect(changes.some(c => c.section === 'summary')).toBe(true)
   })
 })
 
