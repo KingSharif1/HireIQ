@@ -45,9 +45,9 @@ Both paths should share rules/code where possible:
 ```
 Job + tailored PDF + profile + tracking mode
     → board detect (GH / Lever / Ashby / Workday / …)
-    → fill fields / answer questions
-    → signup + OTP (masked or Gmail)
-    → attach resume
+    → walk intro gates (Continue / Apply / guest) — up to 6 screens; do **not** fill yet
+    → when name/email fields are actually visible: fill gently (no hidden/overwrite)
+    → attach resume if a file input is there
     → submit (or pause on CAPTCHA / LinkedIn)
     → write Applied + portal creds + events
 ```
@@ -93,6 +93,14 @@ Env: `APPLY_WORKER_URL`, `APPLY_WORKER_SECRET`. Local: `npm run apply:worker` + 
 **Deploy guide:** [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md)
 
 **Default:** fill-only (`submit: false`). CAPTCHA / missing fields → `needs_user`. LinkedIn/Indeed blocked.
+
+**How we move through the ATS (don’t force):**
+
+1. Open the apply URL.
+2. If this page is cookies / Continue / Apply / “guest” — click that and **wait**. Many boards have a few of these before any inputs.
+3. Only when name/email (or similar) fields are **visible** do we fill. Try `fill`, then type. Skip hidden, disabled, or already-different values.
+4. Never click **Submit Application** as if it were Continue.
+5. If we still don’t see a form after 6 gates → `needs_user`. We do not invent answers.
 
 **Live progress:** worker writes `apply_runs.result.progress` (steps + filled fields); job detail polls and animates the panel.
 

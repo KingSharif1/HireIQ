@@ -1,4 +1,4 @@
-import type { Page } from 'playwright'
+import type { Locator, Page } from 'playwright'
 import { getBoardAdapter, type BoardKind } from '@/lib/extension/board'
 import {
   createInitialApplyProgress,
@@ -7,6 +7,14 @@ import {
   type ApplyProgress,
   type ServerApplyContext,
 } from '@/lib/apply/types'
+import {
+  isDismissLabel,
+  isGateLabel,
+  isSubmitLabel,
+  MAX_CONTINUE_GATES,
+  nextApplyAction,
+  nextFillApproach,
+} from '@/lib/apply/flow'
 
 export type ServerApplyOutcome = {
   status: 'applied' | 'needs_user' | 'failed'
@@ -16,6 +24,61 @@ export type ServerApplyOutcome = {
   finalUrl?: string
   submitted?: boolean
   progress: ApplyProgress
+}
+
+const IDENTITY_SELECTORS = [
+  'input[type="email"]',
+  'input[autocomplete="email"]',
+  'input[autocomplete="given-name"]',
+  'input[autocomplete="family-name"]',
+  'input[name="first_name"]',
+  'input[name="job_application[first_name]"]',
+  'input[name="email"]',
+  'input[type="tel"]',
+]
+
+const GATE_NAME =
+  /^(Continue|Next|Apply now|Apply for this job|Apply|Start application|Get started|Continue as guest|Continue application)$/i
+
+async function fillGently(loc: Locator, value: string): Promise<boolean> {
+  const visible = await loc.isVisible().catch(() => false)
+  const disabled = await loc.isDisabled().catch(() => true)
+  let current = await loc.inputValue().catch(() => '')
+  const tried: Array<'fill' | 'type'> = []
+
+  for (;;) {
+    const approach = nextFillApproach({
+      visible,
+      disabled,
+      current,
+      desired: value,
+      tried,
+    })
+    if (approach === 'already_set') return true
+    if (
+      approach === 'skip_hidden' ||
+      approach === 'skip_disabled' ||
+      approach === 'skip_overwrite' ||
+      approach === 'give_up'
+    ) {
+      return false
+    }
+    try {
+      if (approach === 'fill') {
+        tried.push('fill')
+        await loc.fill(value, { timeout: 2500 })
+      } else {
+        tried.push('type')
+        await loc.click({ timeout: 1500 })
+        await loc.fill('', { timeout: 1500 }).catch(() => undefined)
+        await loc.pressSequentially(value, { delay: 15, timeout: 4000 })
+      }
+      current = await loc.inputValue().catch(() => '')
+      if (current.trim() === value.trim()) return true
+    } catch {
+      current = await loc.inputValue().catch(() => current)
+    }
+  }
 }
 
 async function fillFirst(
@@ -29,12 +92,9 @@ async function fillFirst(
   for (const sel of selectors) {
     const loc = page.locator(sel).first()
     if ((await loc.count()) === 0) continue
-    try {
-      await loc.fill(value, { timeout: 3000 })
-      filled.push(label)
+    if (await fillGently(loc, value)) {
+      if (!filled.includes(label)) filled.push(label)
       return true
-    } catch {
-      // try next
     }
   }
   return false
@@ -45,10 +105,100 @@ async function clickFirst(page: Page, selectors: string[]): Promise<boolean> {
     const loc = page.locator(sel).first()
     if ((await loc.count()) === 0) continue
     try {
+      if (!(await loc.isVisible().catch(() => false))) continue
       await loc.click({ timeout: 3000 })
       return true
     } catch {
-      // try next
+      // try next selector — don't force a dead control
+    }
+  }
+  return false
+}
+
+async function countVisibleIdentityFields(page: Page): Promise<number> {
+  let n = 0
+  for (const sel of IDENTITY_SELECTORS) {
+    const loc = page.locator(sel)
+    const count = await loc.count()
+    for (let i = 0; i < count; i++) {
+      const item = loc.nth(i)
+      if (await item.isVisible().catch(() => false)) n += 1
+    }
+  }
+  return n
+}
+
+async function captchaPresent(page: Page): Promise<boolean> {
+  return (await page.locator('iframe[src*="recaptcha"], .g-recaptcha, [data-callback*="captcha"]').count()) > 0
+}
+
+async function clickNamedGate(page: Page): Promise<string | null> {
+  const roles = ['button', 'link'] as const
+  for (const role of roles) {
+    const named = page.getByRole(role, { name: GATE_NAME })
+    const count = await named.count()
+    for (let i = 0; i < Math.min(count, 8); i++) {
+      const el = named.nth(i)
+      if (!(await el.isVisible().catch(() => false))) continue
+      const text = (await el.innerText().catch(() => '')).replace(/\s+/g, ' ').trim()
+      if (!text || isSubmitLabel(text) || !isGateLabel(text)) continue
+      try {
+        await el.click({ timeout: 3000 })
+        return text
+      } catch {
+        // try next candidate
+      }
+    }
+  }
+  return null
+}
+
+async function clickDismiss(page: Page): Promise<boolean> {
+  const named = page.getByRole('button', { name: /accept|agree|allow|got it/i })
+  const count = await named.count()
+  for (let i = 0; i < Math.min(count, 6); i++) {
+    const el = named.nth(i)
+    if (!(await el.isVisible().catch(() => false))) continue
+    const text = (await el.innerText().catch(() => '')).replace(/\s+/g, ' ').trim()
+    if (!isDismissLabel(text)) continue
+    try {
+      await el.click({ timeout: 2000 })
+      return true
+    } catch {
+      // next
+    }
+  }
+  return false
+}
+
+async function hasContinueControl(page: Page, continueSelectors: string[]): Promise<boolean> {
+  if (await hasVisibleNamed(page, 'gate')) return true
+  for (const sel of continueSelectors) {
+    const loc = page.locator(sel).first()
+    if ((await loc.count()) === 0) continue
+    if (await loc.isVisible().catch(() => false)) return true
+  }
+  return false
+}
+
+async function hasVisibleNamed(page: Page, kind: 'gate' | 'dismiss'): Promise<boolean> {
+  const named = page.getByRole('button', {
+    name: kind === 'dismiss' ? /accept|agree|allow|got it/i : GATE_NAME,
+  })
+  const count = await named.count()
+  for (let i = 0; i < Math.min(count, 8); i++) {
+    const el = named.nth(i)
+    if (!(await el.isVisible().catch(() => false))) continue
+    const text = (await el.innerText().catch(() => '')).replace(/\s+/g, ' ').trim()
+    if (kind === 'dismiss') return isDismissLabel(text)
+    if (isGateLabel(text) && !isSubmitLabel(text)) return true
+  }
+  const links = page.getByRole('link', { name: GATE_NAME })
+  if (kind === 'gate' && (await links.count()) > 0) {
+    const first = links.first()
+    if (await first.isVisible().catch(() => false)) {
+      const text = (await first.innerText().catch(() => '')).replace(/\s+/g, ' ').trim()
+      return isGateLabel(text) && !isSubmitLabel(text)
     }
   }
   return false
@@ -216,23 +366,6 @@ export async function runServerApply(ctx: ServerApplyContext): Promise<ServerApp
     await page.goto(ctx.applyUrl, { waitUntil: 'domcontentloaded', timeout: 45_000 })
     await page.waitForTimeout(1500)
 
-    await report(
-      patchApplyProgress(progress, {
-        currentStep: 'form',
-        stepState: 'active',
-        detail: 'Looking for Apply / form…',
-      })
-    )
-
-    const adapter = getBoardAdapter(new URL(ctx.applyUrl).hostname)
-    await clickFirst(page, [
-      'a[href="#app"]',
-      'button:has-text("Apply")',
-      'a:has-text("Apply")',
-      ...adapter.applyFieldSelectors.map(s => s),
-    ])
-    await page.waitForTimeout(800)
-
     if (!ctx.identity.email) {
       progress = patchApplyProgress(progress, {
         currentStep: 'done',
@@ -251,20 +384,100 @@ export async function runServerApply(ctx: ServerApplyContext): Promise<ServerApp
       }
     }
 
-    const captcha = await page.locator('iframe[src*="recaptcha"], .g-recaptcha, [data-callback*="captcha"]').count()
-    if (captcha > 0) {
-      notes.push('CAPTCHA detected')
+    await report(
+      patchApplyProgress(progress, {
+        currentStep: 'form',
+        stepState: 'active',
+        detail: 'Walking Continue screens — fields often come after a few pages',
+      })
+    )
+
+    const adapter = getBoardAdapter(new URL(ctx.applyUrl).hostname)
+    let gatesClicked = 0
+    let reachedForm = false
+
+    for (let step = 0; step < MAX_CONTINUE_GATES + 2; step++) {
+      const action = nextApplyAction({
+        visibleIdentityFields: await countVisibleIdentityFields(page),
+        hasContinue: await hasContinueControl(page, adapter.continueSelectors),
+        hasDismiss: await hasVisibleNamed(page, 'dismiss'),
+        hasCaptcha: await captchaPresent(page),
+        gatesClicked,
+      })
+
+      if (action === 'wait_captcha') {
+        notes.push('CAPTCHA detected')
+        progress = patchApplyProgress(progress, {
+          currentStep: 'form',
+          stepState: 'blocked',
+          detail: 'CAPTCHA — needs you',
+          notes,
+          percent: 35,
+        })
+        await report(progress)
+        return {
+          status: 'needs_user',
+          error: 'CAPTCHA on this page — finish in your browser or retry later',
+          filled: [],
+          notes,
+          finalUrl: page.url(),
+          progress,
+        }
+      }
+
+      if (action === 'fill') {
+        reachedForm = true
+        break
+      }
+
+      if (action === 'dismiss') {
+        if (await clickDismiss(page)) {
+          notes.push('Dismissed cookie / consent banner')
+          await page.waitForTimeout(800)
+          continue
+        }
+      }
+
+      if (action === 'continue' || action === 'dismiss') {
+        let clicked = await clickNamedGate(page)
+        if (!clicked && adapter.continueSelectors.length) {
+          const ok = await clickFirst(page, adapter.continueSelectors)
+          if (ok) clicked = 'Continue'
+        }
+        if (!clicked) break
+        gatesClicked += 1
+        notes.push(`Clicked “${clicked}” (${gatesClicked}/${MAX_CONTINUE_GATES})`)
+        await report(
+          patchApplyProgress(progress, {
+            currentStep: 'form',
+            stepState: 'active',
+            notes: [...notes],
+            detail: `Continue ${gatesClicked}/${MAX_CONTINUE_GATES} — not filling until fields appear`,
+            percent: 18 + gatesClicked * 4,
+          })
+        )
+        await page.waitForTimeout(1400)
+        await page.waitForLoadState('domcontentloaded').catch(() => undefined)
+        continue
+      }
+
+      break
+    }
+
+    if (!reachedForm) {
+      notes.push('No identity fields after Continue screens — not forcing a fill')
       progress = patchApplyProgress(progress, {
         currentStep: 'form',
         stepState: 'blocked',
-        detail: 'CAPTCHA — needs you',
-        notes,
-        percent: 35,
+        notes: [...notes],
+        detail: 'Still on intro pages. Needs you — we did not force-fill.',
+        percent: 40,
       })
       await report(progress)
       return {
         status: 'needs_user',
-        error: 'CAPTCHA on this page — finish in your browser or retry later',
+        error:
+          'This application still has intro / Continue screens (or no form yet). We did not force any fields. Open the page and continue, or retry.',
         filled: [],
         notes,
         finalUrl: page.url(),
@@ -276,7 +489,8 @@ export async function runServerApply(ctx: ServerApplyContext): Promise<ServerApp
       patchApplyProgress(progress, {
         currentStep: 'identity',
         stepState: 'active',
-        detail: 'Filling name, email, phone…',
+        notes: [...notes],
+        detail: 'Form is on screen — filling visible fields only',
       })
     )
 

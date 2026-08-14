@@ -1,11 +1,12 @@
 import type { ApplyIdentity } from '../../lib/extension/apply-identity'
-import { findContinueButton, clickContinueButton } from '../../lib/extension/agentic-nav'
+import { findContinueButton, clickContinueButton, pageHasIdentityFields } from '../../lib/extension/agentic-nav'
 import {
   fillSignupForm,
   fillVerificationCode,
   generatePortalPassword,
 } from '../../lib/extension/agentic-signup'
 import { detectAuthWall } from './detect-auth-wall'
+import { MAX_CONTINUE_GATES } from '../../lib/apply/flow'
 
 export type AgenticApplyContext = {
   applyIdentity: ApplyIdentity
@@ -18,15 +19,38 @@ export type AgenticApplyContext = {
 }
 
 export async function runContinueToApplication(ctx: AgenticApplyContext): Promise<boolean> {
-  const found = findContinueButton(document)
-  if (!found) {
-    ctx.onStatus('No Continue / Next button found on this page.', 'err')
-    return false
+  for (let i = 0; i < MAX_CONTINUE_GATES; i++) {
+    if (pageHasIdentityFields(document)) {
+      ctx.onStatus(
+        i === 0
+          ? 'Application form is on this page — ready to fill.'
+          : `Reached the form after ${i} Continue screen${i === 1 ? '' : 's'}.`,
+        'ok',
+      )
+      return true
+    }
+    const found = findContinueButton(document)
+    if (!found) {
+      ctx.onStatus(
+        i === 0
+          ? 'No Continue / Next on this page yet. Some sites take a few screens before any fields.'
+          : 'No more Continue buttons, and the form is not on this page yet.',
+        'err',
+      )
+      return false
+    }
+    clickContinueButton(found)
+    ctx.onStatus(
+      `Clicked “${found.label}” (${i + 1}/${MAX_CONTINUE_GATES}). Waiting — not filling until fields appear.`,
+    )
+    await ctx.sleep(1600)
   }
-  clickContinueButton(found)
-  ctx.onStatus(`Clicked “${found.label}”. Waiting for the next step…`)
-  await ctx.sleep(1500)
-  return true
+  if (pageHasIdentityFields(document)) {
+    ctx.onStatus('Reached the form.', 'ok')
+    return true
+  }
+  ctx.onStatus('Still on intro screens after several Continues. Not forcing a fill.', 'err')
+  return false
 }
 
 export async function runAgenticAccountCreation(
@@ -106,7 +130,7 @@ export async function runAgenticApplyStep(
     await runAgenticAccountCreation(ctx, jobId)
     return 'signup'
   }
-  if (findContinueButton(document)) {
+  if (findContinueButton(document) || !pageHasIdentityFields(document)) {
     await runContinueToApplication(ctx)
     return 'continue'
   }

@@ -90,6 +90,7 @@ describe('distinctive selectors', () => {
   it('includes Greenhouse submit, Workday continue, and resume inputs', () => {
     expect(distinctiveSubmitSelectors().some(s => s.includes('submit_app'))).toBe(true)
     expect(distinctiveContinueSelectors().some(s => s.includes('bottom-navigation-next-button'))).toBe(true)
+    expect(distinctiveContinueSelectors().some(s => s.includes('apply_button'))).toBe(true)
     expect(distinctiveResumeSelectors().some(s => s.includes('file-upload-input-ref'))).toBe(true)
   })
 })
