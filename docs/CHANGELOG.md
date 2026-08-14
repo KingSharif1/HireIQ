@@ -1,3 +1,12 @@
+## 2026-08-14 — Kill tailor credit loop
+
+**What:** Opening AI tailor re-fired Claude on every React re-render because `onComplete` was a new function each time. Guard: run once per screen, ignore overlapping clicks, skip critique loop in fast mode (1 Claude call), reject overlapping POSTs (429).
+
+**Files:** `AiTailorFlow.tsx`, `lib/ai/tailor-pipeline.ts`, `app/api/tailor/generate/route.ts`
+
+**Why:** That loop burned Anthropic credits. Fast tailor is now one rewrite, not a retry/critique loop.
+
+---
 ## 2026-08-14 — Send full master resume to Claude (no 5k cut)
 
 **What:** Tailor prompts now include the **entire** master resume + job JSON. Previously we sliced resume to 5,000 chars and JD to 2,000, so Claude never saw the whole profile.

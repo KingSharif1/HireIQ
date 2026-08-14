@@ -92,7 +92,6 @@ describe('runTailorPipeline', () => {
     }
     const generate = vi.fn()
       .mockResolvedValueOnce(JSON.stringify(incomplete))
-      .mockResolvedValueOnce(passCritique)
 
     const result = await runTailorPipeline({
       resume: sampleStructuredResume(),
@@ -105,6 +104,18 @@ describe('runTailorPipeline', () => {
     expect(result.tailoredResume.summary).toContain('Tailored')
     expect(result.tailoredResume.experience[0].bullets).toEqual([])
     expect(result.tailoredResume.projects).toEqual([])
-    expect(generate).toHaveBeenCalledTimes(2)
+    expect(generate).toHaveBeenCalledTimes(1)
+  })
+
+  it('fastMode never enters the critique/retry loop', async () => {
+    const generate = vi.fn().mockResolvedValueOnce(JSON.stringify(tailoredResume))
+    await runTailorPipeline({
+      resume: sampleStructuredResume(),
+      job,
+      answers: {},
+      generate,
+      fastMode: true,
+    })
+    expect(generate).toHaveBeenCalledTimes(1)
   })
 })

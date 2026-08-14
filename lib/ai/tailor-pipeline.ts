@@ -41,9 +41,10 @@ async function callGenerate(
   model: string,
   prompt: string,
   maxOutputTokens: number,
-  aiCallsUsed: { n: number }
+  aiCallsUsed: { n: number },
+  maxCalls = TAILOR_MAX_AI_CALLS
 ): Promise<string> {
-  if (aiCallsUsed.n >= TAILOR_MAX_AI_CALLS) {
+  if (aiCallsUsed.n >= maxCalls) {
     throw new Error('Tailor run exceeded AI call budget')
   }
   aiCallsUsed.n += 1
@@ -80,7 +81,8 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
     .replace('{seniority}', job.seniority || 'mid')
     .replace('{lengthBudget}', seniorityLengthBudget(job.seniority || 'mid'))
 
-  const genText = await callGenerate(generate, models.strong, generatePrompt, 6000, aiCallsUsed)
+  const maxCalls = input.fastMode ? 1 : TAILOR_MAX_AI_CALLS
+  const genText = await callGenerate(generate, models.strong, generatePrompt, 6000, aiCallsUsed, maxCalls)
   let current = parseResume(genText)
 
   const critiquePromptBase = {
@@ -95,10 +97,30 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
       .replace('{jobAnalysis}', critiquePromptBase.jobAnalysis)
 
     const model = useStrongModel ? models.strong : models.fast
-    const text = await callGenerate(generate, model, prompt, 2000, aiCallsUsed)
+    const text = await callGenerate(generate, model, prompt, 2000, aiCallsUsed, maxCalls)
     const report = parseCritique(text)
     critiques.push(report)
     return report
+  }
+
+  if (input.fastMode) {
+    const notes = current.tailoring_notes ?? []
+    const changes = buildResumeChanges(resume, current, notes)
+    const writeBackSuggestions = buildWriteBackSuggestions(answers, job.title || 'this role')
+    return {
+      tailoredResume: current,
+      changes,
+      tailoringNotes: notes,
+      writeBackSuggestions,
+      meta: {
+        attempts: 1,
+        passedGate: true,
+        warning: undefined,
+        finalOverlapPercent: 0,
+        aiCallsUsed: aiCallsUsed.n,
+        critiques: [],
+      },
+    }
   }
 
   let critique = await critiqueDraft(current, false)
@@ -120,7 +142,7 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
         .replace('{realGaps}', realGaps)
         .replace('{adjacentMatches}', adjacentMatches)
 
-      const regenText = await callGenerate(generate, models.strong, regenPrompt, 6000, aiCallsUsed)
+      const regenText = await callGenerate(generate, models.strong, regenPrompt, 6000, aiCallsUsed, maxCalls)
       current = parseResume(regenText)
       critique = await critiqueDraft(current, false)
       attempts.push({ resume: current, critique })
