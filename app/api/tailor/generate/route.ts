@@ -15,6 +15,7 @@ import {
 import { insertNotifications } from '@/lib/supabase/queries'
 import { withChangeIds, initialDecisions } from '@/lib/tailor/change-decisions'
 import { createProcessLog } from '@/lib/tailor/process-log'
+import { gapAnalysisFromAts } from '@/lib/tailor/ats-gap-hints'
 import type { GapAnalysis } from '@/types'
 
 export const runtime = 'nodejs'
@@ -62,18 +63,22 @@ export async function POST(request: Request) {
     return result.text
   }
 
-  const { resumeId, jobId, answers, questions, gapAnalysis } = await request.json() as {
+  const { resumeId, jobId, answers, questions, gapAnalysis, fastMode } = await request.json() as {
     resumeId?: string
     jobId: string
     answers: Record<string, string>
     questions?: { id: string; question: string }[]
     gapAnalysis?: GapAnalysis | null
+    fastMode?: boolean
   }
 
   if (!jobId) return NextResponse.json({ error: 'jobId required', processLog: log.entries }, { status: 400 })
 
   const answerCount = Object.values(answers ?? {}).filter(a => a?.trim()).length
-  log.step('Request validated', `${answerCount} gap answer(s) · jobId ${jobId.slice(0, 8)}…`)
+  log.step(
+    'Request validated',
+    `${answerCount} gap answer(s) · ${fastMode ? 'fast tailor (2 AI calls)' : 'full tailor'} · jobId ${jobId.slice(0, 8)}…`,
+  )
 
   // Resolve questionId → real question text so the model and the saved record
   // both see the actual question asked (not a meaningless "q1" id).
@@ -118,6 +123,16 @@ export async function POST(request: Request) {
   const baseResumeId = master.baseResumeId
   const gapAnswers = answers ?? {}
 
+  const baseline = calculateATSScore(resume, job)
+  const effectiveGapAnalysis =
+    gapAnalysis ?? gapAnalysisFromAts(baseline)
+  if (!gapAnalysis) {
+    log.step(
+      'Gap hints from ATS (instant)',
+      `${effectiveGapAnalysis.real_gaps.length} gaps · skipped Claude gap-analysis call`,
+    )
+  }
+
   if (gapAnswers && Object.keys(gapAnswers).length > 0) {
     const enhancementRows = Object.entries(gapAnswers)
       .filter(([, answer]) => answer.trim())
@@ -142,10 +157,11 @@ export async function POST(request: Request) {
       job,
       answers: gapAnswers,
       questionLabels,
-      gapAnalysis: gapAnalysis ?? null,
+      gapAnalysis: effectiveGapAnalysis,
       githubContext,
       generate: generateFn,
       models: ai.models,
+      fastMode: Boolean(fastMode),
     })
     const { meta } = pipelineResult
     log.entries[log.entries.length - 1] = {

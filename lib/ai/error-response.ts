@@ -29,8 +29,9 @@ export function aiErrorResponse(
     message = `AI model error (${message.replace('model:', '').trim()}). Pick another model in Settings → AI.`
   }
   const isDev = process.env.NODE_ENV === 'development'
+  const showDetail = isDev || status === 402 || Boolean(processLog?.length)
   return NextResponse.json(
-    { error: isDev || status === 402 ? message : fallback, processLog },
+    { error: showDetail ? message : fallback, processLog },
     { status },
   )
 }

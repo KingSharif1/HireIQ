@@ -134,6 +134,29 @@ export async function scoreResume(resumeId: string, jobId: string): Promise<Scor
   return post('/api/tailor/score', { resumeId, jobId })
 }
 
+export interface TailorContextResult {
+  baseResumeId: string
+  source: string
+  jobTitle?: string
+  company?: string
+  atsScore: number
+  missingSkills: string[]
+  githubRepoCount: number
+  hasGitHubContext: boolean
+  processLog?: TailorProcessLogEntry[]
+}
+
+export async function fetchTailorContext(jobId: string): Promise<TailorContextResult> {
+  const res = await fetch(`/api/tailor/context?jobId=${encodeURIComponent(jobId)}`)
+  const data = (await res.json().catch(() => ({}))) as TailorContextResult & { error?: string; processLog?: TailorProcessLogEntry[] }
+  if (!res.ok) {
+    throw new APIError(res.status, data.error ?? 'Could not load tailor context', {
+      processLog: data.processLog,
+    })
+  }
+  return data
+}
+
 export interface QuestionsResult {
   questions: GapQuestion[]
   gapAnalysis?: import('@/types').GapAnalysis
@@ -170,6 +193,7 @@ export async function tailorResume(params: {
   answers: Record<string, string>
   questions?: { id: string; question: string }[]
   gapAnalysis?: import('@/types').GapAnalysis
+  fastMode?: boolean
 }): Promise<TailorResult> {
   return post('/api/tailor/generate', params, { timeoutMs: 125_000 })
 }

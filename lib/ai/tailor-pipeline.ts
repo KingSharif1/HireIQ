@@ -31,6 +31,8 @@ interface PipelineInput {
   githubContext?: string
   generate: GenerateFn
   models?: { strong: string; fast: string }
+  /** One generate + one fast critique — skips retry loop (faster). */
+  fastMode?: boolean
 }
 
 async function callGenerate(
@@ -100,29 +102,30 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
   let critique = await critiqueDraft(current, false)
   attempts.push({ resume: current, critique })
 
-  let attempt = 0
-  while (shouldRetryLoop(attempt, critique)) {
-    attempt += 1
+  if (!input.fastMode) {
+    let attempt = 0
+    while (shouldRetryLoop(attempt, critique)) {
+      attempt += 1
 
-    const regenPrompt = TAILOR_REGENERATE_PROMPT
-      .replace('{weakSections}', critique.weak_sections.join(', ') || 'summary, experience')
-      .replace('{critiqueFlags}', JSON.stringify(critique.flags.slice(0, 10)))
-      .replace('{suggestions}', critique.suggestions.join('\n') || 'Improve ATS keyword alignment')
-      .replace('{structuredResume}', sliceForPrompt(resume, 4000))
-      .replace('{tailoredResume}', sliceForPrompt(current, 5000))
-      .replace('{jobAnalysis}', sliceForPrompt(job, 2000))
-      .replace('{enhancements}', enhancements)
-      .replace('{realGaps}', realGaps)
-      .replace('{adjacentMatches}', adjacentMatches)
+      const regenPrompt = TAILOR_REGENERATE_PROMPT
+        .replace('{weakSections}', critique.weak_sections.join(', ') || 'summary, experience')
+        .replace('{critiqueFlags}', JSON.stringify(critique.flags.slice(0, 10)))
+        .replace('{suggestions}', critique.suggestions.join('\n') || 'Improve ATS keyword alignment')
+        .replace('{structuredResume}', sliceForPrompt(resume, 4000))
+        .replace('{tailoredResume}', sliceForPrompt(current, 5000))
+        .replace('{jobAnalysis}', sliceForPrompt(job, 2000))
+        .replace('{enhancements}', enhancements)
+        .replace('{realGaps}', realGaps)
+        .replace('{adjacentMatches}', adjacentMatches)
 
-    const regenText = await callGenerate(generate, models.strong, regenPrompt, 6000, aiCallsUsed)
-    current = parseResume(regenText)
-    critique = await critiqueDraft(current, false)
-    attempts.push({ resume: current, critique })
+      const regenText = await callGenerate(generate, models.strong, regenPrompt, 6000, aiCallsUsed)
+      current = parseResume(regenText)
+      critique = await critiqueDraft(current, false)
+      attempts.push({ resume: current, critique })
+    }
   }
 
-  // Final quality gate on strong model (Q14)
-  const finalCritique = await critiqueDraft(current, true)
+  const finalCritique = input.fastMode ? critique : await critiqueDraft(current, true)
   const best = pickBestAttempt(attempts)
   const finalResume = passesTailorGate(finalCritique) ? current : best.resume
   const reportForMeta = passesTailorGate(finalCritique) ? finalCritique : best.critique
