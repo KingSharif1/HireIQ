@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { ResumeLibrary, type LibraryTailoredRow } from '@/components/builder/ResumeLibrary'
@@ -81,14 +80,6 @@ export function BuilderHome({
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
           {VIEWS.find(item => item.id === view)?.hint}
-          {view === 'files' ? (
-            <>
-              {' '}
-              <Link href="/dashboard/resume/upload" className="underline underline-offset-2">
-                Import a file
-              </Link>
-            </>
-          ) : null}
         </p>
       </div>
 

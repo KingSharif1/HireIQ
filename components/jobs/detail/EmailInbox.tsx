@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { ArrowDownLeft, ArrowUpRight, CircleAlert, Mail, Send } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -64,6 +64,7 @@ export function EmailInbox({
   const [isReplying, setIsReplying] = useState(false)
   const [replyError, setReplyError] = useState<string | null>(null)
   const [replyOk, setReplyOk] = useState<string | null>(null)
+  const threadPaneRef = useRef<HTMLDivElement>(null)
 
   const lastReceived = useMemo(() => {
     if (!selectedThread) return null
@@ -76,6 +77,7 @@ export function EmailInbox({
     setReplyBody('')
     setReplyError(null)
     setReplyOk(null)
+    threadPaneRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })
   }, [selectedThread?.id])
 
   async function handleReply(event: FormEvent<HTMLFormElement>) {
@@ -176,7 +178,7 @@ export function EmailInbox({
           </nav>
 
           {selectedThread ? (
-            <div className="min-w-0">
+            <div ref={threadPaneRef} className="min-w-0">
               <div className="border-b border-border px-4 py-4 sm:px-5">
                 <h3 className="break-words text-base font-semibold text-foreground">
                   {selectedThread.subject}
@@ -186,6 +188,53 @@ export function EmailInbox({
                   {selectedThread.messages.length === 1 ? 'message' : 'messages'}
                 </p>
               </div>
+              {canReply && lastReceived ? (
+                <form
+                  className="space-y-3 border-b border-border p-4 sm:p-5"
+                  onSubmit={handleReply}
+                >
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground">Reply via HireIQ</h4>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Sends from{' '}
+                      <span className="font-mono text-foreground">{applyEmail}</span>
+                      {' '}to {lastReceived.sender || 'the employer'}. They see your HireIQ address — not your personal inbox.
+                    </p>
+                  </div>
+                  <Textarea
+                    className="min-h-28"
+                    placeholder="Write your reply…"
+                    value={replyBody}
+                    disabled={replyDisabled}
+                    onChange={event => {
+                      setReplyBody(event.target.value)
+                      setReplyOk(null)
+                    }}
+                    required
+                  />
+                  {replyError ? (
+                    <p className="inline-flex items-center gap-1.5 text-xs text-destructive" role="alert">
+                      <CircleAlert className="h-4 w-4" aria-hidden="true" />
+                      {replyError}
+                    </p>
+                  ) : null}
+                  {replyOk ? (
+                    <p className="text-xs text-muted-foreground" role="status">
+                      {replyOk}
+                    </p>
+                  ) : null}
+                  <div className="flex justify-end">
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={replyDisabled || !replyBody.trim()}
+                    >
+                      <Send className="h-4 w-4" aria-hidden="true" />
+                      {isReplying ? 'Sending…' : 'Send reply'}
+                    </Button>
+                  </div>
+                </form>
+              ) : null}
               <ol className="max-h-[32rem] space-y-4 overflow-y-auto p-4 sm:p-5" aria-label={`${selectedThread.subject} messages`}>
                 {selectedThread.messages.map(message => {
                   const DirectionIcon =
@@ -234,54 +283,6 @@ export function EmailInbox({
                   )
                 })}
               </ol>
-
-              {canReply && lastReceived ? (
-                <form
-                  className="space-y-3 border-t border-border p-4 sm:p-5"
-                  onSubmit={handleReply}
-                >
-                  <div>
-                    <h4 className="text-sm font-semibold text-foreground">Reply via HireIQ</h4>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Sends from{' '}
-                      <span className="font-mono text-foreground">{applyEmail}</span>
-                      {' '}to {lastReceived.sender || 'the employer'}. They see your HireIQ address — not your personal inbox.
-                    </p>
-                  </div>
-                  <Textarea
-                    className="min-h-28"
-                    placeholder="Write your reply…"
-                    value={replyBody}
-                    disabled={replyDisabled}
-                    onChange={event => {
-                      setReplyBody(event.target.value)
-                      setReplyOk(null)
-                    }}
-                    required
-                  />
-                  {replyError ? (
-                    <p className="inline-flex items-center gap-1.5 text-xs text-destructive" role="alert">
-                      <CircleAlert className="h-4 w-4" aria-hidden="true" />
-                      {replyError}
-                    </p>
-                  ) : null}
-                  {replyOk ? (
-                    <p className="text-xs text-muted-foreground" role="status">
-                      {replyOk}
-                    </p>
-                  ) : null}
-                  <div className="flex justify-end">
-                    <Button
-                      type="submit"
-                      size="sm"
-                      disabled={replyDisabled || !replyBody.trim()}
-                    >
-                      <Send className="h-4 w-4" aria-hidden="true" />
-                      {isReplying ? 'Sending…' : 'Send reply'}
-                    </Button>
-                  </div>
-                </form>
-              ) : null}
             </div>
           ) : null}
         </div>

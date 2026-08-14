@@ -1,5 +1,41 @@
 # Changelog
 
+## 2026-08-14 — Cloud Run worker live + job document UX
+
+**What:** Worker image installs Playwright (prod `npm ci` was skipping it), stubs `next-env.d.ts`, listens on `0.0.0.0`. Documents: Resume / Cover letter tabs, score why/improve chips, zoom/fit, note/event dialogs. Cloud Run `hireiq-505323` + Vercel `APPLY_WORKER_*`.
+
+**Files:** `services/apply-worker/*`, `DocumentsWorkspace.tsx`, `ActivityPanel.tsx`, `AutoApplyWithHireIQ.tsx`, CLOUD-RUN-APPLY/STATUS
+
+**Why:** Container failed Cloud Run health until Playwright was in the image; tablet UI hid score/edit below the resume.
+
+**Next:** Smoke a dry-run apply on a real ATS job; Task 147.
+
+---
+
+## 2026-08-13 — Document viewer toolbar + score tips
+
+**What:** Preview uses a top toolbar (score, Edit, PDF/DOCX, zoom/fit). Score opens a why/improve dropdown. Edit and cover letter open as full-screen overlays. Email reply sits at the top of the thread.
+
+**Files:** `DocumentsWorkspace.tsx`, `ResumePreview.tsx`, `LayoutIssuesBanner.tsx`, `JobResumeEditor.tsx`, `EmailInbox.tsx`, `JobDetailPage.tsx`
+
+**Why:** Tablet stacked the score rail under the resume; zoom was off; forms appeared below the fold.
+
+**Next:** Deploy Cloud Run worker.
+
+---
+
+## 2026-08-13 — Job header + Builder files layout
+
+**What:** Auto-apply progress is a dropdown overlay (doesn’t stretch the sticky job header). Files tab no longer repeats the Builder title.
+
+**Files:** `AutoApplyWithHireIQ.tsx`, `JobDetailPage.tsx`, `BuilderHome.tsx`, `ResumeLibrary.tsx`
+
+**Why:** After the merge, the header and Files page stacked too much chrome.
+
+**Next:** Deploy Cloud Run worker; Task 147.
+
+---
+
 ## 2026-08-13 — Merge desktop Task 146 polish into mobile main
 
 **What:** Merged local Resume Builder / job-document polish into origin/main. Kept one Builder surface (Master + Files). Files tab has job-first View/Edit/Download. Job Documents keeps PDF view + Content/Design/Analyze editor + cover letter as its own document. Job detail keeps header facts, Auto-apply / copy apply email, timeline-first Activity, tracked Email with Reply via HireIQ (no manual log).

@@ -181,11 +181,12 @@ export function AutoApplyWithHireIQ({ jobId, hasApplyUrl }: Props) {
   const showPanel = open && (run != null || error != null || dispatchNote != null)
 
   return (
-    <div className="flex w-full flex-col items-stretch gap-2 sm:max-w-md sm:items-end">
+    <div className="relative flex shrink-0 flex-col items-end">
       <Button
         type="button"
         size="sm"
         disabled={busy}
+        title="Fills the form from your profile, then pauses for review"
         onClick={() => void startApply()}
         className="gap-1.5"
       >
@@ -197,12 +198,6 @@ export function AutoApplyWithHireIQ({ jobId, hasApplyUrl }: Props) {
         Auto-apply with HireIQ
       </Button>
 
-      {!showPanel ? (
-        <p className="max-w-[18rem] text-[11px] leading-snug text-muted-foreground sm:text-right">
-          Fills the form from your profile, then pauses for review.
-        </p>
-      ) : null}
-
       <AnimatePresence initial={false}>
         {showPanel ? (
           <motion.div
@@ -211,7 +206,7 @@ export function AutoApplyWithHireIQ({ jobId, hasApplyUrl }: Props) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduceMotion ? undefined : { opacity: 0, y: 6, scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-            className="w-full overflow-hidden rounded-xl border border-border/80 bg-white/95 shadow-sm dark:bg-card/95"
+            className="absolute right-0 top-full z-30 mt-2 w-[min(calc(100vw-2rem),22rem)] overflow-hidden rounded-xl border border-border/80 bg-white shadow-lg dark:bg-card"
             aria-live="polite"
           >
             <div className="relative overflow-hidden px-3.5 pb-3.5 pt-3">

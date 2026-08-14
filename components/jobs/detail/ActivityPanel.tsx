@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo, useState, type FormEvent } from 'react'
-import { Check, CircleAlert, Clock3, Plus, Save, StickyNote } from 'lucide-react'
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { Check, CircleAlert, Clock3, Plus, Save, StickyNote, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -80,6 +80,18 @@ export function ActivityPanel({
 
   const notesValue = notesDraft.source === notes ? notesDraft.value : notes
   const notesChanged = notesValue !== notes
+
+  useEffect(() => {
+    if (!notesOpen && !eventOpen) return
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setNotesOpen(false)
+        setEventOpen(false)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [notesOpen, eventOpen])
 
   async function handleSaveNotes() {
     setSaveState('saving')
@@ -200,106 +212,145 @@ export function ActivityPanel({
       </div>
 
       {notesOpen ? (
-      <div className="rounded-xl border border-border bg-white p-4 dark:bg-card sm:p-5">
-        <div className="flex items-center justify-between gap-3">
-          <label htmlFor="application-notes" className="text-sm font-semibold text-foreground">
-            Application notes
-          </label>
-          <span className="text-xs text-muted-foreground" role="status" aria-live="polite">
-            {saveState === 'saving' ? 'Saving…' : null}
-            {saveState === 'saved' ? (
-              <span className="inline-flex items-center gap-1 text-brand-green">
-                <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                Saved
-              </span>
-            ) : null}
-            {saveState === 'error' ? (
-              <span className="inline-flex items-center gap-1 text-destructive">
-                <CircleAlert className="h-3.5 w-3.5" aria-hidden="true" />
-                Save failed
-              </span>
-            ) : null}
-          </span>
-        </div>
-        <Textarea
-          id="application-notes"
-          className="mt-3 min-h-28"
-          placeholder="Add interview details, follow-up reminders, or other private notes…"
-          value={notesValue}
-          disabled={disabled || saveState === 'saving'}
-          onChange={event => {
-            setNotesDraft({ source: notes, value: event.target.value })
-            setSaveState('idle')
-          }}
-        />
-        <div className="mt-3 flex justify-end">
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleSaveNotes}
-            disabled={disabled || !notesChanged || saveState === 'saving'}
-          >
-            <Save className="h-4 w-4" aria-hidden="true" />
-            {saveState === 'saving' ? 'Saving' : 'Save notes'}
-          </Button>
-        </div>
-      </div>
+        <ActivityDialog title="Application notes" onClose={() => setNotesOpen(false)}>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">Private to this application.</p>
+            <span className="text-xs text-muted-foreground" role="status" aria-live="polite">
+              {saveState === 'saving' ? 'Saving…' : null}
+              {saveState === 'saved' ? (
+                <span className="inline-flex items-center gap-1 text-brand-green">
+                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                  Saved
+                </span>
+              ) : null}
+              {saveState === 'error' ? (
+                <span className="inline-flex items-center gap-1 text-destructive">
+                  <CircleAlert className="h-3.5 w-3.5" aria-hidden="true" />
+                  Save failed
+                </span>
+              ) : null}
+            </span>
+          </div>
+          <Textarea
+            id="application-notes"
+            className="mt-3 min-h-32"
+            placeholder="Add interview details, follow-up reminders, or other private notes…"
+            value={notesValue}
+            disabled={disabled || saveState === 'saving'}
+            autoFocus
+            onChange={event => {
+              setNotesDraft({ source: notes, value: event.target.value })
+              setSaveState('idle')
+            }}
+          />
+          <div className="mt-3 flex justify-end gap-2">
+            <Button type="button" size="sm" variant="outline" onClick={() => setNotesOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleSaveNotes}
+              disabled={disabled || !notesChanged || saveState === 'saving'}
+            >
+              <Save className="h-4 w-4" aria-hidden="true" />
+              {saveState === 'saving' ? 'Saving' : 'Save notes'}
+            </Button>
+          </div>
+        </ActivityDialog>
       ) : null}
 
       {eventOpen ? (
-      <form
-        className="space-y-3 rounded-xl border border-border bg-white p-4 dark:bg-card sm:p-5"
-        onSubmit={handleAddEvent}
-      >
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">Add event</h3>
-          <p className="mt-1 text-xs text-muted-foreground">
+        <ActivityDialog title="Add event" onClose={() => setEventOpen(false)}>
+          <p className="text-xs text-muted-foreground">
             Log an interview, follow-up, or other application milestone.
           </p>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_auto] sm:items-end">
-          <div>
-            <label htmlFor="activity-event-title" className="mb-1.5 block text-xs font-medium">
-              Title
-            </label>
-            <Input
-              id="activity-event-title"
-              placeholder="Phone screen"
-              value={eventTitle}
-              disabled={disabled || isAdding}
-              onChange={event => setEventTitle(event.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="activity-event-detail" className="mb-1.5 block text-xs font-medium">
-              Detail <span className="font-normal text-muted-foreground">(optional)</span>
-            </label>
-            <Input
-              id="activity-event-detail"
-              placeholder="Spoke with the hiring manager"
-              value={eventDetail}
-              disabled={disabled || isAdding}
-              onChange={event => setEventDetail(event.target.value)}
-            />
-          </div>
-          <Button
-            type="submit"
-            size="sm"
-            className="sm:mb-1"
-            disabled={disabled || isAdding || !eventTitle.trim()}
-          >
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            {isAdding ? 'Adding' : 'Add event'}
-          </Button>
-        </div>
-        {eventError ? (
-          <p className="text-xs text-destructive" role="alert">
-            {eventError}
-          </p>
-        ) : null}
-      </form>
+          <form className="mt-3 space-y-3" onSubmit={handleAddEvent}>
+            <div>
+              <label htmlFor="activity-event-title" className="mb-1.5 block text-xs font-medium">
+                Title
+              </label>
+              <Input
+                id="activity-event-title"
+                placeholder="Phone screen"
+                value={eventTitle}
+                disabled={disabled || isAdding}
+                autoFocus
+                onChange={event => setEventTitle(event.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="activity-event-detail" className="mb-1.5 block text-xs font-medium">
+                Detail <span className="font-normal text-muted-foreground">(optional)</span>
+              </label>
+              <Input
+                id="activity-event-detail"
+                placeholder="Spoke with the hiring manager"
+                value={eventDetail}
+                disabled={disabled || isAdding}
+                onChange={event => setEventDetail(event.target.value)}
+              />
+            </div>
+            {eventError ? (
+              <p className="text-xs text-destructive" role="alert">
+                {eventError}
+              </p>
+            ) : null}
+            <div className="flex justify-end gap-2">
+              <Button type="button" size="sm" variant="outline" onClick={() => setEventOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" size="sm" disabled={disabled || isAdding || !eventTitle.trim()}>
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                {isAdding ? 'Adding' : 'Add event'}
+              </Button>
+            </div>
+          </form>
+        </ActivityDialog>
       ) : null}
     </section>
+  )
+}
+
+function ActivityDialog({
+  title,
+  onClose,
+  children,
+}: {
+  title: string
+  onClose: () => void
+  children: ReactNode
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-[12vh] sm:pt-[16vh]">
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/40"
+        aria-label="Close"
+        onClick={onClose}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="activity-dialog-title"
+        className="relative w-full max-w-lg rounded-xl border border-border bg-card p-4 shadow-xl sm:p-5"
+      >
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 id="activity-dialog-title" className="text-sm font-semibold text-foreground">
+            {title}
+          </h3>
+          <button
+            type="button"
+            className="rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+            aria-label="Close"
+            onClick={onClose}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
   )
 }

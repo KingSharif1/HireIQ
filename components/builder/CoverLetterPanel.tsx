@@ -10,9 +10,15 @@ interface CoverLetterPanelProps {
   jobId?: string | null
   tailoredResumeId?: string | null
   initialLetter?: string
+  embedded?: boolean
 }
 
-export function CoverLetterPanel({ jobId, tailoredResumeId, initialLetter = '' }: CoverLetterPanelProps) {
+export function CoverLetterPanel({
+  jobId,
+  tailoredResumeId,
+  initialLetter = '',
+  embedded = false,
+}: CoverLetterPanelProps) {
   const [letter, setLetter] = useState(initialLetter)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -89,12 +95,14 @@ export function CoverLetterPanel({ jobId, tailoredResumeId, initialLetter = '' }
 
   return (
     <div className="space-y-4">
+      {embedded ? null : (
       <div>
         <h2 className="text-lg font-semibold">Cover Letter</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Generate or review the cover letter for this job.
         </p>
       </div>
+      )}
       {!jobId ? (
         <p className="text-sm text-muted-foreground">
           Select a job in the{' '}

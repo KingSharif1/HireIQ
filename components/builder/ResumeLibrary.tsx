@@ -32,18 +32,7 @@ export function ResumeLibrary({ resumes, tailored }: ResumeLibraryProps) {
   const primaryResume = resumes.find(r => r.is_primary) ?? resumes[0]
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Documents
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">Files & versions</h1>
-        <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-          Import source files and manage tailored resumes for each application. Master content lives
-          on the Master resume tab.
-        </p>
-      </header>
-
+    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="mb-8 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         <div className="border-b border-border bg-secondary/30 px-5 py-4 sm:px-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

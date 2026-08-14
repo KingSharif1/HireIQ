@@ -10,7 +10,6 @@
  * https://…/run on the Next app queue side (or this service's /run).
  */
 import http from "node:http";
-import { processApplyRun } from "../../lib/apply/process-run";
 
 const PORT = Number(process.env.PORT || 8080);
 const SECRET = process.env.APPLY_WORKER_SECRET?.trim() || "";
@@ -64,6 +63,7 @@ const server = http.createServer(async (req, res) => {
         json(res, 400, { error: "runId is required" });
         return;
       }
+      const { processApplyRun } = await import("../../lib/apply/process-run");
       const result = await processApplyRun(body.runId);
       json(res, 200, result);
     } catch (err) {
@@ -77,6 +77,6 @@ const server = http.createServer(async (req, res) => {
   json(res, 404, { error: "Not found" });
 });
 
-server.listen(PORT, () => {
-  console.log(`[apply-worker] listening on :${PORT}`);
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`[apply-worker] listening on 0.0.0.0:${PORT}`);
 });

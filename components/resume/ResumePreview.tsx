@@ -101,15 +101,17 @@ export function ResumePreview({
     const el = containerRef.current
     if (!el) return
     const fit = () => {
-      const avail = el.clientWidth - 32
-      setZoom(Math.min(1, Math.max(MIN_ZOOM, avail / PAGE_W)))
+      const pad = 32
+      const byWidth = (el.clientWidth - pad) / PAGE_W
+      const byHeight = enablePan && el.clientHeight > 80 ? (el.clientHeight - pad) / PAGE_H : byWidth
+      setZoom(Math.min(1.15, Math.max(MIN_ZOOM, Math.min(byWidth, byHeight))))
     }
     fit()
     if (typeof ResizeObserver === 'undefined') return
     const ro = new ResizeObserver(fit)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [autoFit])
+  }, [autoFit, enablePan])
 
   useEffect(() => {
     onPageCount?.(pageCount)
@@ -264,7 +266,7 @@ export function ResumePreview({
         <div
           className={cn(
             'flex flex-col gap-5',
-            zoom > 0.95 || enablePan ? 'items-start' : 'items-center'
+            autoFit ? 'items-center' : 'items-start'
           )}
           style={{ minWidth: PAGE_W * zoom + 8 }}
         >

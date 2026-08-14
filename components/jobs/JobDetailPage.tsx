@@ -324,7 +324,7 @@ export function JobDetailPage({
   return (
     <div className="min-h-screen bg-[#f6f7f9] dark:bg-background">
       <header className="sticky top-0 z-20 border-b border-border bg-white/95 backdrop-blur dark:bg-card/95">
-        <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 md:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-6">
           <div className="flex min-w-0 items-start gap-3">
             <Link
               href="/dashboard/tracker"
@@ -454,6 +454,7 @@ export function JobDetailPage({
                 onClick={() => {
                   setTab(itemTab.id)
                   if (itemTab.id !== 'documents') setDocumentMode('list')
+                  window.scrollTo({ top: 0 })
                 }}
                 className={cn(
                   'relative whitespace-nowrap px-3 py-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
@@ -536,6 +537,7 @@ export function JobDetailPage({
               mode={documentMode}
               onMode={setDocumentMode}
               onVersionSaved={handleVersionSaved}
+              jobExtracted={item.job.extracted_data}
             />
           ) : null}
 

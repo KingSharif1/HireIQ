@@ -21,30 +21,47 @@ export REPO=hireiq
 export SERVICE=hireiq-apply-worker
 
 gcloud config set project "$PROJECT_ID"
-gcloud services enable run.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com
+gcloud services enable run.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com secretmanager.googleapis.com
 
 gcloud artifacts repositories create "$REPO" \
   --repository-format=docker \
   --location="$REGION" \
   --description="HireIQ images" || true
 
-gcloud auth configure-docker "${REGION}-docker.pkg.dev"
+# New projects often block Cloud Build from reading gs://PROJECT_cloudbuild
+PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')
+COMPUTE_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:${COMPUTE_SA}" \
+  --role="roles/storage.objectAdmin" \
+  --condition=None
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:${COMPUTE_SA}" \
+  --role="roles/artifactregistry.writer" \
+  --condition=None
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:${COMPUTE_SA}" \
+  --role="roles/logging.logWriter" \
+  --condition=None
 ```
 
 ## Build & push image (from repo root)
 
+Older Cloud Shell `gcloud` does **not** accept `--file` or `--dockerfile`. Use a Cloud Build config:
+
 ```bash
 export IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/${SERVICE}:$(git rev-parse --short HEAD)"
 
-# Cloud Build (recommended — no local Docker needed)
-gcloud builds submit \
-  --tag "$IMAGE" \
-  --file services/apply-worker/Dockerfile \
-  .
+cat > /tmp/cb-apply.yaml <<EOF
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ['build', '-t', '${IMAGE}', '-f', 'services/apply-worker/Dockerfile', '.']
+images:
+  - ${IMAGE}
+timeout: 1200s
+EOF
 
-# Or local Docker:
-# docker build -f services/apply-worker/Dockerfile -t "$IMAGE" .
-# docker push "$IMAGE"
+gcloud builds submit --config=/tmp/cb-apply.yaml --timeout=1200 .
 ```
 
 ## Deploy Cloud Run service
