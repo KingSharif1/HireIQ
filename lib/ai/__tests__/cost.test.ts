@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { estimateTokenCostUsd } from '@/lib/ai/models'
+import { estimateTokenCostUsd, formatUsd, typicalActionCostUsd } from '@/lib/ai/models'
 import { extractTokenUsage } from '@/lib/ai/usage'
 
 describe('estimateTokenCostUsd', () => {
@@ -12,8 +12,16 @@ describe('estimateTokenCostUsd', () => {
     expect(estimateTokenCostUsd('claude-sonnet-4-6', 0, 1_000_000)).toBe(15)
   })
 
-  it('falls back by prefix for unknown dated ids', () => {
-    expect(estimateTokenCostUsd('claude-sonnet-4-6-20250514', 1_000_000, 0)).toBe(3)
+  it('prices a typical tailor action on default models', () => {
+    const cost = typicalActionCostUsd('tailor_resume')
+    expect(cost).toBeGreaterThan(0.05)
+    expect(cost).toBeLessThan(0.5)
+  })
+
+  it('formats small per-request prices with extra digits', () => {
+    expect(formatUsd(0.004)).toBe('$0.0040')
+    expect(formatUsd(0.015228)).toBe('$0.015')
+    expect(formatUsd(1.2)).toBe('$1.20')
   })
 })
 

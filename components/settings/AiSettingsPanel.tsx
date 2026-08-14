@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Loader2 } from 'lucide-react'
-import { modelLabel } from '@/lib/ai/models'
+import { formatUsd, modelLabel, typicalActionCostUsd, type AiFeature } from '@/lib/ai/models'
 
 type CatalogItem = {
   id: string
@@ -40,10 +40,12 @@ type UsageJson = {
   outputTokens: number
   estimatedCostUsd: number
   byFeature: {
-    feature: string
+    feature: AiFeature
     label: string
     requests: number
     estimatedCostUsd: number
+    avgUsdPerRequest: number
+    typicalUsdPerRequest: number
     inputTokens: number
     outputTokens: number
   }[]
@@ -62,11 +64,6 @@ type UsageJson = {
     coverLetters: number
     autoApplyRuns: number
   }
-}
-
-function usd(n: number): string {
-  if (n < 0.01 && n > 0) return `$${n.toFixed(4)}`
-  return `$${n.toFixed(2)}`
 }
 
 export function AiSettingsPanel() {
@@ -298,40 +295,70 @@ export function AiSettingsPanel() {
         </ul>
       </section>
 
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Cost per action</h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            What one click costs with the models above, using Anthropic’s published rates. A tailor
+            is several Claude calls; the number is the full action.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {(
+            [
+              { id: 'tailor_resume' as const, blurb: 'Tailor a resume' },
+              { id: 'cover_letter' as const, blurb: 'Generate a cover letter' },
+              { id: 'job_analyze' as const, blurb: 'Analyze a job' },
+            ] as const
+          ).map(card => (
+            <div key={card.id} className="rounded-xl border border-border px-3 py-3">
+              <p className="text-[11px] text-muted-foreground">{card.blurb}</p>
+              <p className="text-2xl font-semibold tracking-tight text-foreground mt-1 tabular-nums">
+                {formatUsd(typicalActionCostUsd(card.id, { strong: modelStrong, fast: modelFast }))}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-1">each time</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {usage ? (
         <section className="space-y-3">
           <div>
-            <h2 className="text-sm font-semibold text-foreground">Usage & estimated cost</h2>
+            <h2 className="text-sm font-semibold text-foreground">This account</h2>
             <p className="text-xs text-muted-foreground mt-1">
-              Token costs use Anthropic’s published rates. Auto-apply is an infra estimate (~$0.005
-              per complexity unit). Anthropic’s invoice is the source of truth.
+              Past Claude spend reconstructed from your HireIQ actions (jobs, resume parse, tailors,
+              cover letters). Anthropic does not expose invoices to a personal API key, so Console
+              or other apps are not included.
             </p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <Stat label="Est. Claude spend" value={formatUsd(usage.estimatedCostUsd)} />
+            <Stat label="Actions logged" value={String(usage.requests)} />
             <Stat label="Tailored resumes" value={String(usage.productCounts.tailorResumes)} />
             <Stat label="Cover letters" value={String(usage.productCounts.coverLetters)} />
-            <Stat label="Auto-apply runs" value={String(usage.productCounts.autoApplyRuns)} />
-            <Stat label="Est. API spend" value={usd(usage.estimatedCostUsd)} />
           </div>
-          <div className="overflow-x-auto rounded-lg border border-border">
-            <table className="w-full text-xs">
-              <thead className="bg-muted/40 text-muted-foreground">
+          <div className="overflow-x-auto rounded-xl border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-muted-foreground text-xs">
                 <tr>
-                  <th className="text-left font-medium px-3 py-2">Feature</th>
-                  <th className="text-right font-medium px-3 py-2">Requests</th>
-                  <th className="text-right font-medium px-3 py-2">Tokens in/out</th>
-                  <th className="text-right font-medium px-3 py-2">Est. cost</th>
+                  <th className="text-left font-medium px-3 py-2">Action</th>
+                  <th className="text-right font-medium px-3 py-2">Times</th>
+                  <th className="text-right font-medium px-3 py-2">Each</th>
+                  <th className="text-right font-medium px-3 py-2">Total</th>
                 </tr>
               </thead>
               <tbody>
-                {usage.byFeature.map(row => (
+                {usage.byFeature.filter(row => row.requests > 0 || row.typicalUsdPerRequest > 0).map(row => (
                   <tr key={row.feature} className="border-t border-border">
-                    <td className="px-3 py-2 text-foreground">{row.label}</td>
-                    <td className="px-3 py-2 text-right">{row.requests}</td>
-                    <td className="px-3 py-2 text-right">
-                      {row.inputTokens.toLocaleString()} / {row.outputTokens.toLocaleString()}
+                    <td className="px-3 py-2.5 text-foreground">{row.label}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">{row.requests}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums font-medium">
+                      {formatUsd(row.requests > 0 ? row.avgUsdPerRequest : row.typicalUsdPerRequest)}
                     </td>
-                    <td className="px-3 py-2 text-right">{usd(row.estimatedCostUsd)}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">
+                      {formatUsd(row.estimatedCostUsd)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -339,28 +366,26 @@ export function AiSettingsPanel() {
           </div>
           {usage.recent.length > 0 ? (
             <div>
-              <h3 className="text-xs font-semibold text-foreground mb-2">Recent requests</h3>
-              <ul className="space-y-1.5">
+              <h3 className="text-xs font-semibold text-foreground mb-2">Recent charges</h3>
+              <ul className="rounded-lg border border-border divide-y divide-border">
                 {usage.recent.map(ev => (
-                  <li key={ev.id} className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
-                    <span>{new Date(ev.createdAt).toLocaleString()}</span>
-                    <span className="text-foreground">{ev.feature}</span>
-                    <span>{modelLabel(ev.model)}</span>
-                    <span>{ev.keySource === 'byok' ? 'your key' : 'HireIQ key'}</span>
-                    <span>
-                      {ev.inputTokens + ev.outputTokens > 0
-                        ? `${ev.inputTokens + ev.outputTokens} tok`
-                        : 'infra'}
+                  <li key={ev.id} className="px-3 py-2 flex items-baseline justify-between gap-3 text-sm">
+                    <span className="min-w-0">
+                      <span className="text-foreground">{ev.feature.replace(/_/g, ' ')}</span>
+                      <span className="block text-[11px] text-muted-foreground">
+                        {new Date(ev.createdAt).toLocaleString()} · {modelLabel(ev.model)} ·{' '}
+                        {ev.keySource === 'byok' ? 'your key' : 'HireIQ key'}
+                      </span>
                     </span>
-                    <span>{usd(ev.estimatedCostUsd)}</span>
+                    <span className="shrink-0 font-medium tabular-nums text-foreground">
+                      {formatUsd(ev.estimatedCostUsd)}
+                    </span>
                   </li>
                 ))}
               </ul>
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">
-              No metered API requests yet. Older tailor/cover counts above come from saved documents.
-            </p>
+            <p className="text-xs text-muted-foreground">No charges on this account yet.</p>
           )}
         </section>
       ) : null}
@@ -368,7 +393,7 @@ export function AiSettingsPanel() {
       {info ? <p className="text-xs text-muted-foreground">{info}</p> : null}
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
       <p className="text-xs text-muted-foreground">
-        Need a cheaper default? Set both models to Haiku 4.5, then Save.{' '}
+        Switch both models to Haiku 4.5 to drop the per-action price, then Save.{' '}
         <Link href="https://platform.claude.com/docs/en/about-claude/pricing" className="underline" target="_blank">
           Anthropic pricing
         </Link>

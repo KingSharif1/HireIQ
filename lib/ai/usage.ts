@@ -1,10 +1,13 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   AI_FEATURES,
+  AI_MODELS,
   AUTO_APPLY_USD_PER_COMPLEXITY_UNIT,
   estimateTokenCostUsd,
+  typicalActionCostUsd,
   type AiFeature,
 } from '@/lib/ai/models'
+import { ensureHistoricalUsageBackfill } from '@/lib/ai/backfill-usage'
 
 export type AiKeySource = 'hireiq' | 'byok'
 
@@ -79,6 +82,8 @@ export type UsageSummary = {
     label: string
     requests: number
     estimatedCostUsd: number
+    avgUsdPerRequest: number
+    typicalUsdPerRequest: number
     inputTokens: number
     outputTokens: number
   }[]
@@ -99,7 +104,11 @@ export type UsageSummary = {
   }
 }
 
-export async function loadUsageSummary(userId: string): Promise<UsageSummary> {
+export async function loadUsageSummary(
+  userId: string,
+  models: { strong: string; fast: string } = AI_MODELS,
+): Promise<UsageSummary> {
+  await ensureHistoricalUsageBackfill(userId)
   const admin = createAdminClient()
 
   const [{ data: events }, tailor, cover, apply] = await Promise.all([
@@ -150,11 +159,15 @@ export async function loadUsageSummary(userId: string): Promise<UsageSummary> {
 
   const byFeature = AI_FEATURES.map(f => {
     const slot = by[f.id] ?? { requests: 0, cost: 0, input: 0, output: 0 }
+    const typicalUsdPerRequest = typicalActionCostUsd(f.id, models)
+    const avgUsdPerRequest = slot.requests > 0 ? round6(slot.cost / slot.requests) : typicalUsdPerRequest
     return {
       feature: f.id,
       label: f.label,
       requests: slot.requests,
       estimatedCostUsd: round6(slot.cost),
+      avgUsdPerRequest,
+      typicalUsdPerRequest,
       inputTokens: slot.input,
       outputTokens: slot.output,
     }

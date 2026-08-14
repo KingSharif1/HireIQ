@@ -1,5 +1,14 @@
-# Changelog
+## 2026-08-14 — Per-action Claude prices + historical backfill
 
+**What:** Settings → AI shows $ per action (tailor / cover / analyze) for the selected models, and reconstructs past HireIQ Claude spend onto the testing account.
+
+**Files:** `lib/ai/{models,usage,backfill-usage}.ts`, `AiSettingsPanel.tsx`, `app/api/ai/usage/route.ts`
+
+**Why:** Price meant cost per user click, not a token dump; Anthropic Admin invoices aren’t available on a personal API key.
+
+**Next:** Open Settings → AI after deploy.
+
+---
 ## 2026-08-14 — Task 149: BYOK Claude + usage meters
 
 **What:** Settings → AI lets you use HireIQ’s Anthropic key or your own, pick strong/fast models, and see tailored-resume / cover-letter / auto-apply counts plus estimated $ per API request.

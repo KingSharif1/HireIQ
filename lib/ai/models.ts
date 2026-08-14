@@ -114,7 +114,49 @@ export function estimateTokenCostUsd(
     output = hit?.output ?? 15
   }
   const usd = (inputTokens / 1_000_000) * input + (outputTokens / 1_000_000) * output
-  return Math.round(usd * 1_000_000) / 1_000_000
+  return roundUsd(usd)
+}
+
+export function roundUsd(n: number): number {
+  return Math.round(n * 1_000_000) / 1_000_000
+}
+
+export function formatUsd(n: number): string {
+  if (!Number.isFinite(n) || n === 0) return '$0'
+  const abs = Math.abs(n)
+  const sign = n < 0 ? '-' : ''
+  if (abs < 0.01) return `${sign}$${abs.toFixed(4)}`
+  if (abs < 1) return `${sign}$${abs.toFixed(3)}`
+  return `${sign}$${abs.toFixed(2)}`
+}
+
+/** Typical tokens for one user click (not one inner Claude call). */
+export const TYPICAL_ACTION_TOKENS: Record<
+  Exclude<AiFeature, 'auto_apply'>,
+  { strongIn: number; strongOut: number; fastIn: number; fastOut: number }
+> = {
+  job_analyze: { strongIn: 1400, strongOut: 800, fastIn: 0, fastOut: 0 },
+  resume_parse: { strongIn: 1600, strongOut: 2200, fastIn: 0, fastOut: 0 },
+  gap_questions: { strongIn: 2500, strongOut: 900, fastIn: 0, fastOut: 0 },
+  tailor_resume: { strongIn: 22000, strongOut: 4800, fastIn: 12800, fastOut: 800 },
+  cover_letter: { strongIn: 2300, strongOut: 700, fastIn: 0, fastOut: 0 },
+  autofill_draft: { strongIn: 0, strongOut: 0, fastIn: 2800, fastOut: 900 },
+}
+
+export function typicalActionCostUsd(
+  feature: AiFeature,
+  models: { strong: string; fast: string } = AI_MODELS,
+): number {
+  if (feature === 'auto_apply') return AUTO_APPLY_USD_PER_COMPLEXITY_UNIT
+  const t = TYPICAL_ACTION_TOKENS[feature]
+  return roundUsd(
+    estimateTokenCostUsd(models.strong, t.strongIn, t.strongOut) +
+      estimateTokenCostUsd(models.fast, t.fastIn, t.fastOut),
+  )
+}
+
+export function charsToTokens(chars: number): number {
+  return Math.max(0, Math.ceil(chars / 4))
 }
 
 /** Hard cap on tailor loop retries (Q5). */
