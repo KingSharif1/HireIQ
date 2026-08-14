@@ -1,5 +1,23 @@
 # HireIQ Decisions
 
+## 2026-08-14 — BYOK Claude key + usage meters (Task 149)
+
+**Context:** Shared Anthropic credits ran out. Users need their own key, model choice, and visibility into which model runs where and what it costs.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Default | HireIQ pooled `ANTHROPIC_API_KEY` |
+| BYOK | User Anthropic key, AES-256-GCM in `user_ai_secrets` (service_role only); last4 on `profiles` |
+| Models | Strong + Fast pickers from catalog (Haiku 4.5 / Sonnet 4.6 / Sonnet 5 / Opus) |
+| Cost | Estimate from published $/MTok × usage.input/output tokens; auto-apply uses Cloud Run unit estimate |
+| UI | Settings → AI; inline “this uses X via Y key” on generate surfaces |
+
+**Tradeoff:** Estimates ≠ Anthropic invoice (no cache/batch split). Keys encrypted with `AI_KEY_ENCRYPTION_SECRET` or hash of service role.
+
+**Revisit if:** Stripe packs land; then meters feed credits instead of display-only.
+
+---
 ## 2026-08-13 — Cloud Run hosted apply + web-first UX
 
 **Context:** Owner pays ~$28/mo for a KVM VPS; Cloud Run has free-tier headroom and scales. Auto-apply should be a **HireIQ website** action (not mobile-first). Extension stays for when the user is already on the ATS page. Need honesty about “any job” coverage.

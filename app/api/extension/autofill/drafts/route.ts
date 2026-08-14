@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server'
-import { anthropic } from '@ai-sdk/anthropic'
-import { generateText } from 'ai'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveExtensionUserId } from '@/lib/extension/tokens'
 import { normalizeProfileData } from '@/lib/profile/provenance'
@@ -10,8 +8,9 @@ import {
 } from '@/lib/extension/autofill-context'
 import { isSensitiveFieldLabel } from '@/lib/extension/sensitive-fields'
 import { isLastingCareerFact } from '@/lib/extension/draft-kind'
-import { AI_MODELS } from '@/lib/ai/models'
 import { AUTOFILL_DRAFTS_PROMPT, extractJSON } from '@/lib/ai/prompts'
+import { resolveAiRuntime } from '@/lib/ai/runtime'
+import { generateAiText } from '@/lib/ai/complete'
 import type { ProfileData } from '@/types'
 
 export const runtime = 'nodejs'
@@ -256,8 +255,11 @@ export async function POST(request: Request) {
       .replace('{fieldsJson}', JSON.stringify(aiFields))
 
     try {
-      const result = await generateText({
-        model: anthropic(AI_MODELS.fast),
+      const ai = await resolveAiRuntime(userId)
+      const result = await generateAiText({
+        runtime: ai,
+        feature: 'autofill_draft',
+        tier: 'fast',
         prompt,
         maxOutputTokens: 2500,
       })

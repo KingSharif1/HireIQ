@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { AiModelHint } from '@/components/ai/AiModelHint'
 
 interface CoverLetterPanelProps {
   jobId?: string | null
@@ -113,13 +114,14 @@ export function CoverLetterPanel({
         </p>
       ) : (
         <>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
             <Button type="button" size="sm" onClick={() => void generate()} disabled={loading || saving}>
               {loading ? 'Generating…' : 'Generate cover letter'}
             </Button>
             <Button type="button" size="sm" variant="outline" onClick={() => void save()} disabled={loading || saving}>
               {saving ? 'Saving…' : 'Save edits'}
             </Button>
+            <AiModelHint uses="strong" />
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Textarea

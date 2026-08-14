@@ -1,20 +1,28 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { SettingsAccount, SettingsIntegrations } from '@/components/settings/SettingsPanels'
+import { AiSettingsPanel } from '@/components/settings/AiSettingsPanel'
 
-type Tab = 'tracking' | 'account'
+type Tab = 'tracking' | 'ai' | 'account'
 
 export function SettingsPage() {
+  const searchParams = useSearchParams()
   const [tab, setTab] = useState<Tab>('tracking')
+
+  useEffect(() => {
+    const q = searchParams.get('tab')
+    if (q === 'ai' || q === 'account' || q === 'tracking') setTab(q)
+  }, [searchParams])
 
   return (
     <div className="max-w-2xl mx-auto p-4 md:p-6 space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-foreground">Settings</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Permissions, connected apps, and account security.
+          AI keys and models, connected apps, and account security.
         </p>
       </div>
 
@@ -22,6 +30,7 @@ export function SettingsPage() {
         {(
           [
             { id: 'tracking', label: 'Integrations' },
+            { id: 'ai', label: 'AI' },
             { id: 'account', label: 'Account' },
           ] as const
         ).map(t => (
@@ -42,7 +51,9 @@ export function SettingsPage() {
       </div>
 
       <Suspense fallback={null}>
-        {tab === 'tracking' ? <SettingsIntegrations /> : <SettingsAccount />}
+        {tab === 'tracking' ? <SettingsIntegrations /> : null}
+        {tab === 'ai' ? <AiSettingsPanel /> : null}
+        {tab === 'account' ? <SettingsAccount /> : null}
       </Suspense>
     </div>
   )

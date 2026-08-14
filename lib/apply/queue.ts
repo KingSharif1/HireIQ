@@ -11,6 +11,7 @@ import {
   type ServerApplyContext,
 } from '@/lib/apply/types'
 import type { ProfileData } from '@/types'
+import { recordAutoApplyUsage } from '@/lib/ai/usage'
 
 export class ApplyQueueError extends Error {
   constructor(
@@ -145,6 +146,12 @@ export async function queueServerApply(opts: {
   if (error || !run) {
     throw new ApplyQueueError(error?.message || 'Failed to queue apply', 500)
   }
+
+  await recordAutoApplyUsage({
+    userId: opts.userId,
+    runId: run.id,
+    complexity,
+  })
 
   if (app?.id) {
     await admin.from('application_events').insert({

@@ -1,9 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
-import { anthropic } from '@ai-sdk/anthropic'
-import { streamText } from 'ai'
 import { COVER_LETTER_PROMPT } from '@/lib/ai/prompts'
-import { AI_MODELS } from '@/lib/ai/models'
 import { NextResponse } from 'next/server'
+import { resolveAiRuntime } from '@/lib/ai/runtime'
+import { streamAiText } from '@/lib/ai/complete'
+import { aiErrorResponse } from '@/lib/ai/error-response'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -13,6 +13,13 @@ export async function POST(request: Request) {
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  let ai
+  try {
+    ai = await resolveAiRuntime(user.id)
+  } catch (err) {
+    return aiErrorResponse(err, 'AI is not configured')
+  }
 
   const { tailoredResumeId } = await request.json()
 
@@ -51,12 +58,13 @@ Summary: ${resume.summary || 'Not provided'}
     .replace('{jobAnalysis}', JSON.stringify(job, null, 2).slice(0, 1500))
     .replace('{topExperiences}', topExperiences)
 
-  const result = streamText({
-    model: anthropic(AI_MODELS.strong),
+  const result = streamAiText({
+    runtime: ai,
+    feature: 'cover_letter',
+    tier: 'strong',
     prompt,
     maxOutputTokens: 1024,
-    onFinish: async ({ text }) => {
-      // Save streaming result to DB when done
+    onText: async (text) => {
       try {
         const parsed = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1))
         await supabase
@@ -72,5 +80,10 @@ Summary: ${resume.summary || 'Not provided'}
     },
   })
 
-  return result.toTextStreamResponse()
+  return result.toTextStreamResponse({
+    headers: {
+      'X-HireIQ-Model': ai.models.strong,
+      'X-HireIQ-Key-Source': ai.keySource,
+    },
+  })
 }

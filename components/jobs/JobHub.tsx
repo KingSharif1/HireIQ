@@ -18,6 +18,7 @@ import {
   ExternalLink, MapPin, Building2, CheckCircle2, Copy, Check, HelpCircle,
 } from 'lucide-react'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
+import { AiModelHint } from '@/components/ai/AiModelHint'
 import {
   APPLICATION_STATUSES, applicationStatusClasses, tailoringStatusLabel,
   normalizeApplicationStatus,
@@ -356,6 +357,7 @@ export function JobHub({ job, versions }: JobHubProps) {
           <div className="text-center py-8 space-y-3">
             <Mail className="w-8 h-8 text-muted-foreground mx-auto opacity-50" />
             <p className="text-sm text-muted-foreground">No cover letter yet for this version.</p>
+            <AiModelHint uses="strong" />
             <Button size="sm" disabled={generatingCover} onClick={handleGenerateCover}>
               {generatingCover ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
               Generate cover letter

@@ -1,6 +1,6 @@
 # HireIQ Architecture
 
-**Last updated:** 2026-08-13  
+**Last updated:** 2026-08-14  
 **Spec:** [SPEC.md](./SPEC.md) v1.0  
 **Production:** https://hireiq.kingsharif.com (Vercel · GitHub `KingSharif1/HireIQ`)
 
@@ -81,7 +81,7 @@ Upload PDF/DOCX
 Paste JD or job URL
     → lib/jobs/url-detect.ts (Greenhouse / Lever / Ashby / Workday / LinkedIn block / aggregators)
     → app/api/jobs/fetch-url → lib/jobs/job-scraper.ts
-    → app/api/jobs/analyze → Claude (PROMPT 2) → jobs.extracted_data JSONB
+    → app/api/jobs/analyze → Claude (PROMPT 2) via `lib/ai/runtime.ts` (HireIQ key or user BYOK) → jobs.extracted_data JSONB
 
 Tailor flow (Zustand store, 5 steps)
     → app/api/tailor/score     → lib/scoring/ats-scorer (no AI)
@@ -157,7 +157,7 @@ Legend: ✓ done · 🟡 partial · 🔴 not started
 | Path | Responsibility |
 |------|----------------|
 | `proxy.ts` | Supabase session refresh; `/dashboard/*` auth guard |
-| `lib/ai/` | Prompts, gap analysis, tailor pipeline, critique/retry loop |
+| `lib/ai/` | Prompts, gap analysis, tailor pipeline, BYOK runtime, usage metering |
 | `lib/auth/` | Auth messages, profile sync after OAuth |
 | `lib/tailor/` | Change decisions (accept/decline/edit) |
 | `lib/profile/` | Profile JSONB ↔ resume sync, provenance, bullets |
@@ -176,7 +176,7 @@ Legend: ✓ done · 🟡 partial · 🔴 not started
 
 ## Database (current)
 
-Migrations in `docs/supabase/migrations/` (001 → 010):
+Migrations in `docs/supabase/migrations/` (001 → 022):
 
 | Table | Role |
 |-------|------|
@@ -188,9 +188,11 @@ Migrations in `docs/supabase/migrations/` (001 → 010):
 | `tailored_resumes` | Output + `changes` + `change_decisions` + `theme_override` |
 | `resume_enhancements` | Legacy Q&A storage |
 | `notifications` | In-app alerts |
-| `github_connections` | GitHub OAuth tokens (008) |
+| `apply_runs` | Hosted auto-apply queue (021) |
+| `ai_usage_events` | Per-request token/cost log (022) |
+| `user_ai_secrets` | Encrypted Anthropic BYOK (022; service_role only) |
 
-**Remote (Supabase project `wsbbgznobxhjefaqbniv`):** Core schema + RLS applied. Migrations 006–015 applied via MCP (015 = masked inbound).
+**Remote (Supabase project `wsbbgznobxhjefaqbniv`):** Core schema + RLS applied. Migrations 006–022 applied via MCP (022 = BYOK + usage).
 
 Spec target still pending: normalized `experiences`/`projects`/`skills`, Gmail columns on `profiles`.
 

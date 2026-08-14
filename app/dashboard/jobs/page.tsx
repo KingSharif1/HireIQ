@@ -13,6 +13,7 @@ import { Loader2, Link2, FileText, AlertTriangle, ArrowRight, ChevronLeft } from
 import Link from 'next/link'
 import { isLinkedInJobUrl, LINKEDIN_PASTE_MESSAGE } from '@/lib/jobs/url-detect'
 import type { JobExtractedData } from '@/types'
+import { AiModelHint } from '@/components/ai/AiModelHint'
 
 export default function JobsPage() {
   const [url, setUrl] = useState('')
@@ -190,6 +191,7 @@ export default function JobsPage() {
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Applications</p>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Add a job</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Paste the description or drop a careers URL</p>
+          <div className="mt-1"><AiModelHint uses="strong" /></div>
         </div>
       </div>
 

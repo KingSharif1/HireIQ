@@ -71,13 +71,12 @@ Interpretation locked for docs:
 
 ---
 
-## Implementation notes (later — not this PR)
+## Implementation notes
 
-- Tables: `usage_events`, `credit_balances` or Stripe metered items
-- Deduct **tailor** on successful `/api/tailor/generate` (or export)
-- Deduct **server apply** when the worker **starts** (like Sprout) or on **successful submit** (friendlier — decide at build time; prefer **on successful submit** + soft reserve)
-- Extension reports autofill count only if we enable the free-10 cap
-- Never block local autofill for `billing_exempt` users
+- Tables: `ai_usage_events` (022, live), `user_ai_secrets` (encrypted BYOK). Stripe `credit_balances` still later.
+- Deduct **tailor** conceptually on successful `/api/tailor/generate` (usage row per Claude call today; product count from `tailored_resumes`)
+- **Server apply** logs an infra estimate on queue (`~ $0.005 × complexity`)
+- Settings → **AI**: HireIQ key vs user Anthropic key; strong/fast model pickers; usage table
 
 ---
 

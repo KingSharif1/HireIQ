@@ -157,6 +157,15 @@ Files changed: `016_gmail_sync.sql`, `017_inbound_provider.sql`, `lib/google/*`,
 
 ---
 
+## Task 149 — BYOK AI key, model picker, usage/cost
+Status: DONE  
+Scope: Settings AI tab, `lib/ai/runtime`, usage events, migration 022  
+Goal: User can use HireIQ Claude or their own Anthropic key; pick models; see tailor / cover / auto-apply counts and estimated $ per request.  
+Result: Encrypted BYOK in `user_ai_secrets`; `ai_usage_events` on every Claude call + auto-apply queue; Settings → AI catalog + usage table; model hints on analyze/parse/cover.  
+Files changed: `022_ai_byok_and_usage.sql`, `lib/ai/{models,runtime,complete,usage,error-response}.ts`, `lib/crypto/secret.ts`, `app/api/ai/*`, AI routes, `AiSettingsPanel.tsx`, `AiModelHint.tsx`, docs  
+
+---
+
 ## Task 147 — Apply with HireIQ (extension handoff)
 Status: PENDING  
 Scope: website job CTA + extension handoff; reuse tailor + agentic apply  

@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { anthropic } from '@ai-sdk/anthropic'
-import { generateText } from 'ai'
 import { aiErrorResponse } from '@/lib/ai/error-response'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { getMasterResumeContext } from '@/lib/profile/master'
 import { runTailorPipeline } from '@/lib/ai/tailor-pipeline'
 import type { GenerateFn } from '@/lib/ai/tailor-types'
+import { resolveAiRuntime } from '@/lib/ai/runtime'
+import { generateAiText } from '@/lib/ai/complete'
 import {
   buildTailorCompleteNotification,
 } from '@/lib/notifications'
@@ -17,20 +17,30 @@ import type { GapAnalysis } from '@/types'
 export const runtime = 'nodejs'
 export const maxDuration = 120
 
-const generateFn: GenerateFn = async ({ model, prompt, maxOutputTokens }) => {
-  const result = await generateText({
-    model: anthropic(model),
-    prompt,
-    maxOutputTokens,
-  })
-  return result.text
-}
-
 export async function POST(request: Request) {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  let ai
+  try {
+    ai = await resolveAiRuntime(user.id)
+  } catch (err) {
+    return aiErrorResponse(err, 'AI is not configured')
+  }
+
+  const generateFn: GenerateFn = async ({ model, prompt, maxOutputTokens }) => {
+    const result = await generateAiText({
+      runtime: ai,
+      feature: 'tailor_resume',
+      tier: 'strong',
+      prompt,
+      maxOutputTokens,
+      modelOverride: model,
+    })
+    return result.text
+  }
 
   const { resumeId, jobId, answers, questions, gapAnalysis } = await request.json() as {
     resumeId?: string
@@ -96,6 +106,7 @@ export async function POST(request: Request) {
       questionLabels,
       gapAnalysis: gapAnalysis ?? null,
       generate: generateFn,
+      models: ai.models,
     })
   } catch (err) {
     return aiErrorResponse(err, 'Failed to tailor resume')
@@ -165,6 +176,8 @@ export async function POST(request: Request) {
       finalOverlapPercent: meta.finalOverlapPercent,
       attempts: meta.attempts,
       aiCallsUsed: meta.aiCallsUsed,
+      models: ai.models,
+      keySource: ai.keySource,
     },
   })
 }

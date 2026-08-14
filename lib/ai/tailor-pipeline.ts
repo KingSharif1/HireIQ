@@ -29,6 +29,7 @@ interface PipelineInput {
   questionLabels?: Record<string, string>
   gapAnalysis?: GapAnalysis | null
   generate: GenerateFn
+  models?: { strong: string; fast: string }
 }
 
 async function callGenerate(
@@ -55,6 +56,7 @@ function parseCritique(text: string): TailorCritiqueReport {
 
 export async function runTailorPipeline(input: PipelineInput): Promise<TailorPipelineResult> {
   const { resume, job, answers, questionLabels, gapAnalysis, generate } = input
+  const models = input.models ?? { strong: AI_MODELS.strong, fast: AI_MODELS.fast }
   const enhancements = formatEnhancements(answers, questionLabels)
   const realGaps = formatRealGapsForPrompt(gapAnalysis?.real_gaps ?? [])
   const adjacentMatches = formatAdjacentForPrompt(gapAnalysis?.adjacent_matches ?? [])
@@ -72,7 +74,7 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
     .replace('{seniority}', job.seniority || 'mid')
     .replace('{lengthBudget}', seniorityLengthBudget(job.seniority || 'mid'))
 
-  const genText = await callGenerate(generate, AI_MODELS.strong, generatePrompt, 6000, aiCallsUsed)
+  const genText = await callGenerate(generate, models.strong, generatePrompt, 6000, aiCallsUsed)
   let current = parseResume(genText)
 
   const critiquePromptBase = {
@@ -86,7 +88,7 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
       .replace('{tailoredResume}', sliceForPrompt(draft, 5000))
       .replace('{jobAnalysis}', critiquePromptBase.jobAnalysis)
 
-    const model = useStrongModel ? AI_MODELS.strong : AI_MODELS.fast
+    const model = useStrongModel ? models.strong : models.fast
     const text = await callGenerate(generate, model, prompt, 2000, aiCallsUsed)
     const report = parseCritique(text)
     critiques.push(report)
@@ -111,7 +113,7 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
       .replace('{realGaps}', realGaps)
       .replace('{adjacentMatches}', adjacentMatches)
 
-    const regenText = await callGenerate(generate, AI_MODELS.strong, regenPrompt, 6000, aiCallsUsed)
+    const regenText = await callGenerate(generate, models.strong, regenPrompt, 6000, aiCallsUsed)
     current = parseResume(regenText)
     critique = await critiqueDraft(current, false)
     attempts.push({ resume: current, critique })

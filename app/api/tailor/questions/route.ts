@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { anthropic } from '@ai-sdk/anthropic'
-import { generateText } from 'ai'
 import { GAP_ANALYSIS_PROMPT, extractJSON } from '@/lib/ai/prompts'
-import { AI_MODELS } from '@/lib/ai/models'
 import { aiErrorResponse } from '@/lib/ai/error-response'
+import { resolveAiRuntime } from '@/lib/ai/runtime'
+import { generateAiText } from '@/lib/ai/complete'
 import { normalizeGapAnalysis } from '@/lib/ai/gap-analysis'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { getMasterResumeContext } from '@/lib/profile/master'
@@ -51,10 +50,19 @@ export async function POST(request: Request) {
     .replace('{jobRequirements}', JSON.stringify(jobData, null, 2).slice(0, 2000))
     .replace('{gaps}', gaps || 'No major gaps identified from ATS pre-scan')
 
+  let ai
+  try {
+    ai = await resolveAiRuntime(user.id)
+  } catch (err) {
+    return aiErrorResponse(err, 'AI is not configured')
+  }
+
   let gapAnalysis
   try {
-    const result = await generateText({
-      model: anthropic(AI_MODELS.strong),
+    const result = await generateAiText({
+      runtime: ai,
+      feature: 'gap_questions',
+      tier: 'strong',
       prompt,
       maxOutputTokens: 2500,
     })
@@ -68,5 +76,7 @@ export async function POST(request: Request) {
     questions: gapAnalysis.questions_for_user,
     source: master.source,
     baseResumeId: master.baseResumeId,
+    model: ai.models.strong,
+    keySource: ai.keySource,
   })
 }

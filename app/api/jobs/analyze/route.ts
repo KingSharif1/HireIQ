@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { anthropic } from '@ai-sdk/anthropic'
-import { generateText } from 'ai'
 import { JOB_ANALYZER_PROMPT, extractJSON } from '@/lib/ai/prompts'
-import { AI_MODELS } from '@/lib/ai/models'
 import { aiErrorResponse } from '@/lib/ai/error-response'
+import { resolveAiRuntime } from '@/lib/ai/runtime'
+import { generateAiText } from '@/lib/ai/complete'
 import type { JobExtractedData } from '@/types'
 
 export const runtime = 'nodejs'
@@ -19,12 +18,21 @@ export async function POST(request: Request) {
   const { description, source, company, title, location, applyUrl } = await request.json()
   if (!description) return NextResponse.json({ error: 'Job description required' }, { status: 400 })
 
+  let ai
+  try {
+    ai = await resolveAiRuntime(user.id)
+  } catch (err) {
+    return aiErrorResponse(err, 'AI is not configured')
+  }
+
   const prompt = JOB_ANALYZER_PROMPT.replace('{jobDescription}', description.slice(0, 10000))
 
   let extractedData: JobExtractedData
   try {
-    const result = await generateText({
-      model: anthropic(AI_MODELS.strong),
+    const result = await generateAiText({
+      runtime: ai,
+      feature: 'job_analyze',
+      tier: 'strong',
       prompt,
       maxOutputTokens: 2048,
     })
@@ -51,5 +59,10 @@ export async function POST(request: Request) {
 
   if (dbErr) return NextResponse.json({ error: 'Failed to save job' }, { status: 500 })
 
-  return NextResponse.json({ jobId: jobRow.id, extractedData })
+  return NextResponse.json({
+    jobId: jobRow.id,
+    extractedData,
+    model: ai.models.strong,
+    keySource: ai.keySource,
+  })
 }

@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-14 — Task 149: BYOK Claude + usage meters
+
+**What:** Settings → AI lets you use HireIQ’s Anthropic key or your own, pick strong/fast models, and see tailored-resume / cover-letter / auto-apply counts plus estimated $ per API request.
+
+**Files:** `022_ai_byok_and_usage.sql`, `lib/ai/*`, `lib/crypto/secret.ts`, `app/api/ai/{settings,usage}`, AI routes, `AiSettingsPanel.tsx`, `AiModelHint.tsx`
+
+**Why:** Shared Claude credits ran out; users need a way to keep generating and to see what model is burning tokens.
+
+**Next:** Paste a key or switch to Haiku if HireIQ credits are empty.
+
+---
 ## 2026-08-14 — Cloud Run worker live + job document UX
 
 **What:** Worker image installs Playwright (prod `npm ci` was skipping it), stubs `next-env.d.ts`, listens on `0.0.0.0`. Documents: Resume / Cover letter tabs, score why/improve chips, zoom/fit, note/event dialogs. Cloud Run `hireiq-505323` + Vercel `APPLY_WORKER_*`.

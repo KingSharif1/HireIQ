@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { CheckCircle, Loader2, FileText, ArrowRight, ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import type { StructuredResume } from '@/types'
+import { AiModelHint } from '@/components/ai/AiModelHint'
 
 type UploadState = 'idle' | 'uploading' | 'parsing' | 'done' | 'error'
 
@@ -137,6 +138,7 @@ export default function UploadResumePage() {
         <div>
           <h1 className="text-xl font-bold text-foreground">Upload Resume</h1>
           <p className="text-sm text-muted-foreground">PDF or DOCX · We&apos;ll parse it with AI</p>
+          <div className="mt-1"><AiModelHint uses="strong" /></div>
         </div>
       </div>
 

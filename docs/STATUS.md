@@ -8,9 +8,9 @@
 
 | | |
 |--|--|
-| **Working on** | Task **147** extension assist CTA (next) |
+| **Working on** | Task **147** extension assist CTA |
 | **Blocked** | Task 143 Google Auth provider |
-| **Next** | Smoke Auto-apply on a real GH/Lever/Ashby job (dry run) · Task **147** |
+| **Next** | Settings → AI if Claude credits are empty · smoke auto-apply · Task **147** |
 | **Roadmap** | [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md) |
 
 ## System snapshot
@@ -34,7 +34,7 @@
 | Chrome extension | 🟡 **v0.9.9** · GH/Lever/Ashby/Workday adapters · agentic apply v1 · EXTENSION.md |
 | GitHub integration | ✓ Task 105 |
 | Gmail sync | 🟡 **Task 114** | History API incremental; prod OAuth + smoke |
-| Settings | ✓ `/dashboard/settings` — tracking modes, GitHub, password, delete |
+| Settings | ✓ `/dashboard/settings` — **AI** (BYOK + models + usage), tracking, GitHub, password, delete |
 | Mask reply-relay | ✓ **Task 140** first slice live (PR #4) — Reply via HireIQ on Email tab |
 | Auto-apply (Sprout-like) | ✓ **148** Cloud Run worker live (`bootfix`) · Vercel `APPLY_WORKER_*` · dry-run default · **147** next |
 

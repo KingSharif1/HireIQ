@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { anthropic } from '@ai-sdk/anthropic'
-import { generateText } from 'ai'
 import { RESUME_PARSER_PROMPT, extractJSON } from '@/lib/ai/prompts'
-import { AI_MODELS } from '@/lib/ai/models'
 import { aiErrorResponse } from '@/lib/ai/error-response'
+import { resolveAiRuntime } from '@/lib/ai/runtime'
+import { generateAiText } from '@/lib/ai/complete'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { buildProfileSeedFromParse, profileRowUpdatesFromSeed } from '@/lib/profile/master'
 import type { StructuredResume, Profile } from '@/types'
@@ -62,13 +61,21 @@ export async function POST(request: Request) {
 
   const fileUrl = storageErr ? null : supabase.storage.from('resumes').getPublicUrl(storageData!.path).data.publicUrl
 
-  // Claude parsing
+  let ai
+  try {
+    ai = await resolveAiRuntime(user.id)
+  } catch (err) {
+    return aiErrorResponse(err, 'AI is not configured')
+  }
+
   const prompt = RESUME_PARSER_PROMPT.replace('{resumeText}', rawText.slice(0, 12000))
 
   let structuredData: StructuredResume
   try {
-    const result = await generateText({
-      model: anthropic(AI_MODELS.strong),
+    const result = await generateAiText({
+      runtime: ai,
+      feature: 'resume_parse',
+      tier: 'strong',
       prompt,
       maxOutputTokens: 4096,
     })
@@ -117,5 +124,12 @@ export async function POST(request: Request) {
     .update(profileRowUpdatesFromSeed(seed, profileRow))
     .eq('id', user.id)
 
-  return NextResponse.json({ resumeId: resumeRow.id, structuredData, atsFormatScore, profileSeeded: true })
+  return NextResponse.json({
+    resumeId: resumeRow.id,
+    structuredData,
+    atsFormatScore,
+    profileSeeded: true,
+    model: ai.models.strong,
+    keySource: ai.keySource,
+  })
 }
