@@ -2,15 +2,15 @@
 
 **As of:** 2026-08-14  
 **Branch:** `main` · **Production:** https://hireiq.kingsharif.com  
-**Tests:** 226 unit · 11 live URL · extension **v0.9.9** · Task **148** worker live on Cloud Run (`hireiq-505323`)
+**Tests:** 264 unit · 11 live URL · extension **v0.9.9** · Task **148** worker live on Cloud Run (`hireiq-505323`)
 
 ## Session handoff
 
 | | |
 |--|--|
-| **Working on** | Task **150** never retry — loop junk deleted, DB lock added |
+| **Working on** | Task **151** durable tailor run (background attach, max 2 Claude calls) |
 | **Blocked** | Task 143 Google Auth provider |
-| **Next** | Deploy Task 150 · Settings → AI if Claude credits are empty · smoke auto-apply · Task **147** |
+| **Next** | Merge PR #17 · deploy · smoke one Apple tailor · Task **147** |
 | **Roadmap** | [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md) |
 
 ## System snapshot
@@ -60,7 +60,7 @@ Legend: ✓ done · 🟡 in progress · 🔴 not started · 🔭 planned
 | Google `gmail.readonly` for Task 114 | User / eng | Restricted scope; CASA later at scale — start with test users |
 | Resend webhook smoke | User | Secret set; redeploy + send test to masked address |
 
-Migrations 001–**021** applied remotely — see [supabase/MIGRATIONS.md](./supabase/MIGRATIONS.md).
+Migrations 001–**023** applied remotely — see [supabase/MIGRATIONS.md](./supabase/MIGRATIONS.md).
 
 ## Next recommended tasks
 

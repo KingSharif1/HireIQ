@@ -8,6 +8,32 @@ Apply in numeric order on the remote project (`wsbbgznobxhjefaqbniv`). Use Supab
 | **019** | `019_ats_account_password.sql` | **Applied** (2026-08-13 via Supabase MCP) | Adds `applications.ats_account_password` for extension agentic apply + job timeline portal login |
 | **020** | `020_forward_save_email.sql` | **Applied** (2026-08-13 via Supabase MCP) | `profiles.forward_save_email` unique — forward job postings into the tracker |
 | **021** | `021_apply_runs.sql` | **Applied** (2026-08-13 via Supabase MCP) | `apply_runs` queue for Cloud Run / extension auto-apply (Task 148) |
+| **022** | `022_ai_byok_and_usage.sql` | **Applied** | BYOK + `ai_usage_events` (Task 149) |
+| **023** | `023_tailor_runs.sql` | **Applied** (2026-08-14 via Supabase MCP) | Durable AI tailor session — one in-flight run per job, max 2 Claude calls |
+
+## Apply 023
+
+```sql
+-- docs/supabase/migrations/023_tailor_runs.sql
+-- Creates tailor_runs + unique active index + RLS
+```
+
+Verify:
+
+```sql
+SELECT column_name
+FROM information_schema.columns
+WHERE table_name = 'tailor_runs'
+ORDER BY ordinal_position;
+```
+
+Rollback (only if needed):
+
+```sql
+DROP TABLE IF EXISTS tailor_runs;
+```
+
+## Apply 021
 
 ## Apply 021
 

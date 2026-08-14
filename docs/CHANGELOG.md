@@ -1,4 +1,15 @@
-## 2026-08-14 — Delete loop junk + DB lock so tailor cannot fork-bomb
+## 2026-08-14 — Durable tailor run (attach on refresh, max 2 Claude calls)
+
+**What:** Tailor is now a background session (`tailor_runs`). Opening AI tailor attaches to the in-flight run instead of starting another. Flow: DB resume + JD → ATS compare → at most 1 Claude gap call → wait for answers → 1 Claude rewrite. Applications list/board and job detail show Tailoring… / Needs your answers / Needs review.
+
+**Files:** `023_tailor_runs.sql`, `lib/tailor/{runs,execute-run,run-types}.ts`, `app/api/tailor/runs/**`, `AiTailorFlow.tsx`, tracker, `JobDetailPage.tsx`, `DocumentsWorkspace.tsx`
+
+**Why:** Refresh and `router.refresh()` used to remount and burn a new Claude call (132 versions). User: keep the first one running even if they leave.
+
+**Decisions:** Max 2 Claude calls, never overlapping, never retried. Stale busy runs fail after 3 minutes (after the 120s worker is gone) instead of starting a second paid call.
+
+---
+
 
 **What:** Deleted 132 Apple tailored versions (and their toasts) created in 8 minutes. Root cause: `router.refresh()` after each generate remounted the page and auto-started another Claude call. Removed that refresh. Added a Postgres job lock (`in_progress`) so overlapping serverless invokes cannot start a second paid call. sessionStorage blocks remount auto-start.
 

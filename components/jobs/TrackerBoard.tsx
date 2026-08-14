@@ -8,6 +8,7 @@ import {
   applicationStatusClasses,
   normalizeApplicationStatus,
 } from '@/lib/jobs/status'
+import { TailorRunChip } from '@/components/jobs/detail/TailorRunChip'
 import type { ApplicationStatus, ApplicationTrackerItem } from '@/types'
 
 interface TrackerBoardProps {
@@ -114,6 +115,11 @@ export function TrackerBoard({
                       <p className="text-[11px] text-muted-foreground mt-1 truncate">
                         {item.job.company}
                       </p>
+                      {item.tailorRunStatus ? (
+                        <div className="mt-2">
+                          <TailorRunChip status={item.tailorRunStatus} jobId={item.job_id} />
+                        </div>
+                      ) : null}
                       <div className="flex items-center justify-between mt-2.5 gap-2 pt-2 border-t border-border/60">
                         <Link
                           href={`/dashboard/tracker/${item.job_id}?tab=documents`}

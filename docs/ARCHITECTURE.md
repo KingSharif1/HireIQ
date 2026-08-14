@@ -83,14 +83,18 @@ Paste JD or job URL
     → app/api/jobs/fetch-url → lib/jobs/job-scraper.ts
     → app/api/jobs/analyze → Claude (PROMPT 2) via `lib/ai/runtime.ts` (HireIQ key or user BYOK) → jobs.extracted_data JSONB
 
-Tailor flow (one Claude rewrite — no retry)
-    → GET /api/tailor/context (DB only)
-    → POST /api/tailor/generate  → lib/ai/tailor-pipeline.ts (1 `generateText`, `maxRetries: 0`)
+Tailor flow (durable session — max 2 Claude calls, never overlapping)
+    → POST /api/tailor/runs (idempotent: attach if already running)
+    → DB: full resume + JD + GitHub (0 Claude)
+    → Local ATS compare; if gaps → 1 Claude gap questions, then wait
+    → After answers → 1 Claude rewrite (`lib/ai/tailor-pipeline.ts`, `maxRetries: 0`)
+    → `tailor_runs` row survives refresh / navigation; tracker shows Tailoring… / Needs review
     → tailored_resumes + changes JSONB
     → app/api/tailor/[id]/decisions → lib/tailor/change-decisions.ts (accept/decline/edit per change)
-    → Job Hub Changes tab → components/tailor/TailorDiff.tsx
+    → Documents review → components/tailor/TailorDiff.tsx
     → app/api/export/pdf|docx  → approved resume only; blocks if changes pending
     → app/api/tailor/cover-letter (Phase 1+ extra — not in new spec MVP)
+    Legacy POST /api/tailor/generate still exists; the job-detail AI flow uses runs.
 
 Application tracking
     → applications + application_events (migration 010; 1:1 with jobs)
@@ -158,7 +162,7 @@ Legend: ✓ done · 🟡 partial · 🔴 not started
 | `proxy.ts` | Supabase session refresh; `/dashboard/*` auth guard |
 | `lib/ai/` | Prompts, gap analysis, tailor pipeline, BYOK runtime, usage metering |
 | `lib/auth/` | Auth messages, profile sync after OAuth |
-| `lib/tailor/` | Change decisions (accept/decline/edit) |
+| `lib/tailor/` | Durable runs, change decisions (accept/decline/edit), ATS gap hints |
 | `lib/profile/` | Profile JSONB ↔ resume sync, provenance, bullets |
 | `lib/jobs/` | URL detect, scrape, job normalization, status labels |
 | `lib/applications/` | Application status updates + event writes |
@@ -185,6 +189,7 @@ Migrations in `docs/supabase/migrations/` (001 → 022):
 | `applications` | 1:1 tracker row per job (010) |
 | `application_events` | Status/timeline events (010) |
 | `tailored_resumes` | Output + `changes` + `change_decisions` + `theme_override` |
+| `tailor_runs` | Durable AI tailor session (max 2 Claude calls; one active per job) |
 | `resume_enhancements` | Legacy Q&A storage |
 | `notifications` | In-app alerts |
 | `apply_runs` | Hosted auto-apply queue (021) |

@@ -198,6 +198,80 @@ export async function tailorResume(params: {
   return post('/api/tailor/generate', params, { timeoutMs: 125_000 })
 }
 
+export type TailorRunDto = {
+  id: string
+  job_id: string
+  status: 'analyzing_gaps' | 'awaiting_answers' | 'generating' | 'needs_review' | 'failed' | 'cancelled'
+  process_log: TailorProcessLogEntry[]
+  gap_analysis?: import('@/types').GapAnalysis | null
+  questions: GapQuestion[]
+  answers: Record<string, string>
+  tailored_resume_id: string | null
+  error: string | null
+  claude_calls: number
+}
+
+export type TailorRunSnapshot = {
+  id: string
+  version: number
+  structured_data: StructuredResume
+  original_structured_data: StructuredResume | null
+  changes: ResumeDiffChange[]
+  change_decisions: Record<string, import('@/types').ChangeDecision>
+  match_score: number | null
+  tailored_score: number | null
+}
+
+export async function fetchTailorRun(jobId: string): Promise<{
+  run: TailorRunDto | null
+  tailored: TailorRunSnapshot | null
+}> {
+  const res = await fetch(`/api/tailor/runs?jobId=${encodeURIComponent(jobId)}`)
+  const data = (await res.json().catch(() => ({}))) as {
+    run?: TailorRunDto | null
+    tailored?: TailorRunSnapshot | null
+    error?: string
+  }
+  if (!res.ok) throw new APIError(res.status, data.error ?? 'Could not load tailor run')
+  return { run: data.run ?? null, tailored: data.tailored ?? null }
+}
+
+export async function fetchActiveTailorRuns(): Promise<TailorRunDto[]> {
+  const res = await fetch('/api/tailor/runs')
+  const data = (await res.json().catch(() => ({}))) as { runs?: TailorRunDto[]; error?: string }
+  if (!res.ok) throw new APIError(res.status, data.error ?? 'Could not load tailor runs')
+  return data.runs ?? []
+}
+
+export async function startTailorRun(jobId: string): Promise<{
+  run: TailorRunDto
+  resumed: boolean
+  tailored: TailorRunSnapshot | null
+}> {
+  return post('/api/tailor/runs', { jobId }, { timeoutMs: 20_000 })
+}
+
+export async function continueTailorRun(
+  runId: string,
+  answers: Record<string, string>,
+): Promise<{ run: TailorRunDto }> {
+  return post(`/api/tailor/runs/${runId}/continue`, { answers }, { timeoutMs: 20_000 })
+}
+
+export async function pollTailorRun(runId: string): Promise<{
+  run: TailorRunDto
+  tailored: TailorRunSnapshot | null
+}> {
+  const res = await fetch(`/api/tailor/runs/${runId}`)
+  const data = (await res.json().catch(() => ({}))) as {
+    run?: TailorRunDto
+    tailored?: TailorRunSnapshot | null
+    error?: string
+  }
+  if (!res.ok || !data.run) throw new APIError(res.status, data.error ?? 'Run not found')
+  return { run: data.run, tailored: data.tailored ?? null }
+}
+
 /**
  * Streams the cover letter as plain text.
  * Pass an onChunk callback to update UI in real time.

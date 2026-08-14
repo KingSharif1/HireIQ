@@ -471,6 +471,15 @@ export interface ApplicationTrackerItem extends Application {
   score: number | null
   tailored: boolean
   tailoredResumeId?: string | null
+  /** Durable AI tailor session, if one is in flight or waiting on the user. */
+  tailorRunStatus?:
+    | 'analyzing_gaps'
+    | 'awaiting_answers'
+    | 'generating'
+    | 'needs_review'
+    | 'failed'
+    | 'cancelled'
+    | null
 }
 
 export interface TailoredResume {

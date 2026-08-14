@@ -1,5 +1,25 @@
 # HireIQ Decisions
 
+## 2026-08-14 — Durable tailor session (Task 151)
+
+**Context:** Refresh / navigation remounted AI tailor and started another Claude call. User wants one session: full resume + JD from DB, compare gaps, ask questions, wait, then one rewrite — and see progress from Applications.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Storage | `tailor_runs` row; unique one in-flight per (user, job) |
+| Claude budget | 0 for context/ATS; **1** gap questions if needed; **1** rewrite; max **2** |
+| Overlap | CAS `gap_reserved` / `generate_reserved`. If reserved, never start another call |
+| Refresh | Attach to the same run. `after()` keeps work going after the HTTP response |
+| Tracker | Chip: Tailoring… / Needs your answers / Needs review |
+| Failure | Stop. Stale busy (>3 min) marks failed. User can start a new session |
+
+**Tradeoff:** A killed lambda wastes that one reserved call instead of retrying.
+
+**Revisit if:** `after()` on Vercel is truncated before Claude returns — then move generate to a queue worker, still one reservation.
+
+---
+
 ## 2026-08-14 — Never retry paid AI or auto-apply (Task 150)
 
 **Context:** A tailor React loop plus the AI SDK’s default 2 retries burned Anthropic credits. User: if it messes up, do not loop to fix it — especially auto-apply and autofill.
