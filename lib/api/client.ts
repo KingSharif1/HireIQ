@@ -9,6 +9,7 @@ import type {
   ResumeDiffChange,
   JobExtractedData,
 } from '@/types'
+import type { TailorProcessLogEntry } from '@/lib/tailor/process-log'
 
 // ---------------------------------------------------------------------------
 // Shared error type
@@ -42,8 +43,13 @@ async function post<T>(
       signal: controller.signal,
     })
     if (!res.ok) {
-      const data = await res.json().catch(() => ({ error: res.statusText }))
-      throw new APIError(res.status, data.error ?? 'Request failed')
+      const data = (await res.json().catch(() => ({ error: res.statusText }))) as {
+        error?: string
+        processLog?: TailorProcessLogEntry[]
+      }
+      throw new APIError(res.status, data.error ?? 'Request failed', {
+        processLog: data.processLog,
+      })
     }
     return res.json()
   } catch (err) {
@@ -132,6 +138,9 @@ export interface QuestionsResult {
   questions: GapQuestion[]
   gapAnalysis?: import('@/types').GapAnalysis
   baseResumeId?: string
+  processLog?: TailorProcessLogEntry[]
+  model?: string
+  keySource?: string
 }
 
 export async function generateQuestions(resumeId: string, jobId: string): Promise<QuestionsResult> {
@@ -146,6 +155,13 @@ export interface TailorResult {
   matchScore: number
   tailoredScore: number
   version?: number
+  processLog?: TailorProcessLogEntry[]
+  meta?: {
+    passedGate?: boolean
+    warning?: string
+    aiCallsUsed?: number
+    attempts?: number
+  }
 }
 
 export async function tailorResume(params: {

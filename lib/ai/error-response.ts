@@ -1,11 +1,19 @@
 import { NextResponse } from 'next/server'
 import { AiConfigError } from '@/lib/ai/runtime'
+import type { TailorProcessLogEntry } from '@/lib/tailor/process-log'
 
 /** Log and return a JSON error — surfaces real message in development. */
-export function aiErrorResponse(err: unknown, fallback: string) {
+export function aiErrorResponse(
+  err: unknown,
+  fallback: string,
+  processLog?: TailorProcessLogEntry[],
+) {
   console.error('[AI]', err)
   if (err instanceof AiConfigError) {
-    return NextResponse.json({ error: err.message }, { status: err.status })
+    return NextResponse.json(
+      { error: err.message, processLog },
+      { status: err.status },
+    )
   }
   let message = err instanceof Error ? err.message : fallback
   let status = 500
@@ -21,5 +29,8 @@ export function aiErrorResponse(err: unknown, fallback: string) {
     message = `AI model error (${message.replace('model:', '').trim()}). Pick another model in Settings → AI.`
   }
   const isDev = process.env.NODE_ENV === 'development'
-  return NextResponse.json({ error: isDev || status === 402 ? message : fallback }, { status })
+  return NextResponse.json(
+    { error: isDev || status === 402 ? message : fallback, processLog },
+    { status },
+  )
 }

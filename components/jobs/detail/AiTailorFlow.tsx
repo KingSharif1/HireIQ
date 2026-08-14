@@ -14,7 +14,8 @@ import { DEFAULT_RESUME_THEME } from '@/lib/export/theme'
 import { buildApprovedResume, initialDecisions } from '@/lib/tailor/change-decisions'
 import { generateQuestions, tailorResume, APIError } from '@/lib/api/client'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
-import { cn, scoreColor } from '@/lib/utils'
+import { TailorProcessLog } from '@/components/tailor/TailorProcessLog'
+import { mergeProcessLogs, type TailorProcessLogEntry } from '@/lib/tailor/process-log'
 import type {
   ChangeDecision,
   GapAnalysis,
@@ -23,6 +24,7 @@ import type {
   ResumeDiffChange,
   StructuredResume,
 } from '@/types'
+import { cn, scoreColor } from '@/lib/utils'
 
 const CONNECT_STAGES = [
   { id: 'resume', label: 'Reading your resume' },
@@ -92,11 +94,39 @@ export function AiTailorFlow({
   const [tailoredScore, setTailoredScore] = useState<number | null>(reviewOnly?.tailoredScore ?? null)
   const [saving, setSaving] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [processLog, setProcessLog] = useState<TailorProcessLogEntry[]>([])
+  const [logExpanded, setLogExpanded] = useState(true)
+  const logStarted = useMemo(() => Date.now(), [])
+
+  const appendLog = useCallback(
+    (label: string, detail?: string, status: TailorProcessLogEntry['status'] = 'ok') => {
+      setProcessLog(prev => [
+        ...prev,
+        {
+          id: `c${prev.length}`,
+          at: new Date().toISOString(),
+          label,
+          detail,
+          status,
+          ms: Date.now() - logStarted,
+        },
+      ])
+    },
+    [logStarted]
+  )
+
+  const mergeServerLog = useCallback((entries?: TailorProcessLogEntry[]) => {
+    if (!entries?.length) return
+    setProcessLog(prev => mergeProcessLogs(prev.filter(e => !e.id.startsWith('s')), entries))
+  }, [])
 
   const loadQuestions = useCallback(async () => {
     setError(null)
     setConnectDetail(undefined)
     setConnectIndex(0)
+    setProcessLog([])
+    setLogExpanded(true)
+    appendLog('Starting gap analysis', 'Loading resume, job, and GitHub context', 'pending')
 
     const resumeTimer = window.setTimeout(() => {
       setConnectIndex(1)
@@ -104,28 +134,43 @@ export function AiTailorFlow({
 
     const longWaitTimer = window.setTimeout(() => {
       setConnectDetail('Reading your resume, GitHub projects, and job requirements — usually 15–30s.')
+      appendLog('Still working', 'Claude is comparing your profile to the job (up to 55s)', 'pending')
     }, 12_000)
 
     try {
+      appendLog('Calling /api/tailor/questions', undefined, 'pending')
       const result = await generateQuestions('', jobId)
       window.clearTimeout(resumeTimer)
       window.clearTimeout(longWaitTimer)
+      mergeServerLog(result.processLog)
       setConnectIndex(2)
       setConnectDetail(undefined)
       setBaseResumeId(result.baseResumeId ?? null)
       setGapAnalysis(result.gapAnalysis ?? null)
       setQuestions(result.questions ?? [])
+      appendLog(
+        'Gap analysis ready',
+        `${result.questions?.length ?? 0} question(s) · ${result.keySource === 'byok' ? 'your API key' : 'HireIQ key'}`,
+      )
       await new Promise(r => window.setTimeout(r, 350))
       setPhase('questions')
     } catch (err) {
       window.clearTimeout(resumeTimer)
       window.clearTimeout(longWaitTimer)
       setConnectDetail(undefined)
-      setError(err instanceof APIError ? err.message : 'Could not analyze gaps')
+      if (err instanceof APIError) {
+        mergeServerLog(err.details?.processLog as TailorProcessLogEntry[] | undefined)
+        appendLog('Gap analysis failed', err.message, 'error')
+        setError(err.message)
+      } else {
+        appendLog('Gap analysis failed', 'Could not analyze gaps', 'error')
+        setError('Could not analyze gaps')
+      }
       setPhase('connect')
       setConnectIndex(0)
+      setLogExpanded(true)
     }
-  }, [jobId])
+  }, [appendLog, jobId, mergeServerLog])
 
   useEffect(() => {
     if (reviewOnly) return
@@ -136,11 +181,18 @@ export function AiTailorFlow({
     setPhase('generate')
     setGenerateIndex(0)
     setError(null)
+    setLogExpanded(true)
+    appendLog('Starting tailor generate', `${Object.keys(answers).length} answer(s) sent`, 'pending')
     try {
       const tick = window.setInterval(() => {
         setGenerateIndex(i => Math.min(i + 1, GENERATE_STAGES.length - 1))
       }, 4200)
 
+      const longWait = window.setTimeout(() => {
+        appendLog('Still tailoring', 'Draft + critique passes can take up to 2 minutes', 'pending')
+      }, 25_000)
+
+      appendLog('Calling /api/tailor/generate', undefined, 'pending')
       const result = await tailorResume({
         resumeId: baseResumeId ?? '',
         jobId,
@@ -150,7 +202,14 @@ export function AiTailorFlow({
       })
 
       window.clearInterval(tick)
+      window.clearTimeout(longWait)
+      mergeServerLog(result.processLog)
       setGenerateIndex(GENERATE_STAGES.length - 1)
+
+      appendLog(
+        'Tailor complete',
+        `Score ${result.matchScore}% → ${result.tailoredScore}% · ${result.changes.length} changes`,
+      )
 
       setTailoredId(result.tailoredResumeId)
       setOriginal(result.originalData ?? result.tailoredData)
@@ -171,8 +230,16 @@ export function AiTailorFlow({
 
       setPhase('review')
     } catch (err) {
-      setError(err instanceof APIError ? err.message : 'Tailoring failed')
+      if (err instanceof APIError) {
+        mergeServerLog(err.details?.processLog as TailorProcessLogEntry[] | undefined)
+        appendLog('Tailoring failed', err.message, 'error')
+        setError(err.message)
+      } else {
+        appendLog('Tailoring failed', 'Unknown error', 'error')
+        setError('Tailoring failed')
+      }
       setPhase('questions')
+      setLogExpanded(true)
     }
   }
 
@@ -264,6 +331,12 @@ export function AiTailorFlow({
           ) : null}
         </div>
       ) : null}
+
+      <TailorProcessLog
+        entries={processLog}
+        expanded={logExpanded}
+        onToggle={() => setLogExpanded(v => !v)}
+      />
 
       <div className="min-h-0 flex-1 overflow-auto">
         {phase === 'connect' ? (

@@ -1,3 +1,12 @@
+## 2026-08-14 — Tailor process log (visible debugging)
+
+**What:** AI tailor shows a live **Process log** — resume/job/GitHub loaded, Claude calls, pipeline passes, save — with timings. Failures show where it stopped.
+
+**Files:** `lib/tailor/process-log.ts`, `components/tailor/TailorProcessLog.tsx`, `AiTailorFlow.tsx`, tailor API routes
+
+**Why:** Hard to tell if tailoring was working behind the loader.
+
+---
 ## 2026-08-14 — GitHub deep sync + tailor loader fixes
 
 **What:** GitHub sync now reads README, root folder layout, and `package.json` tools before suggesting profile bullets. Empty/placeholder repos are skipped. AI tailor gap analysis and generate steps include GitHub project context. Tailor connect screen shows honest progress, long-wait hint, and 55s timeout with retry.
