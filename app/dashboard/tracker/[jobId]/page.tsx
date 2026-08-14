@@ -11,8 +11,10 @@ import type {
   Application,
   ApplicationEvent,
   ApplicationTrackerItem,
+  ChangeDecision,
   Job,
   ProfileData,
+  ResumeDiffChange,
   StructuredResume,
   TailorGapAnswer,
 } from '@/types'
@@ -85,7 +87,7 @@ export default async function TrackerJobDetailPage({
     supabase
       .from('tailored_resumes')
       .select(
-        'id, version, tailored_score, match_score, cover_letter, gap_answers, structured_data, created_at'
+        'id, version, tailored_score, match_score, cover_letter, gap_answers, structured_data, original_structured_data, changes, change_decisions, created_at'
       )
       .eq('user_id', user.id)
       .eq('job_id', jobId)
@@ -100,6 +102,9 @@ export default async function TrackerJobDetailPage({
     cover_letter: string | null
     gap_answers: TailorGapAnswer[] | null
     structured_data: StructuredResume | null
+    original_structured_data: StructuredResume | null
+    changes: ResumeDiffChange[] | null
+    change_decisions: Record<string, ChangeDecision> | null
     created_at: string
   }>
 
@@ -124,6 +129,9 @@ export default async function TrackerJobDetailPage({
     cover_letter: v.cover_letter,
     gap_answers: Array.isArray(v.gap_answers) ? v.gap_answers : [],
     structured_data: v.structured_data,
+    original_structured_data: v.original_structured_data,
+    changes: v.changes,
+    change_decisions: v.change_decisions,
     created_at: v.created_at,
   }))
 

@@ -76,7 +76,16 @@ function resolveInitialTab(param: string | null): DetailTab {
 
 function resolveInitialDocumentMode(param: string | null, tab: DetailTab): DocumentMode {
   if (tab !== 'documents') return 'list'
-  if (param === 'preview' || param === 'edit' || param === 'cover') return param
+  if (
+    param === 'preview' ||
+    param === 'edit' ||
+    param === 'cover' ||
+    param === 'choose' ||
+    param === 'ai-tailor' ||
+    param === 'ai-review'
+  ) {
+    return param
+  }
   return 'list'
 }
 
@@ -172,7 +181,13 @@ export function JobDetailPage({
     [emails]
   )
   const threads = useMemo(() => buildInboxThreads(trackedEmails), [trackedEmails])
-  const canShowRail = !(tab === 'documents' && documentMode === 'edit')
+  const canShowRail = !(
+    tab === 'documents' &&
+    (documentMode === 'edit' ||
+      documentMode === 'choose' ||
+      documentMode === 'ai-tailor' ||
+      documentMode === 'ai-review')
+  )
   const showRail = canShowRail && railOpen
   const safeApplyUrl = safeHttpUrl(item.job.apply_url)
   const sourceDomain = getSourceDomain(safeApplyUrl)
@@ -288,6 +303,7 @@ export function JobDetailPage({
     structuredData: JobDetailTailoredVersion['structured_data']
     score: number | null
   }) {
+    if (result.score != null) setCurrentScore(result.score)
     setVersions(current => {
       const existing = current.find(version => version.id === result.tailoredId)
       if (existing) {
@@ -297,6 +313,8 @@ export function JobDetailPage({
                 ...version,
                 structured_data: result.structuredData,
                 match_score: result.score,
+                tailored_score: result.score,
+                change_decisions: {},
               }
             : version
         )
@@ -306,7 +324,7 @@ export function JobDetailPage({
         {
           id: result.tailoredId,
           version: nextVersion,
-          tailored_score: null,
+          tailored_score: result.score,
           match_score: result.score,
           cover_letter: null,
           gap_answers: [],

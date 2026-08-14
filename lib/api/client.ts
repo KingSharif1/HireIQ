@@ -108,6 +108,8 @@ export async function scoreResume(resumeId: string, jobId: string): Promise<Scor
 
 export interface QuestionsResult {
   questions: GapQuestion[]
+  gapAnalysis?: import('@/types').GapAnalysis
+  baseResumeId?: string
 }
 
 export async function generateQuestions(resumeId: string, jobId: string): Promise<QuestionsResult> {
@@ -117,9 +119,11 @@ export async function generateQuestions(resumeId: string, jobId: string): Promis
 export interface TailorResult {
   tailoredResumeId: string
   tailoredData: StructuredResume
+  originalData?: StructuredResume
   changes: ResumeDiffChange[]
   matchScore: number
   tailoredScore: number
+  version?: number
 }
 
 export async function tailorResume(params: {
@@ -127,6 +131,7 @@ export async function tailorResume(params: {
   jobId: string
   answers: Record<string, string>
   questions?: { id: string; question: string }[]
+  gapAnalysis?: import('@/types').GapAnalysis
 }): Promise<TailorResult> {
   return post('/api/tailor/generate', params)
 }

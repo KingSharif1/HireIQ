@@ -14,11 +14,25 @@ import Link from 'next/link'
 import { isLinkedInJobUrl, LINKEDIN_PASTE_MESSAGE } from '@/lib/jobs/url-detect'
 import type { JobExtractedData } from '@/types'
 import { AiModelHint } from '@/components/ai/AiModelHint'
+import { AiFlowLoader } from '@/components/ai/AiFlowLoader'
+
+const URL_STAGES = [
+  { id: 'fetch', label: 'Fetching job posting' },
+  { id: 'analyze', label: 'Analyzing requirements with AI' },
+  { id: 'save', label: 'Saving to your tracker' },
+] as const
+
+const PASTE_STAGES = [
+  { id: 'analyze', label: 'Analyzing job description' },
+  { id: 'save', label: 'Saving to your tracker' },
+] as const
 
 export default function JobsPage() {
   const [url, setUrl] = useState('')
   const [description, setDescription] = useState('')
   const [loading, setLoading] = useState(false)
+  const [loadingStage, setLoadingStage] = useState(0)
+  const [loadingMode, setLoadingMode] = useState<'url' | 'paste'>('url')
   const [error, setError] = useState<string | null>(null)
   const [urlWarning, setUrlWarning] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'url' | 'paste'>('url')
@@ -40,6 +54,8 @@ export default function JobsPage() {
   async function handleFetchUrl() {
     if (!url.trim() || linkedInDetected) return
     setLoading(true)
+    setLoadingMode('url')
+    setLoadingStage(0)
     setError(null)
     setUrlWarning(null)
 
@@ -63,6 +79,7 @@ export default function JobsPage() {
         setUrlWarning(scrapeData.warning)
       }
 
+      setLoadingStage(1)
       const analyzeRes = await fetch('/api/jobs/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -77,6 +94,7 @@ export default function JobsPage() {
       const analyzeData = await analyzeRes.json()
       if (!analyzeRes.ok) throw new Error(analyzeData.error)
 
+      setLoadingStage(2)
       setExtractedData(analyzeData.extractedData)
       setJobId(analyzeData.jobId)
     } catch (err) {
@@ -89,6 +107,8 @@ export default function JobsPage() {
   async function handleAnalyzeText() {
     if (!description.trim()) return
     setLoading(true)
+    setLoadingMode('paste')
+    setLoadingStage(0)
     setError(null)
 
     try {
@@ -103,6 +123,7 @@ export default function JobsPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
 
+      setLoadingStage(1)
       setExtractedData(data.extractedData)
       setJobId(data.jobId)
     } catch (err) {
@@ -110,6 +131,20 @@ export default function JobsPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (loading) {
+    const stages = loadingMode === 'url' ? [...URL_STAGES] : [...PASTE_STAGES]
+    return (
+      <div className="max-w-xl mx-auto px-4 py-8">
+        <AiFlowLoader
+          title={loadingMode === 'url' ? 'Getting job details' : 'Analyzing job description'}
+          subtitle="We extract skills, keywords, and requirements for tailoring."
+          stages={stages}
+          activeIndex={loadingStage}
+        />
+      </div>
+    )
   }
 
   if (extractedData && jobId) {
@@ -172,8 +207,8 @@ export default function JobsPage() {
         </Card>
 
         <Button className="w-full" asChild size="lg">
-          <Link href={`/dashboard/tracker/${jobId}?tab=documents`}>
-            Match resume to this job
+          <Link href={`/dashboard/tracker/${jobId}?tab=documents&docMode=choose`}>
+            Tailor resume for this job
             <ArrowRight className="w-4 h-4" />
           </Link>
         </Button>
