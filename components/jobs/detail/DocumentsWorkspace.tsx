@@ -15,7 +15,10 @@ import { DocumentExportActions, LayoutIssuesBanner } from '@/components/jobs/det
 import { DEFAULT_RESUME_THEME } from '@/lib/export/theme'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { cn, scoreColor } from '@/lib/utils'
-import type { ATSScore, JobExtractedData, ProfileData, StructuredResume, TailorGapAnswer } from '@/types'
+import type { ATSScore, ChangeDecision, JobExtractedData, ProfileData, ResumeDiffChange, StructuredResume, TailorGapAnswer } from '@/types'
+import { DocumentCreateChooser } from '@/components/jobs/detail/DocumentCreateChooser'
+import { AiTailorFlow } from '@/components/jobs/detail/AiTailorFlow'
+import { countPendingDecisions } from '@/lib/tailor/change-decisions'
 
 export type JobDetailTailoredVersion = {
   id: string
@@ -25,10 +28,13 @@ export type JobDetailTailoredVersion = {
   cover_letter: string | null
   gap_answers: TailorGapAnswer[] | null
   structured_data: StructuredResume | null
+  original_structured_data?: StructuredResume | null
+  changes?: ResumeDiffChange[] | null
+  change_decisions?: Record<string, ChangeDecision> | null
   created_at: string
 }
 
-export type DocumentMode = 'list' | 'preview' | 'edit' | 'cover'
+export type DocumentMode = 'list' | 'preview' | 'edit' | 'cover' | 'choose' | 'ai-tailor' | 'ai-review'
 
 type DocumentsWorkspaceProps = {
   jobId: string
@@ -43,6 +49,7 @@ type DocumentsWorkspaceProps = {
     tailoredId: string
     structuredData: StructuredResume
     score: number | null
+    version?: number
   }) => void
   jobExtracted?: JobExtractedData | null
 }
@@ -61,6 +68,14 @@ export function DocumentsWorkspace({
 }: DocumentsWorkspaceProps) {
   const selected = versions.find(version => version.id === selectedId) ?? versions[0] ?? null
   const score = selected ? selected.tailored_score ?? selected.match_score : null
+  const [chooserKind, setChooserKind] = useState<'resume' | 'cover'>('resume')
+  const [coverStartAi, setCoverStartAi] = useState(false)
+  const listTab = mode === 'cover' ? 'cover' : 'resume'
+
+  function openCreate(kind: 'resume' | 'cover') {
+    setChooserKind(kind)
+    onMode('choose')
+  }
 
   useEffect(() => {
     window.scrollTo({ top: 0 })
@@ -85,6 +100,56 @@ export function DocumentsWorkspace({
     anchor.click()
     anchor.remove()
     URL.revokeObjectURL(url)
+  }
+
+  if (mode === 'choose') {
+    return (
+      <DocumentCreateChooser
+        kind={chooserKind}
+        onAi={() => {
+          if (chooserKind === 'cover') {
+            setCoverStartAi(true)
+            onMode('cover')
+          } else {
+            onMode('ai-tailor')
+          }
+        }}
+        onManual={() => onMode(chooserKind === 'cover' ? 'cover' : 'edit')}
+        onClose={() => onMode('list')}
+      />
+    )
+  }
+
+  if (mode === 'ai-tailor' || mode === 'ai-review') {
+    const reviewVersion =
+      mode === 'ai-review' && selected?.original_structured_data && selected.structured_data
+        ? {
+            tailoredId: selected.id,
+            original: selected.original_structured_data,
+            tailored: selected.structured_data,
+            changes: selected.changes ?? [],
+            decisions: selected.change_decisions ?? {},
+            matchScore: selected.match_score,
+            tailoredScore: selected.tailored_score,
+          }
+        : undefined
+
+    return (
+      <AiTailorFlow
+        jobId={jobId}
+        jobExtracted={jobExtracted}
+        reviewOnly={reviewVersion}
+        onDone={() => onMode('list')}
+        onComplete={result =>
+          onVersionSaved({
+            tailoredId: result.tailoredId,
+            structuredData: result.structuredData,
+            score: result.score,
+            version: result.version,
+          })
+        }
+      />
+    )
   }
 
   if (mode === 'edit') {
@@ -117,8 +182,6 @@ export function DocumentsWorkspace({
     )
   }
 
-  const listTab = mode === 'cover' ? 'cover' : 'resume'
-
   return (
     <section className="rounded-xl border border-border bg-card p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -131,9 +194,9 @@ export function DocumentsWorkspace({
           </p>
         </div>
         {listTab === 'resume' ? (
-          <Button type="button" size="sm" onClick={() => onMode('edit')}>
+          <Button type="button" size="sm" onClick={() => openCreate('resume')}>
             <Plus className="h-4 w-4" />
-            {versions.length ? 'Edit resume' : 'Create resume'}
+            {versions.length ? 'New resume' : 'Create resume'}
           </Button>
         ) : selected?.cover_letter ? (
           <Button
@@ -145,7 +208,12 @@ export function DocumentsWorkspace({
             <Download className="h-4 w-4" />
             Download
           </Button>
-        ) : null}
+        ) : (
+          <Button type="button" size="sm" onClick={() => openCreate('cover')}>
+            <Plus className="h-4 w-4" />
+            New cover letter
+          </Button>
+        )}
       </div>
 
       <div
@@ -188,7 +256,7 @@ export function DocumentsWorkspace({
               <p className="mt-1 text-sm text-muted-foreground">
                 Cover letters are saved with a tailored resume for this job.
               </p>
-              <Button type="button" size="sm" className="mt-4" onClick={() => onMode('edit')}>
+              <Button type="button" size="sm" className="mt-4" onClick={() => openCreate('resume')}>
                 Create resume
               </Button>
             </div>
@@ -198,6 +266,8 @@ export function DocumentsWorkspace({
               tailoredResumeId={selected?.id ?? null}
               initialLetter={selected?.cover_letter ?? ''}
               embedded
+              autoGenerate={coverStartAi}
+              onAutoGenerateDone={() => setCoverStartAi(false)}
             />
           )}
         </div>
@@ -207,7 +277,7 @@ export function DocumentsWorkspace({
           <p className="mt-1 text-sm text-muted-foreground">
             Build one from your profile and see every change live.
           </p>
-          <Button type="button" size="sm" className="mt-4" onClick={() => onMode('edit')}>
+          <Button type="button" size="sm" className="mt-4" onClick={() => openCreate('resume')}>
             Create resume
           </Button>
         </div>
@@ -215,6 +285,9 @@ export function DocumentsWorkspace({
         <ul className="mt-5 divide-y divide-border overflow-hidden rounded-lg border border-border">
           {versions.map(version => {
             const versionScore = version.tailored_score ?? version.match_score
+            const pendingReview =
+              (version.changes?.length ?? 0) > 0 &&
+              countPendingDecisions(version.changes ?? [], version.change_decisions ?? {}) > 0
             return (
               <li
                 key={version.id}
@@ -244,7 +317,21 @@ export function DocumentsWorkspace({
                     </span>
                   </span>
                 </button>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  {pendingReview ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="default"
+                      className="bg-teal-600 hover:bg-teal-700"
+                      onClick={() => {
+                        onSelectedId(version.id)
+                        onMode('ai-review')
+                      }}
+                    >
+                      Review AI changes
+                    </Button>
+                  ) : null}
                   {versionScore != null ? (
                     <span className={cn('text-sm font-semibold tabular-nums', scoreColor(versionScore))}>
                       {versionScore}%

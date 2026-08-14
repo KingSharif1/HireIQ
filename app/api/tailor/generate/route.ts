@@ -163,9 +163,11 @@ export async function POST(request: Request) {
   return NextResponse.json({
     tailoredResumeId: tailoredRow.id,
     tailoredData: tailoredResume,
+    originalData: resume,
     changes: changesWithIds,
     matchScore,
     tailoredScore,
+    version: tailoredRow.version,
     source: master.source,
     baseResumeId,
     tailoringNotes: tailoredResume.tailoring_notes ?? [],
