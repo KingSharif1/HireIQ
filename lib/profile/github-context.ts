@@ -2,8 +2,8 @@ import type { GitHubProfileData, GitHubRepoSnapshot } from '@/lib/github/types'
 import { isMeaningfulRepo } from '@/lib/github/repo-quality'
 import { buildRepoHighlight } from '@/lib/github/repo-enrichment'
 
-const MAX_REPOS = 8
-const MAX_CHARS = 3500
+const MAX_REPOS = 12
+const MAX_CHARS = 12_000
 
 function repoLine(repo: GitHubRepoSnapshot): string {
   const highlight = buildRepoHighlight(repo)

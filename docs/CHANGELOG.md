@@ -1,3 +1,12 @@
+## 2026-08-14 — Send full master resume to Claude (no 5k cut)
+
+**What:** Tailor prompts now include the **entire** master resume + job JSON. Previously we sliced resume to 5,000 chars and JD to 2,000, so Claude never saw the whole profile.
+
+**Files:** `lib/ai/tailor-engine.ts`, `lib/ai/tailor-pipeline.ts`, `app/api/tailor/{generate,questions}/route.ts`, `lib/profile/github-context.ts`
+
+**Why:** User was right — context is already in the DB; we were chopping it before the only Claude call that matters.
+
+---
 ## 2026-08-14 — Fix tailor crash: `.join` on missing Claude arrays
 
 **What:** Claude drafts often omit `bullets` / `projects`. Pipeline now normalizes the JSON before diffing so we never call `.join` on undefined.

@@ -3,6 +3,7 @@ import {
   buildResumeChanges,
   buildTailorWarning,
   buildWriteBackSuggestions,
+  jsonForPrompt,
   normalizeCritique,
   passesTailorGate,
   pickBestAttempt,
@@ -142,5 +143,17 @@ describe('buildTailorWarning', () => {
   it('describes failure reasons when gate fails', () => {
     const warning = buildTailorWarning(critique({ language_overlap_percent: 40 }))
     expect(warning).toContain('40%')
+  })
+})
+
+describe('jsonForPrompt', () => {
+  it('sends the full master resume, not a 5k slice', () => {
+    const resume = sampleStructuredResume({
+      summary: 'A'.repeat(6000),
+    })
+    const json = jsonForPrompt(resume)
+    expect(json.length).toBeGreaterThan(5000)
+    expect(json).toContain(resume.experience[0].bullets[0])
+    expect(json).not.toContain('…[truncated]')
   })
 })

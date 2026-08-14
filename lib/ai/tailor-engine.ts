@@ -233,8 +233,18 @@ export function formatEnhancements(
   return entries.map(([id, a]) => `Q: ${labels?.[id] ?? id}\nA: ${a}`).join('\n\n')
 }
 
+/** Safety cap only — a master resume is typically 8–25k; never truncate to a few thousand. */
+export const PROMPT_JSON_MAX = 80_000
+
+export function jsonForPrompt(data: unknown, max = PROMPT_JSON_MAX): string {
+  const json = JSON.stringify(data, null, 2)
+  if (json.length <= max) return json
+  return `${json.slice(0, max)}\n…[truncated]`
+}
+
+/** @deprecated Use jsonForPrompt — kept for older call sites. */
 export function sliceForPrompt(data: unknown, max: number): string {
-  return JSON.stringify(data, null, 2).slice(0, max)
+  return jsonForPrompt(data, max)
 }
 
 export function pickBestAttempt(
