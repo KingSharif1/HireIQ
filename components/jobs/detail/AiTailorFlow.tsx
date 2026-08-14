@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AiFlowLoader } from '@/components/ai/AiFlowLoader'
@@ -97,6 +97,10 @@ export function AiTailorFlow({
   const [processLog, setProcessLog] = useState<TailorProcessLogEntry[]>([])
   const [logExpanded, setLogExpanded] = useState(true)
   const logStarted = useMemo(() => Date.now(), [])
+  const startedRef = useRef(false)
+  const inFlightRef = useRef(false)
+  const onCompleteRef = useRef(onComplete)
+  onCompleteRef.current = onComplete
 
   const appendLog = useCallback(
     (label: string, detail?: string, status: TailorProcessLogEntry['status'] = 'ok') => {
@@ -121,6 +125,8 @@ export function AiTailorFlow({
   }, [])
 
   const runQuickTailor = useCallback(async () => {
+    if (inFlightRef.current) return
+    inFlightRef.current = true
     setPhase('generate')
     setGenerateIndex(0)
     setError(null)
@@ -134,14 +140,14 @@ export function AiTailorFlow({
       setBaseResumeId(ctx.baseResumeId)
       appendLog(
         'Context ready',
-        `${ctx.atsScore}% ATS baseline · tailoring with 2 Claude calls (draft + check)`,
+        `${ctx.atsScore}% ATS baseline · one Claude rewrite (no critique loop)`,
       )
 
       const longWait = window.setTimeout(() => {
         appendLog('Still tailoring', 'Claude is rewriting your resume (~20–60s)', 'pending')
       }, 20_000)
 
-      appendLog('Calling /api/tailor/generate', 'fastMode — skipped gap-analysis API', 'pending')
+      appendLog('Calling /api/tailor/generate', 'fastMode — 1 Claude call, no retry loop', 'pending')
       const result = await tailorResume({
         resumeId: ctx.baseResumeId,
         jobId,
@@ -165,7 +171,7 @@ export function AiTailorFlow({
       setMatchScore(result.matchScore)
       setTailoredScore(result.tailoredScore)
 
-      onComplete({
+      onCompleteRef.current({
         tailoredId: result.tailoredResumeId,
         version: result.version ?? 1,
         structuredData: result.tailoredData,
@@ -185,8 +191,10 @@ export function AiTailorFlow({
       }
       setPhase('generate')
       setLogExpanded(true)
+    } finally {
+      inFlightRef.current = false
     }
-  }, [appendLog, jobId, mergeServerLog, onComplete])
+  }, [appendLog, jobId, mergeServerLog])
 
   const loadQuestions = useCallback(async () => {
     setPhase('connect')
@@ -243,6 +251,8 @@ export function AiTailorFlow({
 
   useEffect(() => {
     if (reviewOnly) return
+    if (startedRef.current) return
+    startedRef.current = true
     void runQuickTailor()
   }, [runQuickTailor, reviewOnly])
 
