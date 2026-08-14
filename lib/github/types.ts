@@ -13,6 +13,12 @@ export interface GitHubRepoSnapshot {
   topics: string[]
   isFork: boolean
   isPrivate: boolean
+  /** First ~480 chars of README (markdown stripped). */
+  readmeExcerpt?: string
+  /** Top-level paths in the repo (files + dirs). */
+  rootPaths?: string[]
+  /** Notable tools from package.json + languages. */
+  tools?: string[]
 }
 
 export interface GitHubProfileData {

@@ -72,6 +72,7 @@ export function AiTailorFlow({
 }: AiTailorFlowProps) {
   const [phase, setPhase] = useState<FlowPhase>(reviewOnly ? 'review' : 'connect')
   const [connectIndex, setConnectIndex] = useState(0)
+  const [connectDetail, setConnectDetail] = useState<string | undefined>()
   const [generateIndex, setGenerateIndex] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
@@ -94,18 +95,35 @@ export function AiTailorFlow({
 
   const loadQuestions = useCallback(async () => {
     setError(null)
+    setConnectDetail(undefined)
     setConnectIndex(0)
-    try {
+
+    const resumeTimer = window.setTimeout(() => {
       setConnectIndex(1)
+    }, 700)
+
+    const longWaitTimer = window.setTimeout(() => {
+      setConnectDetail('Reading your resume, GitHub projects, and job requirements — usually 15–30s.')
+    }, 12_000)
+
+    try {
       const result = await generateQuestions('', jobId)
+      window.clearTimeout(resumeTimer)
+      window.clearTimeout(longWaitTimer)
       setConnectIndex(2)
+      setConnectDetail(undefined)
       setBaseResumeId(result.baseResumeId ?? null)
       setGapAnalysis(result.gapAnalysis ?? null)
       setQuestions(result.questions ?? [])
+      await new Promise(r => window.setTimeout(r, 350))
       setPhase('questions')
     } catch (err) {
+      window.clearTimeout(resumeTimer)
+      window.clearTimeout(longWaitTimer)
+      setConnectDetail(undefined)
       setError(err instanceof APIError ? err.message : 'Could not analyze gaps')
       setPhase('connect')
+      setConnectIndex(0)
     }
   }, [jobId])
 
@@ -251,8 +269,10 @@ export function AiTailorFlow({
         {phase === 'connect' ? (
           <AiFlowLoader
             title="Connecting your profile to this job"
-            subtitle="We compare your resume against what the role asks for."
-            stages={[...CONNECT_STAGES]}
+            subtitle="We compare your resume and GitHub projects against what the role asks for."
+            stages={CONNECT_STAGES.map((stage, i) =>
+              i === connectIndex && connectDetail ? { ...stage, detail: connectDetail } : stage
+            )}
             activeIndex={connectIndex}
           />
         ) : null}

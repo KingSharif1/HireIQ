@@ -25,17 +25,39 @@ export class APIError extends Error {
   }
 }
 
-async function post<T>(path: string, body: Record<string, unknown>): Promise<T> {
-  const res = await fetch(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({ error: res.statusText }))
-    throw new APIError(res.status, data.error ?? 'Request failed')
+async function post<T>(
+  path: string,
+  body: Record<string, unknown>,
+  options?: { timeoutMs?: number }
+): Promise<T> {
+  const timeoutMs = options?.timeoutMs ?? 55_000
+  const controller = new AbortController()
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    const res = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({ error: res.statusText }))
+      throw new APIError(res.status, data.error ?? 'Request failed')
+    }
+    return res.json()
+  } catch (err) {
+    if (err instanceof APIError) throw err
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new APIError(
+        408,
+        'Analysis is taking too long. Check Settings → AI (Claude key) and try again.',
+      )
+    }
+    throw err
+  } finally {
+    window.clearTimeout(timer)
   }
-  return res.json()
 }
 
 // ---------------------------------------------------------------------------
@@ -113,7 +135,7 @@ export interface QuestionsResult {
 }
 
 export async function generateQuestions(resumeId: string, jobId: string): Promise<QuestionsResult> {
-  return post('/api/tailor/questions', { resumeId, jobId })
+  return post('/api/tailor/questions', { resumeId, jobId }, { timeoutMs: 55_000 })
 }
 
 export interface TailorResult {
@@ -133,7 +155,7 @@ export async function tailorResume(params: {
   questions?: { id: string; question: string }[]
   gapAnalysis?: import('@/types').GapAnalysis
 }): Promise<TailorResult> {
-  return post('/api/tailor/generate', params)
+  return post('/api/tailor/generate', params, { timeoutMs: 125_000 })
 }
 
 /**

@@ -28,6 +28,7 @@ interface PipelineInput {
   /** Maps questionId → real question text so the model sees the actual gap question. */
   questionLabels?: Record<string, string>
   gapAnalysis?: GapAnalysis | null
+  githubContext?: string
   generate: GenerateFn
   models?: { strong: string; fast: string }
 }
@@ -66,6 +67,7 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
 
   const generatePrompt = TAILOR_GENERATE_PROMPT
     .replace('{structuredResume}', sliceForPrompt(resume, 5000))
+    .replace('{githubContext}', input.githubContext?.slice(0, 2500) ?? 'No GitHub repos synced.')
     .replace('{jobAnalysis}', sliceForPrompt(job, 2000))
     .replace('{enhancements}', enhancements)
     .replace('{realGaps}', realGaps)

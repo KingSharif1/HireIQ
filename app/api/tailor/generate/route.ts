@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { aiErrorResponse } from '@/lib/ai/error-response'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { getMasterResumeContext } from '@/lib/profile/master'
+import { formatGitHubContextForAi } from '@/lib/profile/github-context'
+import type { GitHubProfileData } from '@/lib/github/types'
 import { runTailorPipeline } from '@/lib/ai/tailor-pipeline'
 import type { GenerateFn } from '@/lib/ai/tailor-types'
 import { resolveAiRuntime } from '@/lib/ai/runtime'
@@ -65,16 +67,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: master.error }, { status: master.status })
   }
 
-  const { data: jobRow } = await supabase
-    .from('jobs')
-    .select('extracted_data, description')
-    .eq('id', jobId)
-    .eq('user_id', user.id)
-    .single()
+  const [{ data: jobRow }, { data: profileRow }] = await Promise.all([
+    supabase
+      .from('jobs')
+      .select('extracted_data, description')
+      .eq('id', jobId)
+      .eq('user_id', user.id)
+      .single(),
+    supabase.from('profiles').select('github_data').eq('id', user.id).maybeSingle(),
+  ])
 
   if (!jobRow?.extracted_data) {
     return NextResponse.json({ error: 'Job not found' }, { status: 404 })
   }
+
+  const githubContext = formatGitHubContextForAi(
+    profileRow?.github_data as GitHubProfileData | null | undefined
+  )
 
   const resume = master.structured
   const job = jobRow.extracted_data
@@ -105,6 +114,7 @@ export async function POST(request: Request) {
       answers: gapAnswers,
       questionLabels,
       gapAnalysis: gapAnalysis ?? null,
+      githubContext,
       generate: generateFn,
       models: ai.models,
     })

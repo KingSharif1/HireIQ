@@ -119,6 +119,9 @@ export const GAP_ANALYSIS_PROMPT = `You are a rigorous career analyst comparing 
 CANDIDATE PROFILE (resume + experience — treat as complete unless Q&A adds more):
 {structuredResume}
 
+GITHUB PROJECT CONTEXT (synced repos — README, stack, structure; use for Tier 1/2 evidence):
+{githubContext}
+
 TARGET JOB REQUIREMENTS:
 {jobRequirements}
 
@@ -212,6 +215,9 @@ export const TAILOR_GENERATE_PROMPT = `You are an expert resume writer. Tailor t
 
 ORIGINAL RESUME (master — do not invent beyond this + Q&A):
 {structuredResume}
+
+GITHUB PROJECT CONTEXT (synced repos — use for honest project bullets & skills):
+{githubContext}
 
 TARGET JOB ANALYSIS:
 {jobAnalysis}
