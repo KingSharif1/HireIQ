@@ -1,10 +1,11 @@
 import { distinctiveContinueSelectors } from './board'
+import { isGateLabel, isSubmitLabel } from '@/lib/apply/flow'
 
 const CONTINUE_LABEL =
-  /^(continue|next|proceed|save and continue|save & continue|continue application|go to application|start application)$/i
+  /^(continue|next|proceed|save and continue|save & continue|continue application|go to application|start application|apply|apply now|apply for this job|get started|continue as guest)$/i
 
 const CONTINUE_PARTIAL =
-  /\b(continue|next step|proceed|save and continue|save & continue)\b/i
+  /\b(continue|next step|proceed|save and continue|save & continue|start application|apply for this job|continue as guest)\b/i
 
 function isVisible(el: Element): boolean {
   if (!(el instanceof HTMLElement)) return false
@@ -29,8 +30,9 @@ function labelFor(el: Element): string {
 function scoreContinue(el: Element): number {
   const label = labelFor(el)
   if (!label) return 0
+  if (isSubmitLabel(label)) return 0
   let score = 0
-  if (CONTINUE_LABEL.test(label)) score += 10
+  if (isGateLabel(label) || CONTINUE_LABEL.test(label)) score += 10
   else if (CONTINUE_PARTIAL.test(label)) score += 6
   if (el instanceof HTMLButtonElement || el instanceof HTMLInputElement) score += 2
   if (el.getAttribute('type') === 'submit') score += 1
@@ -65,4 +67,26 @@ export function findContinueButton(doc: Document): { el: HTMLElement; label: str
 export function clickContinueButton(found: { el: HTMLElement }): void {
   found.el.scrollIntoView({ block: 'center', behavior: 'smooth' })
   found.el.click()
+}
+
+const IDENTITY_FIELD_SELECTOR = [
+  'input[type="email"]',
+  'input[autocomplete="email"]',
+  'input[autocomplete="given-name"]',
+  'input[name="first_name"]',
+  'input[name="job_application[first_name]"]',
+  'input[name="email"]',
+  'input[type="tel"]',
+  'input[autocomplete="family-name"]',
+].join(', ')
+
+function isVisibleField(el: Element): boolean {
+  if (!(el instanceof HTMLElement)) return false
+  if (el instanceof HTMLInputElement && (el.type === 'hidden' || el.disabled)) return false
+  return isVisible(el)
+}
+
+/** True when this page actually has name/email fields — not just another Continue screen. */
+export function pageHasIdentityFields(doc: Document): boolean {
+  return Array.from(doc.querySelectorAll(IDENTITY_FIELD_SELECTOR)).some(isVisibleField)
 }

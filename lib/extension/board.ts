@@ -38,7 +38,11 @@ const GREENHOUSE: BoardAdapter = {
     'input[value="Submit Application" i]',
     'button[aria-label="Submit Application" i]',
   ],
-  continueSelectors: [],
+  continueSelectors: [
+    'a[href="#app"]',
+    'a#apply_button',
+    '#apply_button',
+  ],
   resumeInputSelectors: ['input[name="resume"]', 'input#resume', 'input[type="file"][name*="resume" i]'],
   fieldKeys: {
     first_name: 'first_name',
@@ -59,7 +63,7 @@ const LEVER: BoardAdapter = {
   applyFieldSelectors: ['form#application-form', 'input[name="urls[LinkedIn]"]', 'input[name="resume"]'],
   postingSelectors: ['.posting-page', '.posting-description', '[data-qa="job-description"]'],
   submitSelectors: ['.template-btn-submit', 'button.template-btn-submit', 'input.template-btn-submit'],
-  continueSelectors: [],
+  continueSelectors: ['.postings-btn', 'a.postings-btn', 'button.postings-btn'],
   resumeInputSelectors: ['input[name="resume"]', 'input[type="file"][name="resume"]'],
   fieldKeys: {
     'urls linkedin': 'linkedin',
@@ -82,7 +86,10 @@ const ASHBY: BoardAdapter = {
     '#ashby-portal-root button[type="submit"]',
     '[data-testid="application-form"] button[type="submit"]',
   ],
-  continueSelectors: [],
+  continueSelectors: [
+    '#ashby-portal-root a[href*="application"]',
+    '[data-testid="apply-button"]',
+  ],
   resumeInputSelectors: [
     '#ashby-portal-root input[type="file"]',
     'input[name="_systemfield_resume"]',

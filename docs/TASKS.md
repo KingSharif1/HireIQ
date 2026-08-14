@@ -157,6 +157,15 @@ Files changed: `016_gmail_sync.sql`, `017_inbound_provider.sql`, `lib/google/*`,
 
 ---
 
+## Task 152 — Apply without forcing (Continue gates before fill)
+Status: DONE  
+Scope: `lib/apply/flow.ts`, `lib/apply/server-apply.ts`, `lib/extension/agentic-nav.ts`, extension agentic apply  
+Goal: Don’t force-fill on intro screens. Walk Continue/Apply/guest pages first; fill only visible fields; try fill then type; never treat Submit as Continue.  
+Result: Shared `nextApplyAction` / `nextFillApproach`. Server Playwright walks up to 6 gates. Extension Continue loops until identity fields appear.  
+Files changed: `lib/apply/{flow,server-apply}.ts`, `lib/extension/{agentic-nav,board}.ts`, `extension/src/agentic-apply.ts`, tests, AUTO-APPLY.md
+
+---
+
 ## Task 149 — BYOK AI key, model picker, usage/cost
 Status: DONE  
 Scope: Settings AI tab, `lib/ai/runtime`, usage events, migration 022  

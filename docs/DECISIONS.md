@@ -1,5 +1,24 @@
 # HireIQ Decisions
 
+## 2026-08-14 — Don’t force auto-apply (Task 152)
+
+**Context:** Hosted apply clicked Apply then immediately tried to fill. Many boards (Workday, Amazon-style, guest walls) show several Continue screens first.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Intro pages | Click Continue/Apply/guest/cookies only — **no fill** |
+| Cap | 6 gates, then `needs_user` |
+| Fill | Visible + empty fields only. Try fill, then type. Skip overwrite |
+| Submit | Never used as a Continue stand-in |
+| Failure | Don’t invent answers; ask the user |
+
+**Tradeoff:** Slower applies; fewer wrecked forms.
+
+**Revisit if:** A board needs more than 6 intros (raise cap per adapter, still no force-fill).
+
+---
+
 ## 2026-08-14 — BYOK Claude key + usage meters (Task 149)
 
 **Context:** Shared Anthropic credits ran out. Users need their own key, model choice, and visibility into which model runs where and what it costs.

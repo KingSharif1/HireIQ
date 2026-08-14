@@ -2,15 +2,15 @@
 
 **As of:** 2026-08-14  
 **Branch:** `main` · **Production:** https://hireiq.kingsharif.com  
-**Tests:** 226 unit · 11 live URL · extension **v0.9.9** · Task **148** worker live on Cloud Run (`hireiq-505323`)
+**Tests:** 260 unit · 11 live URL · extension **v0.9.9** · Task **148** worker live on Cloud Run (`hireiq-505323`)
 
 ## Session handoff
 
 | | |
 |--|--|
-| **Working on** | Task **147** extension assist CTA |
+| **Working on** | Task **152** apply Continue-gates (don’t force-fill) |
 | **Blocked** | Task 143 Google Auth provider |
-| **Next** | Settings → AI if Claude credits are empty · smoke auto-apply · Task **147** |
+| **Next** | Merge apply-gates PR · smoke Auto-apply · Task **147** |
 | **Roadmap** | [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md) |
 
 ## System snapshot

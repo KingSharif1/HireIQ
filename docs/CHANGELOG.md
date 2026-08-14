@@ -1,4 +1,13 @@
-## 2026-08-14 — Kill tailor credit loop
+## 2026-08-14 — Apply: walk Continue gates, don’t force-fill
+
+**What:** Auto-apply and extension Continue now wait through intro screens (Continue / Apply / guest / cookies) before touching fields. Fill only visible empty inputs (`fill` then type). Never treat Submit as Continue. If the form never appears, pause for the user.
+
+**Files:** `lib/apply/flow.ts`, `lib/apply/server-apply.ts`, `lib/extension/agentic-nav.ts`, `extension/src/agentic-apply.ts`, `lib/extension/board.ts`, AUTO-APPLY.md
+
+**Why:** Real ATS flows often have a few Continue pages before any name/email fields. Forcing a fill on the first page does nothing useful and can click the wrong control.
+
+---
+
 
 **What:** Opening AI tailor re-fired Claude on every React re-render because `onComplete` was a new function each time. Guard: run once per screen, ignore overlapping clicks, skip critique loop in fast mode (1 Claude call), reject overlapping POSTs (429).
 
