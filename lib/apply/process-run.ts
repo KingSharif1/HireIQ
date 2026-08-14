@@ -33,7 +33,7 @@ export async function processApplyRun(runId: string): Promise<{
       },
     })
     .eq('id', runId)
-    .in('status', ['queued', 'needs_user'])
+    .in('status', ['queued'])
     .select('id, user_id, application_id, job_id, result')
     .maybeSingle()
 

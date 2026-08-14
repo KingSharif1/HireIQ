@@ -11,6 +11,7 @@ import { isLastingCareerFact } from '@/lib/extension/draft-kind'
 import { AUTOFILL_DRAFTS_PROMPT, extractJSON } from '@/lib/ai/prompts'
 import { resolveAiRuntime } from '@/lib/ai/runtime'
 import { generateAiText } from '@/lib/ai/complete'
+import { withAiOnce, AiInFlightError } from '@/lib/ai/once'
 import type { ProfileData } from '@/types'
 
 export const runtime = 'nodejs'
@@ -256,15 +257,20 @@ export async function POST(request: Request) {
 
     try {
       const ai = await resolveAiRuntime(userId)
-      const result = await generateAiText({
-        runtime: ai,
-        feature: 'autofill_draft',
-        tier: 'fast',
-        prompt,
-        maxOutputTokens: 2500,
-      })
+      const result = await withAiOnce(`autofill:${userId}:${body.jobId || 'none'}`, () =>
+        generateAiText({
+          runtime: ai,
+          feature: 'autofill_draft',
+          tier: 'fast',
+          prompt,
+          maxOutputTokens: 2500,
+        }),
+      )
       aiDrafts = parseDrafts(result.text)
     } catch (err) {
+      if (err instanceof AiInFlightError) {
+        return NextResponse.json({ error: err.message }, { status: 429, headers })
+      }
       const message = err instanceof Error ? err.message : 'AI draft failed'
       return NextResponse.json({ error: message }, { status: 502, headers })
     }

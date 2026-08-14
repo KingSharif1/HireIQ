@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import { resolveAiRuntime } from '@/lib/ai/runtime'
 import { streamAiText } from '@/lib/ai/complete'
 import { aiErrorResponse } from '@/lib/ai/error-response'
+import { beginAiOnce, endAiOnce, AI_IN_FLIGHT_MESSAGE } from '@/lib/ai/once'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -58,32 +59,43 @@ Summary: ${resume.summary || 'Not provided'}
     .replace('{jobAnalysis}', JSON.stringify(job, null, 2).slice(0, 1500))
     .replace('{topExperiences}', topExperiences)
 
-  const result = streamAiText({
-    runtime: ai,
-    feature: 'cover_letter',
-    tier: 'strong',
-    prompt,
-    maxOutputTokens: 1024,
-    onText: async (text) => {
-      try {
-        const parsed = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1))
-        await supabase
-          .from('tailored_resumes')
-          .update({ cover_letter: parsed.cover_letter || text })
-          .eq('id', tailoredResumeId)
-      } catch {
-        await supabase
-          .from('tailored_resumes')
-          .update({ cover_letter: text })
-          .eq('id', tailoredResumeId)
-      }
-    },
-  })
+  const lockKey = `cover-letter:${user.id}:${tailoredResumeId}`
+  if (!beginAiOnce(lockKey)) {
+    return NextResponse.json({ error: AI_IN_FLIGHT_MESSAGE }, { status: 429 })
+  }
 
-  return result.toTextStreamResponse({
-    headers: {
-      'X-HireIQ-Model': ai.models.strong,
-      'X-HireIQ-Key-Source': ai.keySource,
-    },
-  })
+  try {
+    const result = streamAiText({
+      runtime: ai,
+      feature: 'cover_letter',
+      tier: 'strong',
+      prompt,
+      maxOutputTokens: 1024,
+      onSettled: () => endAiOnce(lockKey),
+      onText: async (text) => {
+        try {
+          const parsed = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1))
+          await supabase
+            .from('tailored_resumes')
+            .update({ cover_letter: parsed.cover_letter || text })
+            .eq('id', tailoredResumeId)
+        } catch {
+          await supabase
+            .from('tailored_resumes')
+            .update({ cover_letter: text })
+            .eq('id', tailoredResumeId)
+        }
+      },
+    })
+
+    return result.toTextStreamResponse({
+      headers: {
+        'X-HireIQ-Model': ai.models.strong,
+        'X-HireIQ-Key-Source': ai.keySource,
+      },
+    })
+  } catch (err) {
+    endAiOnce(lockKey)
+    return aiErrorResponse(err, 'Failed to generate cover letter')
+  }
 }

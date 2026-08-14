@@ -29,9 +29,11 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   let submit = false;
+  let force = false;
   try {
-    const body = (await request.json()) as { submit?: boolean };
+    const body = (await request.json()) as { submit?: boolean; force?: boolean };
     submit = body.submit === true;
+    force = body.force === true;
   } catch {
     /* empty body OK */
   }
@@ -41,6 +43,7 @@ export async function POST(request: Request, context: RouteContext) {
       userId: user.id,
       jobId,
       submit,
+      force,
     });
 
     let dispatch = await dispatchApplyWorker(run.id);

@@ -4,6 +4,7 @@ import { GAP_ANALYSIS_PROMPT, extractJSON } from '@/lib/ai/prompts'
 import { aiErrorResponse } from '@/lib/ai/error-response'
 import { resolveAiRuntime } from '@/lib/ai/runtime'
 import { generateAiText } from '@/lib/ai/complete'
+import { withAiOnce } from '@/lib/ai/once'
 import { normalizeGapAnalysis } from '@/lib/ai/gap-analysis'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { getMasterResumeContext } from '@/lib/profile/master'
@@ -105,13 +106,15 @@ export async function POST(request: Request) {
   let gapAnalysis
   try {
     log.step('Claude gap analysis', 'Comparing profile to job…', 'pending')
-    const result = await generateAiText({
-      runtime: ai,
-      feature: 'gap_questions',
-      tier: 'strong',
-      prompt,
-      maxOutputTokens: 2500,
-    })
+    const result = await withAiOnce(`gap_questions:${user.id}:${jobId}`, () =>
+      generateAiText({
+        runtime: ai,
+        feature: 'gap_questions',
+        tier: 'strong',
+        prompt,
+        maxOutputTokens: 2500,
+      }),
+    )
     gapAnalysis = normalizeGapAnalysis(JSON.parse(extractJSON(result.text)))
     log.entries[log.entries.length - 1] = {
       ...log.entries[log.entries.length - 1],

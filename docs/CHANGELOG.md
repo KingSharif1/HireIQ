@@ -1,3 +1,12 @@
+## 2026-08-14 — Never retry paid AI / apply on failure
+
+**What:** Hard stop after one attempt. The Vercel AI SDK default of **2 retries** (3 paid Claude calls) is now `maxRetries: 0`. Tailor is one rewrite, no critique loop. Overlapping tailor/gap/analyze/parse/autofill/cover-letter calls return 429. Auto-apply will not re-queue a failed/finished run unless the user explicitly starts a new billed run. If it fails, it stops.
+
+**Files:** `lib/ai/{complete,once,models,tailor-pipeline}.ts`, AI API routes, `CoverLetterPanel.tsx`, `AutoApplyWithHireIQ.tsx`, `lib/apply/queue.ts`, `lib/apply/process-run.ts`, jobs page, extension autofill
+
+**Why:** A React re-render loop plus SDK retries burned Anthropic credits. User rule: mess up → stop, don’t loop to “fix” it.
+
+---
 ## 2026-08-14 — Kill tailor credit loop
 
 **What:** Opening AI tailor re-fired Claude on every React re-render because `onComplete` was a new function each time. Guard: run once per screen, ignore overlapping clicks, skip critique loop in fast mode (1 Claude call), reject overlapping POSTs (429).

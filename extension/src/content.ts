@@ -1643,6 +1643,7 @@ function ensureUi() {
   })
 
   autofillBtn.addEventListener('click', async () => {
+    if (autofillBtn.disabled) return
     autofillBtn.disabled = true
     reviewItems = []
     expandedReviewIdx = null

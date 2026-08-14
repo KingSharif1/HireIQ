@@ -157,6 +157,15 @@ Files changed: `016_gmail_sync.sql`, `017_inbound_provider.sql`, `lib/google/*`,
 
 ---
 
+## Task 150 — Never retry paid AI / auto-apply / autofill
+Status: DONE  
+Scope: `lib/ai/*`, AI API routes, auto-apply queue/UI, extension autofill, cover letter  
+Goal: If a paid Claude call or auto-apply messes up, **stop**. Do not loop, critique-retry, or SDK-retry to “fix” it.  
+Result: AI SDK `maxRetries: 0`; tailor pipeline 1 call; once-guards (429); auto-apply refuses re-queue after fail unless explicit new run.  
+Files changed: `lib/ai/{complete,once,models,tailor-pipeline}.ts`, AI routes, `AutoApplyWithHireIQ.tsx`, `lib/apply/queue.ts`, `CoverLetterPanel.tsx`, docs
+
+---
+
 ## Task 149 — BYOK AI key, model picker, usage/cost
 Status: DONE  
 Scope: Settings AI tab, `lib/ai/runtime`, usage events, migration 022  

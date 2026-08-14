@@ -1,6 +1,23 @@
 # HireIQ Decisions
 
-## 2026-08-14 — BYOK Claude key + usage meters (Task 149)
+## 2026-08-14 — Never retry paid AI or auto-apply (Task 150)
+
+**Context:** A tailor React loop plus the AI SDK’s default 2 retries burned Anthropic credits. User: if it messes up, do not loop to fix it — especially auto-apply and autofill.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Claude SDK | `maxRetries: 0` on every `generateText` / `streamText` |
+| Tailor | Exactly one rewrite. No critique/retry loop |
+| Overlap | In-flight lock → 429, do not start a second paid call |
+| Auto-apply | One queue attempt. Failed/applied/needs_user does not re-queue unless user clicks “Start a new run (billed again)” |
+| Autofill drafts | One Haiku call per click; overlap → 429 |
+
+**Tradeoff:** Transient Anthropic blips fail instead of succeeding on retry. Credits > convenience.
+
+**Revisit if:** Anthropic 5xx becomes common enough that a single retry is cheaper than user frustration — still cap at 1 extra, never a loop.
+
+---
 
 **Context:** Shared Anthropic credits ran out. Users need their own key, model choice, and visibility into which model runs where and what it costs.
 

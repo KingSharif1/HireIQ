@@ -33,10 +33,11 @@ const CONNECT_STAGES = [
 ] as const
 
 const GENERATE_STAGES = [
-  { id: 'draft', label: 'Drafting tailored resume', detail: 'Matching keywords to your experience' },
-  { id: 'critique', label: 'Critiquing & refining', detail: 'Checking claims stay honest' },
-  { id: 'score', label: 'Scoring match', detail: 'Calculating ATS fit' },
+  { id: 'draft', label: 'Drafting tailored resume', detail: 'One Claude rewrite — no retry loop' },
+  { id: 'score', label: 'Scoring match', detail: 'Local ATS score, not another AI call' },
 ] as const
+
+const STOPPED_NO_RETRY = ' We stopped — we will not retry automatically.'
 
 type FlowPhase = 'connect' | 'questions' | 'generate' | 'review'
 
@@ -184,10 +185,10 @@ export function AiTailorFlow({
       if (err instanceof APIError) {
         mergeServerLog(err.details?.processLog as TailorProcessLogEntry[] | undefined)
         appendLog('Tailoring failed', err.message, 'error')
-        setError(err.message)
+        setError(err.message + STOPPED_NO_RETRY)
       } else {
         appendLog('Tailoring failed', 'Unknown error', 'error')
-        setError('Tailoring failed')
+        setError('Tailoring failed.' + STOPPED_NO_RETRY)
       }
       setPhase('generate')
       setLogExpanded(true)
@@ -197,6 +198,8 @@ export function AiTailorFlow({
   }, [appendLog, jobId, mergeServerLog])
 
   const loadQuestions = useCallback(async () => {
+    if (inFlightRef.current) return
+    inFlightRef.current = true
     setPhase('connect')
     setError(null)
     setConnectDetail(undefined)
@@ -238,14 +241,16 @@ export function AiTailorFlow({
       if (err instanceof APIError) {
         mergeServerLog(err.details?.processLog as TailorProcessLogEntry[] | undefined)
         appendLog('Gap analysis failed', err.message, 'error')
-        setError(err.message)
+        setError(err.message + STOPPED_NO_RETRY)
       } else {
         appendLog('Gap analysis failed', 'Could not analyze gaps', 'error')
-        setError('Could not analyze gaps')
+        setError('Could not analyze gaps.' + STOPPED_NO_RETRY)
       }
       setPhase('connect')
       setConnectIndex(0)
       setLogExpanded(true)
+    } finally {
+      inFlightRef.current = false
     }
   }, [appendLog, jobId, mergeServerLog])
 
@@ -257,18 +262,22 @@ export function AiTailorFlow({
   }, [runQuickTailor, reviewOnly])
 
   async function runGenerate() {
+    if (inFlightRef.current) return
+    inFlightRef.current = true
     setPhase('generate')
     setGenerateIndex(0)
     setError(null)
     setLogExpanded(true)
     appendLog('Starting tailor generate', `${Object.keys(answers).length} answer(s) sent`, 'pending')
+    let tick: number | undefined
+    let longWait: number | undefined
     try {
-      const tick = window.setInterval(() => {
+      tick = window.setInterval(() => {
         setGenerateIndex(i => Math.min(i + 1, GENERATE_STAGES.length - 1))
       }, 4200)
 
-      const longWait = window.setTimeout(() => {
-        appendLog('Still tailoring', 'Draft + critique passes can take up to 2 minutes', 'pending')
+      longWait = window.setTimeout(() => {
+        appendLog('Still tailoring', 'One Claude rewrite can take up to a minute', 'pending')
       }, 25_000)
 
       appendLog('Calling /api/tailor/generate', undefined, 'pending')
@@ -280,8 +289,6 @@ export function AiTailorFlow({
         gapAnalysis: gapAnalysis ?? undefined,
       })
 
-      window.clearInterval(tick)
-      window.clearTimeout(longWait)
       mergeServerLog(result.processLog)
       setGenerateIndex(GENERATE_STAGES.length - 1)
 
@@ -312,13 +319,17 @@ export function AiTailorFlow({
       if (err instanceof APIError) {
         mergeServerLog(err.details?.processLog as TailorProcessLogEntry[] | undefined)
         appendLog('Tailoring failed', err.message, 'error')
-        setError(err.message)
+        setError(err.message + STOPPED_NO_RETRY)
       } else {
         appendLog('Tailoring failed', 'Unknown error', 'error')
-        setError('Tailoring failed')
+        setError('Tailoring failed.' + STOPPED_NO_RETRY)
       }
       setPhase('questions')
       setLogExpanded(true)
+    } finally {
+      if (tick) window.clearInterval(tick)
+      if (longWait) window.clearTimeout(longWait)
+      inFlightRef.current = false
     }
   }
 
@@ -380,7 +391,7 @@ export function AiTailorFlow({
               {phase === 'review' ? 'Review AI changes' : 'AI resume tailor'}
             </h1>
             <div className="mt-0.5">
-              <AiModelHint uses="strong+fast" />
+              <AiModelHint uses="strong" />
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -405,7 +416,7 @@ export function AiTailorFlow({
           {error}
           <div className="mt-2 flex flex-wrap gap-2">
             <Button type="button" size="sm" variant="outline" onClick={() => void runQuickTailor()}>
-              Retry tailor
+              Run once more (uses credits)
             </Button>
             <Button type="button" size="sm" variant="ghost" onClick={() => void loadQuestions()}>
               Try gap questions (slower)

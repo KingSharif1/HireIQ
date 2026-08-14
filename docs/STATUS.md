@@ -8,9 +8,9 @@
 
 | | |
 |--|--|
-| **Working on** | Task **147** extension assist CTA |
+| **Working on** | Task **150** never retry paid AI / auto-apply |
 | **Blocked** | Task 143 Google Auth provider |
-| **Next** | Settings → AI if Claude credits are empty · smoke auto-apply · Task **147** |
+| **Next** | Deploy Task 150 · Settings → AI if Claude credits are empty · smoke auto-apply · Task **147** |
 | **Roadmap** | [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md) |
 
 ## System snapshot

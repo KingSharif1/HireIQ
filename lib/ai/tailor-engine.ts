@@ -70,8 +70,8 @@ export function passesTailorGate(critique: TailorCritiqueReport): boolean {
   return critique.language_overlap_percent >= TAILOR_OVERLAP_GATE && unsupported.length === 0
 }
 
-export function shouldRetryLoop(attempt: number, critique: TailorCritiqueReport): boolean {
-  return attempt < TAILOR_MAX_RETRIES && !passesTailorGate(critique)
+export function shouldRetryLoop(_attempt: number, _critique: TailorCritiqueReport): boolean {
+  return false
 }
 
 export function normalizeCritique(raw: Partial<TailorCritiqueReport>): TailorCritiqueReport {

@@ -4,6 +4,7 @@ import { JOB_ANALYZER_PROMPT, extractJSON } from '@/lib/ai/prompts'
 import { aiErrorResponse } from '@/lib/ai/error-response'
 import { resolveAiRuntime } from '@/lib/ai/runtime'
 import { generateAiText } from '@/lib/ai/complete'
+import { withAiOnce, AiInFlightError } from '@/lib/ai/once'
 import type { JobExtractedData } from '@/types'
 
 export const runtime = 'nodejs'
@@ -29,14 +30,16 @@ export async function POST(request: Request) {
 
   let extractedData: JobExtractedData
   try {
-    const result = await generateAiText({
-      runtime: ai,
-      feature: 'job_analyze',
-      tier: 'strong',
-      prompt,
-      maxOutputTokens: 2048,
+    extractedData = await withAiOnce(`job_analyze:${user.id}`, async () => {
+      const result = await generateAiText({
+        runtime: ai,
+        feature: 'job_analyze',
+        tier: 'strong',
+        prompt,
+        maxOutputTokens: 2048,
+      })
+      return JSON.parse(extractJSON(result.text)) as JobExtractedData
     })
-    extractedData = JSON.parse(extractJSON(result.text))
   } catch (err) {
     return aiErrorResponse(err, 'Failed to analyze job description')
   }

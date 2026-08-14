@@ -83,11 +83,10 @@ Paste JD or job URL
     → app/api/jobs/fetch-url → lib/jobs/job-scraper.ts
     → app/api/jobs/analyze → Claude (PROMPT 2) via `lib/ai/runtime.ts` (HireIQ key or user BYOK) → jobs.extracted_data JSONB
 
-Tailor flow (Zustand store, 5 steps)
-    → app/api/tailor/score     → lib/scoring/ats-scorer (no AI)
-    → app/api/tailor/questions → lib/ai/gap-analysis.ts + Claude (PROMPT 3) → 3-tier gaps + max 3 questions
-    → GapAnalysisSummary UI on step 4 before Q&A
-    → app/api/tailor/generate  → lib/ai/tailor-pipeline.ts → tailored_resumes + changes JSONB
+Tailor flow (one Claude rewrite — no retry)
+    → GET /api/tailor/context (DB only)
+    → POST /api/tailor/generate  → lib/ai/tailor-pipeline.ts (1 `generateText`, `maxRetries: 0`)
+    → tailored_resumes + changes JSONB
     → app/api/tailor/[id]/decisions → lib/tailor/change-decisions.ts (accept/decline/edit per change)
     → Job Hub Changes tab → components/tailor/TailorDiff.tsx
     → app/api/export/pdf|docx  → approved resume only; blocks if changes pending

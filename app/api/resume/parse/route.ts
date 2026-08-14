@@ -4,6 +4,7 @@ import { RESUME_PARSER_PROMPT, extractJSON } from '@/lib/ai/prompts'
 import { aiErrorResponse } from '@/lib/ai/error-response'
 import { resolveAiRuntime } from '@/lib/ai/runtime'
 import { generateAiText } from '@/lib/ai/complete'
+import { withAiOnce } from '@/lib/ai/once'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { buildProfileSeedFromParse, profileRowUpdatesFromSeed } from '@/lib/profile/master'
 import type { StructuredResume, Profile } from '@/types'
@@ -72,16 +73,18 @@ export async function POST(request: Request) {
 
   let structuredData: StructuredResume
   try {
-    const result = await generateAiText({
-      runtime: ai,
-      feature: 'resume_parse',
-      tier: 'strong',
-      prompt,
-      maxOutputTokens: 4096,
+    structuredData = await withAiOnce(`resume_parse:${user.id}`, async () => {
+      const result = await generateAiText({
+        runtime: ai,
+        feature: 'resume_parse',
+        tier: 'strong',
+        prompt,
+        maxOutputTokens: 4096,
+      })
+      return JSON.parse(extractJSON(result.text)) as StructuredResume
     })
-    structuredData = JSON.parse(extractJSON(result.text))
   } catch (err) {
-    return aiErrorResponse(err, 'Failed to parse resume with AI. Please try again.')
+    return aiErrorResponse(err, 'Failed to parse resume with AI.')
   }
 
   // Format score (no job needed — just format quality)
