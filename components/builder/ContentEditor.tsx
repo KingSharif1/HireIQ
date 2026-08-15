@@ -18,6 +18,8 @@ interface ContentEditorProps {
   showProvenance?: boolean
   /** Row ids to highlight (bullet id, exp id, `summary`, `skills`, project id). */
   highlightIds?: string[]
+  /** Ids marked as brand-new tailor additions (show New badge). */
+  newAdditionIds?: string[]
 }
 
 function SectionShell({
@@ -86,6 +88,14 @@ function CheckRow({
   )
 }
 
+function NewBadge() {
+  return (
+    <span className="ml-1 inline-flex items-center rounded-md bg-teal-600/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-teal-800 dark:text-teal-300">
+      New
+    </span>
+  )
+}
+
 function renameSkill(skills: ResumeSkills, oldLabel: string, nextLabel: string): ResumeSkills {
   const id = canonicalSkillId(oldLabel)
   const trimmed = nextLabel.trim()
@@ -108,8 +118,10 @@ export function ContentEditor({
   onUpdate,
   showProvenance = true,
   highlightIds = [],
+  newAdditionIds = [],
 }: ContentEditorProps) {
   const marked = new Set(highlightIds)
+  const isNew = new Set(newAdditionIds)
   const [open, setOpen] = useState<Record<string, boolean>>({
     contact: true,
     title: true,
@@ -167,7 +179,7 @@ export function ContentEditor({
             )
           }
         >
-          <div className="space-y-1">
+          <div className="space-y-2">
             <EditableText
               value={[data.personal.firstName, data.personal.lastName].filter(Boolean).join(' ')}
               displayClassName="font-medium"
@@ -184,9 +196,27 @@ export function ContentEditor({
                 })
               }}
             />
-            <p className="text-xs text-muted-foreground">
-              {[data.personal.email, data.personal.phone, data.personal.location].filter(Boolean).join(' · ')}
-            </p>
+            <EditableText
+              value={data.personal.email}
+              displayClassName="text-xs text-muted-foreground"
+              label="Edit email"
+              placeholder="Email"
+              onSave={next => onUpdate({ personal: { ...data.personal, email: next } })}
+            />
+            <EditableText
+              value={data.personal.phone}
+              displayClassName="text-xs text-muted-foreground"
+              label="Edit phone"
+              placeholder="Phone"
+              onSave={next => onUpdate({ personal: { ...data.personal, phone: next } })}
+            />
+            <EditableText
+              value={data.personal.location}
+              displayClassName="text-xs text-muted-foreground"
+              label="Edit location"
+              placeholder="Location"
+              onSave={next => onUpdate({ personal: { ...data.personal, location: next } })}
+            />
           </div>
         </CheckRow>
       </SectionShell>
@@ -215,6 +245,7 @@ export function ContentEditor({
         open={!!open.summary}
         onToggle={() => toggle('summary')}
         highlighted={marked.has('summary')}
+        actions={isNew.has('summary') ? <NewBadge /> : null}
       >
         <CheckRow
           checked={isIncluded(inclusion, 'section', 'summary')}
@@ -263,19 +294,22 @@ export function ContentEditor({
                   }
                   className="font-medium"
                 >
-                  <EditableText
-                    value={exp.company}
-                    displayClassName="font-medium"
-                    placeholder="Company"
-                    label="Edit company"
-                    onSave={next =>
-                      onUpdate({
-                        experience: data.experience.map(e =>
-                          e.id === exp.id ? { ...e, company: next } : e
-                        ),
-                      })
-                    }
-                  />
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {isNew.has(exp.id) ? <NewBadge /> : null}
+                    <EditableText
+                      value={exp.company}
+                      displayClassName="font-medium"
+                      placeholder="Company"
+                      label="Edit company"
+                      onSave={next =>
+                        onUpdate({
+                          experience: data.experience.map(e =>
+                            e.id === exp.id ? { ...e, company: next } : e
+                          ),
+                        })
+                      }
+                    />
+                  </div>
                 </CheckRow>
                 <div className="pl-6 pr-2 pb-2 space-y-1">
                   <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm px-2 py-1">
@@ -320,28 +354,31 @@ export function ContentEditor({
                           )
                         }
                       >
-                        <EditableText
-                          multiline
-                          value={bullet}
-                          displayClassName="text-muted-foreground"
-                          placeholder="Bullet"
-                          label="Edit bullet"
-                          onSave={next =>
-                            onUpdate({
-                              experience: data.experience.map(e =>
-                                e.id === exp.id
-                                  ? {
-                                      ...e,
-                                      bullets: e.bullets.map((b, i) => (i === bi ? next : b)),
-                                    }
-                                  : e
-                              ),
-                            })
-                          }
-                        />
-                        {label && (
-                          <span className="block text-[10px] text-brand-purple mt-0.5">{label}</span>
-                        )}
+                        <div className="space-y-1">
+                          {isNew.has(id) || isNew.has(exp.id) ? <NewBadge /> : null}
+                          <EditableText
+                            multiline
+                            value={bullet}
+                            displayClassName="text-muted-foreground"
+                            placeholder="Bullet"
+                            label="Edit bullet"
+                            onSave={next =>
+                              onUpdate({
+                                experience: data.experience.map(e =>
+                                  e.id === exp.id
+                                    ? {
+                                        ...e,
+                                        bullets: e.bullets.map((b, i) => (i === bi ? next : b)),
+                                      }
+                                    : e
+                                ),
+                              })
+                            }
+                          />
+                          {label && (
+                            <span className="block text-[10px] text-brand-purple mt-0.5">{label}</span>
+                          )}
+                        </div>
                       </CheckRow>
                     )
                   })}

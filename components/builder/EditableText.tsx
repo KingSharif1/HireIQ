@@ -7,22 +7,28 @@ import { cn } from '@/lib/utils'
 type EditableTextProps = {
   value: string
   onSave: (next: string) => void
+  /** Live preview while typing (optional). */
+  onLiveChange?: (next: string) => void
   multiline?: boolean
   className?: string
   displayClassName?: string
   placeholder?: string
   label?: string
+  /** Always show an Edit control (mobile). Desktop still gets hover affordance. */
+  alwaysShowEdit?: boolean
 }
 
-/** Teal-style pen: tap to edit the actual text, not just include/exclude. */
+/** Teal-style edit: hover Edit on desktop, always-visible Edit on mobile. */
 export function EditableText({
   value,
   onSave,
+  onLiveChange,
   multiline = false,
   className,
   displayClassName,
   placeholder = 'Add text…',
-  label = 'Edit text',
+  label = 'Edit',
+  alwaysShowEdit = true,
 }: EditableTextProps) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(value)
@@ -32,14 +38,19 @@ export function EditableText({
   }, [value, editing])
 
   function commit() {
-    const next = draft.trim()
-    if (next !== value.trim()) onSave(draft)
+    onSave(draft)
     setEditing(false)
   }
 
   function cancel() {
     setDraft(value)
+    onLiveChange?.(value)
     setEditing(false)
+  }
+
+  function updateDraft(next: string) {
+    setDraft(next)
+    onLiveChange?.(next)
   }
 
   if (editing) {
@@ -55,7 +66,7 @@ export function EditableText({
             rows={4}
             className={cn(shared, 'min-h-[88px] resize-y')}
             value={draft}
-            onChange={e => setDraft(e.target.value)}
+            onChange={e => updateDraft(e.target.value)}
             placeholder={placeholder}
             aria-label={label}
           />
@@ -64,7 +75,7 @@ export function EditableText({
             autoFocus
             className={shared}
             value={draft}
-            onChange={e => setDraft(e.target.value)}
+            onChange={e => updateDraft(e.target.value)}
             onKeyDown={e => {
               if (e.key === 'Enter') commit()
               if (e.key === 'Escape') cancel()
@@ -76,14 +87,14 @@ export function EditableText({
         <div className="flex gap-2">
           <button
             type="button"
-            className="rounded-md bg-teal-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-teal-700"
+            className="rounded-md bg-teal-600 px-2.5 py-1.5 text-[11px] font-medium text-white hover:bg-teal-700"
             onClick={commit}
           >
-            Done
+            Save
           </button>
           <button
             type="button"
-            className="rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground"
+            className="rounded-md px-2.5 py-1.5 text-[11px] text-muted-foreground hover:text-foreground"
             onClick={cancel}
           >
             Cancel
@@ -94,8 +105,14 @@ export function EditableText({
   }
 
   return (
-    <div className={cn('group/edit flex items-start gap-1.5', className)}>
-      <p className={cn('flex-1 min-w-0 whitespace-pre-wrap', displayClassName, !value && 'text-muted-foreground italic')}>
+    <div className={cn('group/edit flex items-start gap-2', className)}>
+      <p
+        className={cn(
+          'flex-1 min-w-0 whitespace-pre-wrap',
+          displayClassName,
+          !value && 'text-muted-foreground italic'
+        )}
+      >
         {value || placeholder}
       </p>
       <button
@@ -107,9 +124,16 @@ export function EditableText({
           e.stopPropagation()
           setEditing(true)
         }}
-        className="mt-0.5 shrink-0 rounded-md p-1 text-teal-700 opacity-100 hover:bg-teal-600/10 md:opacity-0 md:group-hover/edit:opacity-100 dark:text-teal-400"
+        className={cn(
+          'mt-0.5 shrink-0 inline-flex items-center gap-1 rounded-md border border-teal-600/30 bg-teal-600/5 px-2 py-1 text-[11px] font-medium text-teal-800 dark:text-teal-300',
+          alwaysShowEdit
+            ? 'opacity-100'
+            : 'opacity-100 md:opacity-0 md:group-hover/edit:opacity-100',
+          'hover:bg-teal-600/15'
+        )}
       >
-        <Pencil className="h-3.5 w-3.5" />
+        <Pencil className="h-3 w-3" />
+        <span>Edit</span>
       </button>
     </div>
   )

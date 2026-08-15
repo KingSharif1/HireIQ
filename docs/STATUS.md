@@ -8,9 +8,9 @@
 
 | | |
 |--|--|
-| **Working on** | Task **152** better tailor + edit (questions, pen, mobile design, match highlights) |
+| **Working on** | Task **152** edit-mode polish on PR #19 |
 | **Blocked** | Task 143 Google Auth provider |
-| **Next** | Merge this PR · smoke an Apple tailor that **asks** on ATS gaps · Task **147** |
+| **Next** | Merge PR #19 · smoke Apple tailor + mobile Edit/Match · Task **147** |
 | **Roadmap** | [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md) |
 
 ## System snapshot

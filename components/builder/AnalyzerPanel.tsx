@@ -3,15 +3,30 @@
 import { checkResumeHealth } from '@/lib/resume/health'
 import { profileDataToStructuredResume } from '@/lib/profile/data'
 import { cn, scoreColor } from '@/lib/utils'
-import { describeResumeChange, changeLocationLabel } from '@/lib/tailor/change-copy'
-import type { ATSScore, ProfileData, ResumeDiffChange } from '@/types'
+import {
+  describeResumeChange,
+  changeLocationLabel,
+  isNewAddition,
+} from '@/lib/tailor/change-copy'
+import { buildOptimizationBrief } from '@/lib/tailor/optimization-brief'
+import type {
+  ATSScore,
+  ChangeDecision,
+  JobExtractedData,
+  ProfileData,
+  ResumeDiffChange,
+} from '@/types'
+import { Check, X } from 'lucide-react'
 
 interface AnalyzerPanelProps {
   data: ProfileData
   score?: ATSScore | null
+  job?: JobExtractedData | null
   changes?: ResumeDiffChange[]
   selectedChangeId?: string | null
   onSelectChange?: (id: string | null) => void
+  decisions?: Record<string, ChangeDecision>
+  onDecision?: (id: string, status: 'accepted' | 'declined') => void
 }
 
 function asText(value: string | string[] | undefined): string {
@@ -22,14 +37,18 @@ function asText(value: string | string[] | undefined): string {
 export function AnalyzerPanel({
   data,
   score = null,
+  job = null,
   changes = [],
   selectedChangeId = null,
   onSelectChange,
+  decisions = {},
+  onDecision,
 }: AnalyzerPanelProps) {
   const structured = profileDataToStructuredResume(data)
   const checks = checkResumeHealth({ data: structured, pageCount: 1, recommendedPages: 1 })
   const issues = checks.filter(c => c.severity !== 'good')
-  const jobMode = Boolean(score)
+  const jobMode = Boolean(score || job || changes.length > 0)
+  const brief = buildOptimizationBrief(score, changes, job)
 
   return (
     <div className="space-y-5">
@@ -37,12 +56,28 @@ export function AnalyzerPanel({
         <h2 className="text-lg font-semibold text-foreground">{jobMode ? 'Match' : 'Analyzer'}</h2>
         <p className="text-sm text-muted-foreground mt-1">
           {jobMode
-            ? 'What changed for this job, what ATS still wants, and whether a recruiter can skim it.'
+            ? brief.headline
             : issues.length === 0
               ? 'Looking solid — no major issues.'
               : `${issues.length} issue${issues.length === 1 ? '' : 's'} to review on your master resume.`}
         </p>
       </div>
+
+      {jobMode ? (
+        <div className="rounded-xl border border-teal-600/25 bg-teal-600/5 p-4 space-y-2">
+          <p className="text-sm font-semibold text-foreground">How this helps your interview odds</p>
+          <p className="text-sm text-foreground/90">{brief.oddsLine}</p>
+          {brief.bullets.length > 0 ? (
+            <ul className="space-y-1.5 mt-2">
+              {brief.bullets.map(line => (
+                <li key={line} className="text-xs text-muted-foreground leading-snug pl-3 relative before:absolute before:left-0 before:content-['•']">
+                  {line}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
 
       {score ? (
         <div className="rounded-xl border border-border bg-card p-4 space-y-3">
@@ -71,7 +106,7 @@ export function AnalyzerPanel({
                 ))}
               </div>
               <p className="text-[11px] text-muted-foreground mt-2">
-                Add only if you actually used them — tap the teal pen on Content to write it into a real bullet.
+                Add only if you actually used them — tap Edit on Content and write it into a real bullet.
               </p>
             </div>
           ) : (
@@ -83,9 +118,12 @@ export function AnalyzerPanel({
       {jobMode ? (
         <div className="space-y-2">
           <h3 className="text-sm font-semibold text-foreground">What was updated</h3>
+          <p className="text-[11px] text-muted-foreground">
+            Tap a change to highlight it on the preview (and jump to Preview on mobile). New additions need Accept; rewrites of what you already had are kept automatically.
+          </p>
           {changes.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No tracked edits yet. Tailor this job or use the pen on Content — changes show here and on the preview.
+              No tracked edits yet. Tailor this job or use Edit on Content — changes show here and on the preview.
             </p>
           ) : (
             <ul className="space-y-2">
@@ -94,8 +132,10 @@ export function AnalyzerPanel({
                 const selected = selectedChangeId === id
                 const before = asText(change.before)
                 const after = asText(change.after)
+                const needsAccept = isNewAddition(change)
+                const status = decisions[id]?.status ?? (needsAccept ? 'pending' : 'accepted')
                 return (
-                  <li key={id}>
+                  <li key={id} className="space-y-1.5">
                     <button
                       type="button"
                       onClick={() => onSelectChange?.(selected ? null : id)}
@@ -109,10 +149,10 @@ export function AnalyzerPanel({
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-xs font-semibold text-teal-800 dark:text-teal-300">
                           {changeLocationLabel(change)}
-                          {change.changeType ? ` · ${change.changeType}` : ''}
+                          {needsAccept ? ' · New' : change.changeType ? ` · ${change.changeType}` : ''}
                         </p>
                         <span className="text-[10px] text-muted-foreground">
-                          {selected ? 'Showing on preview' : 'Tap to highlight'}
+                          {selected ? 'On preview' : 'Highlight'}
                         </span>
                       </div>
                       <p className="text-sm text-foreground mt-1">{describeResumeChange(change)}</p>
@@ -127,6 +167,30 @@ export function AnalyzerPanel({
                         </div>
                       ) : null}
                     </button>
+                    {needsAccept && status === 'pending' && onDecision ? (
+                      <div className="flex gap-2 px-1">
+                        <button
+                          type="button"
+                          className="inline-flex flex-1 items-center justify-center gap-1 rounded-md bg-teal-600 px-2 py-1.5 text-xs font-medium text-white"
+                          onClick={() => onDecision(id, 'accepted')}
+                        >
+                          <Check className="h-3.5 w-3.5" /> Accept new
+                        </button>
+                        <button
+                          type="button"
+                          className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-border px-2 py-1.5 text-xs font-medium text-muted-foreground"
+                          onClick={() => onDecision(id, 'declined')}
+                        >
+                          <X className="h-3.5 w-3.5" /> Remove
+                        </button>
+                      </div>
+                    ) : null}
+                    {needsAccept && status === 'accepted' ? (
+                      <p className="px-1 text-[10px] text-teal-700 dark:text-teal-400">Accepted — stays on this resume</p>
+                    ) : null}
+                    {needsAccept && status === 'declined' ? (
+                      <p className="px-1 text-[10px] text-muted-foreground">Removed from this draft</p>
+                    ) : null}
                   </li>
                 )
               })}

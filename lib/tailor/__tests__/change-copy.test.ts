@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   describeResumeChange,
   highlightsFromChanges,
+  isNewAddition,
   reasonForChange,
 } from '@/lib/tailor/change-copy'
 import type { ResumeDiffChange } from '@/types'
@@ -63,5 +64,37 @@ describe('highlightsFromChanges', () => {
     expect(marks.experienceIds.has('exp-1')).toBe(true)
     expect(marks.bullets.has('New tailored bullet')).toBe(true)
     expect(marks.bullets.has('Old bullet')).toBe(false)
+  })
+})
+
+describe('isNewAddition', () => {
+  it('treats added bullets as new; pure rewrites as not', () => {
+    expect(
+      isNewAddition({
+        section: 'summary',
+        field: 'text',
+        before: 'Old',
+        after: 'New for Apple',
+        changeType: 'changed',
+      })
+    ).toBe(false)
+    expect(
+      isNewAddition({
+        section: 'experience',
+        field: 'bullets',
+        before: ['A'],
+        after: ['A', 'Brand new bullet'],
+        changeType: 'changed',
+      })
+    ).toBe(true)
+    expect(
+      isNewAddition({
+        section: 'experience',
+        field: 'entry',
+        before: '',
+        after: 'SE @ Acme',
+        changeType: 'added',
+      })
+    ).toBe(true)
   })
 })

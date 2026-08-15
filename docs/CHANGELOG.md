@@ -1,4 +1,15 @@
-## 2026-08-14 — Task 152: Better tailor + real edit
+## 2026-08-15 — Task 152b: Edit mode polish (live preview, mobile Edit, Match analysis)
+
+**What:** Content Edit button always visible (esp. mobile); contact fields editable with live preview; Match explains interview odds + Accept only for **new** additions; Design on mobile = Styling / Sections / Settings; job-optimized inclusion keeps JD-relevant projects/skills from master.
+
+**Files:** `EditableText.tsx`, `ContentEditor.tsx`, `AnalyzerPanel.tsx`, `DesignerPanel.tsx`, `JobResumeEditor.tsx`, `job-relevance.ts`, `optimization-brief.ts`, `change-copy.ts`, `change-decisions.ts`, prompts, tests, docs
+
+**Why:** Prod still showed check-only editor; user wants hover/Edit, correlated highlights, accept-for-new-only, real Match analysis, ATS-focused projects.
+
+**Next:** Merge PR #19 and smoke on phone + desktop.
+
+---
+
 
 **What:** Tailor now asks when ATS still has skill/keyword gaps (even if Claude returns 0 questions). The one rewrite targets both ATS parsers and a human recruiter while keeping the user’s voice. Job Edit: teal pen edits actual text (not just include/exclude), Design (section order + compact/standard/spacious) on mobile, Match tab shows real before/after + reason and highlights those lines on the preview and in the content section.
 

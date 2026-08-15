@@ -88,6 +88,23 @@ export function addedLines(change: ResumeDiffChange): string[] {
   return asLines(change.after).filter(line => !before.has(line))
 }
 
+/**
+ * True when the tailor invented a new entry/bullet (or emptied → filled),
+ * not when it only rewrote text the user already had.
+ */
+export function isNewAddition(change: ResumeDiffChange): boolean {
+  if (change.changeType === 'added') return true
+  if (change.changeType === 'removed' || change.changeType === 'reordered') return false
+  const before = asLines(change.before)
+  const after = asLines(change.after)
+  if (before.length === 0 && after.length > 0) return true
+  // Brand-new bullets mixed into an existing role count as additions.
+  if (change.field === 'bullets' && addedLines(change).length > 0 && before.length < after.length) {
+    return true
+  }
+  return false
+}
+
 export function highlightsFromChanges(
   changes: ResumeDiffChange[],
   selectedId: string | null = null,
@@ -107,8 +124,12 @@ export function highlightsFromChanges(
     if (change.expId) experienceIds.add(change.expId)
     if (change.projId) projectIds.add(change.projId)
     for (const line of addedLines(change)) bullets.add(line)
+    // Rewrites of existing copy still highlight the new wording on preview.
     if (change.section === 'summary' && typeof change.after === 'string') {
       bullets.add(change.after)
+    }
+    for (const line of asLines(change.after)) {
+      if (!asLines(change.before).includes(line)) bullets.add(line)
     }
   }
 

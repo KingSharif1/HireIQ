@@ -247,8 +247,9 @@ RULES:
 4. Summary: 3–5 lines that a recruiter can skim in 8 seconds. Role + strongest relevant proof + this job's domain. Still their voice.
 5. Skills: put honestly-held JD skills first. Do not add skills they do not have.
 6. Drop or demote bullets that do not help this job. Keep the ones that prove they can do the work.
-7. Length budget: {lengthBudget}. Strong action verbs. Quantify only when the source has numbers.
-8. Full restructure is allowed on this tailored snapshot only (not the master).
+7. Projects: keep ONLY projects that share tools, domain, or outcomes with this JD. Drop unrelated side projects from this tailored snapshot.
+8. Length budget: {lengthBudget}. Strong action verbs. Quantify only when the source has numbers.
+9. Full restructure is allowed on this tailored snapshot only (not the master).
 
 TARGET ATS: {atsSystem}
 SENIORITY: {seniority}

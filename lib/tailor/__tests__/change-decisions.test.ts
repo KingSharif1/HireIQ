@@ -79,9 +79,12 @@ describe('change-decisions', () => {
     expect(approved.experience[0].bullets).toEqual(['Built REST APIs (edited)'])
   })
 
-  it('counts pending and sets all', () => {
+  it('counts pending only for new additions; rewrites auto-accept', () => {
     const pending = initialDecisions(changes)
-    expect(countPendingDecisions(changes, pending)).toBe(2)
+    // summary rewrite → accepted; bullets gained a new line → pending
+    expect(countPendingDecisions(changes, pending)).toBe(1)
+    expect(pending[changes[0].id!].status).toBe('accepted')
+    expect(pending[changes[1].id!].status).toBe('pending')
     const accepted = setAllDecisions(changes, pending, 'accepted')
     expect(countPendingDecisions(changes, accepted)).toBe(0)
   })

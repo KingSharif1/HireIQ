@@ -9,12 +9,17 @@ import { AnalyzerPanel } from '@/components/builder/AnalyzerPanel'
 import { LayoutIssuesBanner } from '@/components/jobs/detail/LayoutIssuesBanner'
 import { ResumePreview } from '@/components/resume/ResumePreview'
 import { applyInclusion } from '@/lib/profile/inclusion'
-import { structuredResumeToProfileData } from '@/lib/profile/data'
+import { structuredResumeToProfileData, profileDataToStructuredResume } from '@/lib/profile/data'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { createClient } from '@/lib/supabase/client'
 import { buildResumeChanges } from '@/lib/ai/tailor-engine'
-import { withChangeIds } from '@/lib/tailor/change-decisions'
-import { highlightsFromChanges } from '@/lib/tailor/change-copy'
+import {
+  withChangeIds,
+  initialDecisions,
+  buildApprovedResume,
+} from '@/lib/tailor/change-decisions'
+import { highlightsFromChanges, isNewAddition } from '@/lib/tailor/change-copy'
+import { buildJobOptimizedInclusion } from '@/lib/tailor/job-relevance'
 import {
   DEFAULT_RESUME_THEME,
   mergeResumeTheme,
@@ -22,6 +27,7 @@ import {
   type ResumeThemeOverride,
 } from '@/lib/export/theme'
 import type {
+  ChangeDecision,
   JobExtractedData,
   ProfileData,
   ResumeDiffChange,
@@ -64,7 +70,9 @@ function seedEditorData(master: ProfileData, tailored: StructuredResume | null):
       ...fromTailored.skills,
     },
     projects: fromTailored.projects.length ? fromTailored.projects : master.projects,
-    certifications: fromTailored.certifications.length ? fromTailored.certifications : master.certifications,
+    certifications: fromTailored.certifications.length
+      ? fromTailored.certifications
+      : master.certifications,
     personal: {
       ...master.personal,
       firstName: fromTailored.personal.firstName || master.personal.firstName,
@@ -97,6 +105,10 @@ function contentHighlightIds(changes: ResumeDiffChange[]): string[] {
   return ids
 }
 
+function newAdditionHighlightIds(changes: ResumeDiffChange[]): string[] {
+  return contentHighlightIds(changes.filter(isNewAddition))
+}
+
 /**
  * Full-bleed Teal workspace for a single job's tailored resume.
  * Edits stay on this snapshot — master profile is not written.
@@ -117,25 +129,41 @@ export function JobResumeEditor({
   const [jobData, setJobData] = useState<JobExtractedData | null>(jobExtracted)
   const [original, setOriginal] = useState<StructuredResume | null>(null)
   const [storedChanges, setStoredChanges] = useState<ResumeDiffChange[]>([])
+  const [decisions, setDecisions] = useState<Record<string, ChangeDecision>>({})
   const [selectedChangeId, setSelectedChangeId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [pageCount, setPageCount] = useState(1)
+  const [isNarrow, setIsNarrow] = useState(false)
   const masterRef = useRef(data)
   masterRef.current = data
 
-  const previewData = useMemo(() => applyInclusion(draft, inclusion), [draft, inclusion])
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)')
+    const sync = () => setIsNarrow(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+
+  const includedDraft = useMemo(() => applyInclusion(draft, inclusion), [draft, inclusion])
+
+  const liveChanges = useMemo(() => {
+    const from = original
+    const live = from ? buildResumeChanges(from, includedDraft) : []
+    if (live.length > 0) return withChangeIds(live)
+    return withChangeIds(storedChanges)
+  }, [original, includedDraft, storedChanges])
+
+  const previewData = useMemo(() => {
+    if (!original || liveChanges.length === 0) return includedDraft
+    return buildApprovedResume(original, includedDraft, liveChanges, decisions)
+  }, [original, includedDraft, liveChanges, decisions])
+
   const score = useMemo(() => {
     if (!jobData) return null
     return calculateATSScore(previewData, jobData)
   }, [jobData, previewData])
-
-  const liveChanges = useMemo(() => {
-    const from = original
-    const live = from ? buildResumeChanges(from, previewData) : []
-    if (live.length > 0) return withChangeIds(live)
-    return withChangeIds(storedChanges)
-  }, [original, previewData, storedChanges])
 
   const previewHighlights = useMemo(
     () => (liveChanges.length ? highlightsFromChanges(liveChanges, selectedChangeId) : null),
@@ -149,6 +177,24 @@ export function JobResumeEditor({
     return contentHighlightIds(focused)
   }, [liveChanges, selectedChangeId])
 
+  const newIds = useMemo(() => newAdditionHighlightIds(liveChanges), [liveChanges])
+
+  useEffect(() => {
+    if (liveChanges.length === 0) return
+    setDecisions(prev => {
+      const next = { ...prev }
+      let changed = false
+      for (const change of liveChanges) {
+        const id = change.id!
+        if (!next[id]) {
+          next[id] = { status: isNewAddition(change) ? 'pending' : 'accepted' }
+          changed = true
+        }
+      }
+      return changed ? next : prev
+    })
+  }, [liveChanges])
+
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -161,7 +207,9 @@ export function JobResumeEditor({
       const [{ data: latest }, { data: job }] = await Promise.all([
         supabase
           .from('tailored_resumes')
-          .select('id, inclusion, structured_data, original_structured_data, changes, theme_override')
+          .select(
+            'id, inclusion, structured_data, original_structured_data, changes, change_decisions, theme_override'
+          )
           .eq('user_id', user.id)
           .eq('job_id', jobId)
           .order('version', { ascending: false })
@@ -176,16 +224,36 @@ export function JobResumeEditor({
       ])
       if (cancelled) return
       setTailoredId(latest?.id ?? null)
-      setInclusion((latest?.inclusion as ResumeInclusion | null) ?? {})
       const extracted = (job?.extracted_data as JobExtractedData | null) ?? jobExtracted
       setJobData(extracted ?? null)
       const structured = (latest?.structured_data as StructuredResume | null) ?? null
-      if (structured) setDraft(seedEditorData(masterRef.current, structured))
+      const master = masterRef.current
+      if (structured) {
+        setDraft(seedEditorData(master, structured))
+        setInclusion((latest?.inclusion as ResumeInclusion | null) ?? {})
+      } else {
+        setDraft(master)
+        setInclusion(buildJobOptimizedInclusion(master, extracted))
+      }
       setOriginal(
-        (latest?.original_structured_data as StructuredResume | null) ?? structured ?? null,
+        (latest?.original_structured_data as StructuredResume | null) ??
+          (structured ? profileDataToStructuredResume(master) : null)
       )
-      setStoredChanges(withChangeIds((latest?.changes as ResumeDiffChange[] | null) ?? []))
-      setTheme(mergeResumeTheme(DEFAULT_RESUME_THEME, (latest?.theme_override as ResumeThemeOverride | null) ?? null))
+      const changes = withChangeIds((latest?.changes as ResumeDiffChange[] | null) ?? [])
+      setStoredChanges(changes)
+      setDecisions(
+        (latest?.change_decisions as Record<string, ChangeDecision> | null) ??
+          initialDecisions(changes)
+      )
+      setTheme(
+        mergeResumeTheme(
+          DEFAULT_RESUME_THEME,
+          (latest?.theme_override as ResumeThemeOverride | null) ?? null
+        )
+      )
+      if (changes.length > 0) {
+        setSelectedChangeId(changes[0].id ?? null)
+      }
     })()
     return () => {
       cancelled = true
@@ -213,6 +281,7 @@ export function JobResumeEditor({
             tailored_score: nextScore,
             theme_override: theme,
             changes: liveChanges,
+            change_decisions: decisions,
           })
           .eq('id', tailoredId)
           .eq('user_id', user.id)
@@ -234,12 +303,13 @@ export function JobResumeEditor({
             job_id: jobId,
             base_resume_id: primary.id,
             structured_data: previewData,
-            original_structured_data: original ?? previewData,
+            original_structured_data: original ?? profileDataToStructuredResume(draft),
             inclusion,
             match_score: nextScore,
             tailored_score: nextScore,
             theme_override: theme,
             changes: liveChanges,
+            change_decisions: decisions,
             version: 1,
           })
           .select('id')
@@ -256,6 +326,11 @@ export function JobResumeEditor({
     }
   }
 
+  function selectChange(id: string | null) {
+    setSelectedChangeId(id)
+    if (id && isNarrow) setMobilePane('preview')
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background pb-20 md:pb-0 md:left-[68px]">
       <header className="flex-shrink-0 border-b border-border">
@@ -263,7 +338,7 @@ export function JobResumeEditor({
           <div className="min-w-0">
             <h1 className="truncate text-sm font-semibold text-foreground">Build resume</h1>
             <p className="truncate text-[11px] text-muted-foreground">
-              Pen edits the text · checkboxes include/exclude · this job only
+              Tap Edit to change text · preview updates live · this job only
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -302,9 +377,7 @@ export function JobResumeEditor({
               onClick={() => setMobilePane(pane)}
               className={cn(
                 'flex-1 py-2.5 text-xs font-medium capitalize transition-colors',
-                mobilePane === pane
-                  ? 'bg-secondary/60 text-foreground'
-                  : 'text-muted-foreground'
+                mobilePane === pane ? 'bg-secondary/60 text-foreground' : 'text-muted-foreground'
               )}
             >
               {pane === 'preview' ? (
@@ -353,11 +426,13 @@ export function JobResumeEditor({
               onInclusionChange={setInclusion}
               onUpdate={patch => setDraft(prev => patchProfile(prev, patch))}
               highlightIds={editorHighlightIds}
+              newAdditionIds={newIds}
             />
           ) : null}
           {tab === 'designer' ? (
             <DesignerPanel
               theme={theme}
+              mobileSimple={isNarrow}
               onChange={patch => setTheme(prev => mergeResumeTheme(prev, patch))}
               onReset={() => setTheme({ ...DEFAULT_RESUME_THEME })}
             />
@@ -366,12 +441,14 @@ export function JobResumeEditor({
             <AnalyzerPanel
               data={draft}
               score={score}
+              job={jobData}
               changes={liveChanges}
               selectedChangeId={selectedChangeId}
-              onSelectChange={id => {
-                setSelectedChangeId(id)
-                setMobilePane('preview')
-              }}
+              onSelectChange={selectChange}
+              decisions={decisions}
+              onDecision={(id, status) =>
+                setDecisions(prev => ({ ...prev, [id]: { ...prev[id], status } }))
+              }
             />
           ) : null}
         </div>
@@ -383,6 +460,12 @@ export function JobResumeEditor({
           )}
         >
           <div className="min-h-0 flex-1 space-y-3 overflow-auto p-3 md:p-4">
+            {liveChanges.length > 0 ? (
+              <p className="text-[11px] text-muted-foreground">
+                Teal highlights = tailored updates
+                {selectedChangeId ? ' (focused change)' : ''}. Tap a change in Match to jump here on mobile.
+              </p>
+            ) : null}
             <LayoutIssuesBanner
               resume={previewData}
               pageCount={pageCount}
@@ -410,7 +493,12 @@ export function JobResumeEditor({
         <Button type="button" variant="outline" className="flex-1" onClick={onDone}>
           Done
         </Button>
-        <Button type="button" className="flex-[2]" onClick={() => void saveTailoredResume()} disabled={saving}>
+        <Button
+          type="button"
+          className="flex-[2]"
+          onClick={() => void saveTailoredResume()}
+          disabled={saving}
+        >
           {saving ? 'Saving…' : 'Save & score'}
         </Button>
       </div>
