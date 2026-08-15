@@ -59,7 +59,7 @@ Email/password sign-in is working on the HireIQ Supabase project.
 
 ### 3. Google OAuth (required for “Continue with Google”)
 
-**Status (2026-08-12):** Email/password works. Google is **not enabled** on project `wsbbgznobxhjefaqbniv` until you finish this section. Until then, `/auth/v1/authorize?provider=google` returns `Unsupported provider: provider is not enabled` (login page shows a friendly message).
+**Status (2026-08-15):** Google provider is **enabled** on Supabase `wsbbgznobxhjefaqbniv` (authorize redirects to Google Cloud client `746338339011-…`). Brand verification for project `hireiq-505323` is **approved** — still publish branding + submit **Data access** for `gmail.readonly` (see [GOOGLE-VERIFICATION.md](./GOOGLE-VERIFICATION.md) “Brand approved but still…”).
 
 This is **Supabase Auth Google** (sign-in). It is separate from **Gmail sync** (`GOOGLE_CLIENT_*` → `/api/google/callback`, Task 114). You can reuse one Google Cloud OAuth client if you add **both** redirect URIs below.
 
@@ -92,20 +92,24 @@ https://<EXTENSION_ID>.chromiumapp.org/
 
 Find `EXTENSION_ID` on `chrome://extensions` (Developer mode). Prefer **Connect HireIQ** (website tab) so users can use Google *or* email without the chromiumapp URL.
 
-#### D. “Access blocked… has not completed the Google verification process” (403)
+#### D. “Google hasn’t verified this app” / Access blocked (403)
 
-Your OAuth consent screen is in **Testing**. Until Google verifies the app (or you publish for limited use), **only Test users** can sign in.
+Two different Google checks:
 
-1. [Google Cloud → OAuth consent screen](https://console.cloud.google.com/apis/credentials/consent)
-2. **Publishing status = Testing**
-3. **Test users** → **Add users** → add `sharifzamzam2@gmail.com` (and any other emails you’ll use)
-4. Wait ~1–5 minutes → try **Continue with Google** again
+| What you see | Cause | Fix |
+|--------------|--------|-----|
+| Red **“Google hasn’t verified this app”** + Advanced | Sensitive scope `gmail.readonly` not yet **Data access**–verified (brand-only approval is not enough) | Publish branding → submit Data access verification — [GOOGLE-VERIFICATION.md](./GOOGLE-VERIFICATION.md) |
+| **Access blocked** / only some accounts work | Audience still **Testing** | Add **Test users**, or set Audience → **In production** |
 
-Because we request `gmail.readonly` (**sensitive** scope), public use needs Google app verification + a demo video. CASA only if Google escalates to **restricted** scopes (we do not request those). **For now, Test users is enough** while review runs.
+While Data access review runs:
+
+1. [Auth Platform → Audience](https://console.cloud.google.com/auth/audience) → keep **Testing** or move to **In production** when ready
+2. If Testing: **Test users** → add every Gmail you’ll use
+3. On the warning screen: **Advanced** → continue (expected until sensitive-scope approval)
+
+CASA only if Google escalates to **restricted** scopes (we do not request those).
 
 Full checklist + paste-ready justification: [GOOGLE-VERIFICATION.md](./GOOGLE-VERIFICATION.md).
-
-Do **not** need verification approved yet for your own testing — add Test users.
 
 #### C. Smoke test
 
@@ -157,6 +161,7 @@ Next.js 16 uses **`proxy.ts`** instead of the deprecated `middleware.ts` convent
 |-------|-----|
 | OAuth redirects to login with `error=auth_failed` | Add callback URL in Supabase redirect allowlist |
 | Google: `provider is not enabled` / friendly UI message | Enable Google in Supabase + paste Google Cloud client (section 3) |
+| “Google hasn’t verified this app” after brand email | Publish branding + submit **Data access** for `gmail.readonly` — brand ≠ scope verification |
 | `Invalid Refresh Token: Refresh Token Not Found` | Stale cookies — clear site data for localhost/prod, or hit `/login` after proxy clears `sb-*`; then sign in again |
 | Google sign-in works but name is blank | Run migration 007; re-login syncs via callback |
 | Email signup never confirms | Check spam; confirm Site URL matches your app origin |

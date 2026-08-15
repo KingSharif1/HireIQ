@@ -8,18 +8,18 @@
 
 | | |
 |--|--|
-| **Working on** | Task 157 |
-| **Blocked** | Task 143 Google Auth provider |
-| **Next** | Smoke GH vs Workday/Apple CTAs · Task **147** |
+| **Working on** | Google OAuth post-brand publish + Data access |
+| **Blocked** | Human: publish branding + submit `gmail.readonly` Data access (brand verified ✓) |
+| **Next** | Console steps in [GOOGLE-VERIFICATION.md](./GOOGLE-VERIFICATION.md) · Task **147** |
 | **Roadmap** | [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md) |
 
 ## System snapshot
 
 | Area | State |
 |------|-------|
-| Auth | 🟡 Email ✓ · Google UI ready but **provider not enabled** in Supabase (Task 143) — see AUTH.md §3 |
+| Auth | 🟡 Email ✓ · Google provider **enabled** in Supabase · brand verified (`hireiq-505323`) · still need publish branding + Data access for `gmail.readonly` — [GOOGLE-VERIFICATION.md](./GOOGLE-VERIFICATION.md) |
 | Deploy | ✓ Vercel · `hireiq.kingsharif.com` |
-| Legal / branding | 🟡 Landing + `/privacy` + `/terms` live · Search Console + re-verify branding — see `docs/GOOGLE-VERIFICATION.md` |
+| Legal / branding | 🟡 Brand verification **approved** · publish in Console + Data access review — [GOOGLE-VERIFICATION.md](./GOOGLE-VERIFICATION.md) |
 | Resume upload (PDF/DOCX) | ✓ |
 | Resume parse (Claude) | 🟡 — needs tiered skills + low-confidence flags + OCR |
 | Profile / Resume Builder | ✓ **Task 155** — GitHub picker + add-from-repo; Builder folders by job; one source resume |
@@ -58,8 +58,8 @@ Legend: ✓ done · 🟡 in progress · 🔴 not started · 🔭 planned
 
 | Blocker | Owner | Notes |
 |---------|-------|-------|
-| **Enable Google Auth provider** (Task 143) | User | Supabase → Providers → Google + Cloud OAuth client; blocks Continue with Google on site + extension |
-| Google `gmail.readonly` for Task 114 | User / eng | Restricted scope; CASA later at scale — start with test users |
+| **Enable Google Auth provider** (Task 143) | User | ✓ Provider enabled (authorize → Google). Remaining: publish branding + Data access for Gmail |
+| Google `gmail.readonly` Data access | User | Brand verified; warning remains until scope verification — [GOOGLE-VERIFICATION.md](./GOOGLE-VERIFICATION.md) |
 | Resend webhook smoke | User | Secret set; redeploy + send test to masked address |
 
 Migrations 001–**023** applied remotely — see [supabase/MIGRATIONS.md](./supabase/MIGRATIONS.md).
@@ -69,7 +69,7 @@ Migrations 001–**023** applied remotely — see [supabase/MIGRATIONS.md](./sup
 1. **Smoke Task 152** on prod (Edit buttons, Match, new Apple tailor with questions)
 2. **Smoke Auto-apply** on a real Greenhouse/Lever/Ashby job (dry run — does not submit)
 3. **Task 147** — extension assist CTA when already on ATS
-4. **Task 143** — Enable Google in Supabase ([AUTH.md](./AUTH.md) §3)
+4. **Google OAuth** — Publish branding + submit Data access ([GOOGLE-VERIFICATION.md](./GOOGLE-VERIFICATION.md)); smoke Continue with Google on prod
 5. Connect Gmail on prod Settings → Sync now
 
 Docs: [TAILOR-EDIT.md](./TAILOR-EDIT.md) · [REMAINING-WORK.md](./REMAINING-WORK.md) · [EMAIL.md](./EMAIL.md) · [DECISIONS.md](./DECISIONS.md) · [AUTH.md](./AUTH.md) · [EXTENSION.md](./EXTENSION.md) · [AUTO-APPLY.md](./AUTO-APPLY.md)

@@ -1,3 +1,15 @@
+## 2026-08-15 — Google brand verified: deploy checklist
+
+**What:** Documented why brand approval still leaves “Google hasn’t verified this app” on prod (login asks `gmail.readonly`). Added post-approval steps: publish branding → Audience In production → Data access verification → smoke. Confirmed Supabase Google provider redirects to client `746338339011-…`.
+
+**Files:** `docs/GOOGLE-VERIFICATION.md`, `docs/AUTH.md`, `docs/STATUS.md`, `docs/TASKS.md`, `docs/REMAINING-WORK.md`
+
+**Why:** Brand ≠ sensitive-scope verification; no code/redeploy fixes the warning.
+
+**Next:** Human Console publish + Data access submit; then prod smoke Continue with Google.
+
+---
+
 ## 2026-08-15 — Task 157: Easy-form auto-apply + application answers
 
 **What:** Auto-apply shows when the posting is a public form (Greenhouse/Lever/Ashby, or a generic page with name/email/resume and no account wall). It stays hidden for Workday, LinkedIn, aggregators, and login/signup portals. Fetching a job URL classifies this and stores it. Profile has an Application form for work-auth, optional EEO, and saved Q&A reused on later applies.
