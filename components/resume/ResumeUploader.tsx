@@ -2,8 +2,12 @@
 
 import { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Upload, FileText, X, AlertCircle } from 'lucide-react'
+import { Upload, FileText, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import {
+  MAX_RESUME_UPLOAD_BYTES,
+  MAX_RESUME_UPLOAD_LABEL,
+} from '@/lib/resume/extract-text'
 
 interface ResumeUploaderProps {
   onFileSelect: (file: File) => void
@@ -19,7 +23,7 @@ export function ResumeUploader({ onFileSelect, disabled }: ResumeUploaderProps) 
     if (rejectedFiles && (rejectedFiles as Array<{errors: Array<{code: string}>}>).length > 0) {
       const errs = (rejectedFiles as Array<{errors: Array<{code: string}>}>)[0].errors
       if (errs[0]?.code === 'file-too-large') {
-        setDragError('File is too large. Max 5MB.')
+        setDragError(`File is too large. Max ${MAX_RESUME_UPLOAD_LABEL}.`)
       } else if (errs[0]?.code === 'file-invalid-type') {
         setDragError('Only PDF and DOCX files are accepted.')
       } else {
@@ -39,7 +43,7 @@ export function ResumeUploader({ onFileSelect, disabled }: ResumeUploaderProps) 
       'application/pdf': ['.pdf'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
     },
-    maxSize: 5 * 1024 * 1024,
+    maxSize: MAX_RESUME_UPLOAD_BYTES,
     maxFiles: 1,
     disabled,
   })
@@ -73,7 +77,7 @@ export function ResumeUploader({ onFileSelect, disabled }: ResumeUploaderProps) 
               {isDragActive ? 'Drop it here' : 'Drag & drop your resume'}
             </p>
             <p className="text-sm text-muted-foreground mt-1">
-              PDF or DOCX · Max 5MB ·{' '}
+              PDF or DOCX · Max {MAX_RESUME_UPLOAD_LABEL} · scans OK ·{' '}
               <span className="text-primary">browse files</span>
             </p>
           </div>

@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { RESUME_PARSER_PROMPT } from '@/lib/ai/prompts'
+import { RESUME_PARSER_PROMPT, RESUME_VISION_PARSER_PROMPT } from '@/lib/ai/prompts'
 import { aiErrorResponse } from '@/lib/ai/error-response'
 import { resolveAiRuntime } from '@/lib/ai/runtime'
-import { streamAiTextToCompletion } from '@/lib/ai/complete'
+import { streamAiMessagesToCompletion, streamAiTextToCompletion } from '@/lib/ai/complete'
 import { withAiOnce } from '@/lib/ai/once'
 import { ndjsonResponse } from '@/lib/ai/ndjson-stream'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
@@ -12,10 +12,16 @@ import { resolveProfileData } from '@/lib/profile/data'
 import { hasParseAdditions, parseAdditions } from '@/lib/profile/parse-additions'
 import { markdownToStructuredResume, streamingResumeProgress } from '@/lib/resume/markdown'
 import { polishStructuredForExport } from '@/lib/export/format'
+import {
+  extractResumeTextLayer,
+  MAX_RESUME_UPLOAD_BYTES,
+  MAX_RESUME_UPLOAD_LABEL,
+  needsVisionOcr,
+} from '@/lib/resume/extract-text'
 import type { StructuredResume, Profile } from '@/types'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60
+export const maxDuration = 90
 
 type ParseDone = {
   resumeId: string
@@ -27,6 +33,7 @@ type ParseDone = {
   hasAdditions: boolean
   model: string
   keySource: string
+  extractSource: 'pdf-text' | 'docx-text' | 'pdf-vision'
 }
 
 export async function POST(request: Request) {
@@ -40,32 +47,43 @@ export async function POST(request: Request) {
   const title = (formData.get('title') as string) || 'My Resume'
 
   if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+  if (file.size > MAX_RESUME_UPLOAD_BYTES) {
+    return NextResponse.json(
+      { error: `File is too large. Max ${MAX_RESUME_UPLOAD_LABEL}.` },
+      { status: 413 }
+    )
+  }
 
   const fileType = file.name.endsWith('.docx') ? 'docx' : 'pdf'
   const buffer = Buffer.from(await file.arrayBuffer())
 
-  let rawText = ''
+  let extracted
   try {
-    if (fileType === 'pdf') {
-      const { PDFParse } = require('pdf-parse')
-      const parser = new PDFParse({ data: buffer })
-      const result = await parser.getText()
-      rawText = result.text ?? ''
-      await parser.destroy()
-    } else {
-      const mammoth = await import('mammoth')
-      const result = await mammoth.extractRawText({ buffer })
-      rawText = result.value
-    }
+    extracted = await extractResumeTextLayer(buffer, fileType)
   } catch {
-    return NextResponse.json({ error: 'Failed to extract text from file' }, { status: 422 })
+    extracted = { text: '', source: fileType === 'docx' ? 'docx-text' as const : 'pdf-text' as const }
   }
 
-  if (!rawText || rawText.trim().length < 50) {
-    return NextResponse.json({
-      error:
-        'Could not read enough text from that file. Try a text-based PDF or DOCX (not a scanned image).',
-    }, { status: 422 })
+  const useVision = needsVisionOcr(extracted.text, fileType)
+
+  if (!useVision && extracted.text.replace(/\s+/g, ' ').trim().length < 50) {
+    return NextResponse.json(
+      {
+        error:
+          'Could not read enough text from that file. Try a text PDF/DOCX, or a clearer scan (PDF under 10MB).',
+      },
+      { status: 422 }
+    )
+  }
+
+  if (useVision && fileType !== 'pdf') {
+    return NextResponse.json(
+      {
+        error:
+          'Could not read text from that DOCX. Export as PDF and try again (scans work via vision OCR).',
+      },
+      { status: 422 }
+    )
   }
 
   const fileExt = fileType === 'pdf' ? 'pdf' : 'docx'
@@ -73,7 +91,10 @@ export async function POST(request: Request) {
   const { data: storageData, error: storageErr } = await supabase.storage
     .from('resumes')
     .upload(storageKey, buffer, {
-      contentType: fileType === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      contentType:
+        fileType === 'pdf'
+          ? 'application/pdf'
+          : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       upsert: false,
     })
 
@@ -88,27 +109,67 @@ export async function POST(request: Request) {
     return aiErrorResponse(err, 'AI is not configured')
   }
 
-  // Prefer more of the resume for early-career dense one-pagers; still cap for cost.
-  const prompt = RESUME_PARSER_PROMPT.replace('{resumeText}', rawText.slice(0, 20000))
+  const extractSource = useVision ? ('pdf-vision' as const) : extracted.source
 
   return ndjsonResponse<ParseDone>(async emit => {
-    emit({ type: 'progress', detail: 'Reading your resume' })
+    emit({
+      type: 'progress',
+      detail: useVision ? 'Reading scanned pages (OCR)' : 'Reading your resume',
+    })
 
     const structuredData = await withAiOnce(`resume_parse:${user.id}`, async () => {
-      const result = await streamAiTextToCompletion({
-        runtime: ai,
-        feature: 'resume_parse',
-        tier: 'strong',
-        prompt,
-        maxOutputTokens: 6000,
-        partialEveryMs: 800,
-        onPartial: text => {
-          emit({ type: 'progress', detail: streamingResumeProgress(text) })
-        },
-      })
-      const parsed = polishStructuredForExport(markdownToStructuredResume(result.text))
+      let mdText: string
+      if (useVision) {
+        const result = await streamAiMessagesToCompletion({
+          runtime: ai,
+          feature: 'resume_parse',
+          tier: 'strong',
+          maxOutputTokens: 6000,
+          partialEveryMs: 800,
+          onPartial: text => {
+            emit({ type: 'progress', detail: streamingResumeProgress(text) })
+          },
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: buffer,
+                  mediaType: 'application/pdf',
+                },
+                { type: 'text', text: RESUME_VISION_PARSER_PROMPT },
+              ],
+            },
+          ],
+        })
+        mdText = result.text
+      } else {
+        const prompt = RESUME_PARSER_PROMPT.replace(
+          '{resumeText}',
+          extracted.text.slice(0, 20000)
+        )
+        const result = await streamAiTextToCompletion({
+          runtime: ai,
+          feature: 'resume_parse',
+          tier: 'strong',
+          prompt,
+          maxOutputTokens: 6000,
+          partialEveryMs: 800,
+          onPartial: text => {
+            emit({ type: 'progress', detail: streamingResumeProgress(text) })
+          },
+        })
+        mdText = result.text
+      }
+
+      const parsed = polishStructuredForExport(markdownToStructuredResume(mdText))
       if (!parsed.contact.name && !parsed.summary && parsed.experience.length === 0) {
-        throw new Error('Could not understand that resume. Try another file.')
+        throw new Error(
+          useVision
+            ? 'Could not read that scan clearly. Try a sharper photo or a text PDF.'
+            : 'Could not understand that resume. Try another file.'
+        )
       }
       return parsed
     })
@@ -116,11 +177,21 @@ export async function POST(request: Request) {
     emit({ type: 'progress', detail: 'Saving to your library' })
 
     const fakeEmptyJob = {
-      title: '', company: '', required_skills: [], preferred_skills: [],
-      required_experience_years: 0, education_requirement: 'none', keywords: [],
-      responsibilities: [], ats_system: '', red_flags: [], company_values: [],
+      title: '',
+      company: '',
+      required_skills: [],
+      preferred_skills: [],
+      required_experience_years: 0,
+      education_requirement: 'none',
+      keywords: [],
+      responsibilities: [],
+      ats_system: '',
+      red_flags: [],
+      company_values: [],
       compensation: { min: null, max: null, currency: 'USD', period: 'annual' },
-      work_type: 'remote', seniority: 'mid', summary: '',
+      work_type: 'remote',
+      seniority: 'mid',
+      summary: '',
     }
     const atsFormatScore = calculateATSScore(structuredData, fakeEmptyJob).breakdown.format
 
@@ -132,11 +203,15 @@ export async function POST(request: Request) {
       .order('created_at', { ascending: false })
 
     const existing = existingResumes?.[0]
+    const rawTextForStore = useVision
+      ? `[pdf-vision]\n${structuredData.summary || ''}`
+      : extracted.text.slice(0, 50000)
+
     const payload = {
       title,
       original_file_url: fileUrl,
       original_file_type: fileType,
-      raw_text: rawText.slice(0, 50000),
+      raw_text: rawTextForStore,
       structured_data: structuredData,
       ats_format_score: atsFormatScore,
       is_primary: true,
@@ -205,6 +280,7 @@ export async function POST(request: Request) {
       hasAdditions: !profileSeeded && hasParseAdditions(additions),
       model: ai.models.strong,
       keySource: ai.keySource,
+      extractSource,
     })
   })
 }
