@@ -25,6 +25,16 @@ describe('parseModelJson', () => {
     expect(parsed.direct_matches.length).toBeGreaterThanOrEqual(1)
   })
 
+  it('repairs missing commas between adjacent array objects', () => {
+    const text = '{"experience":[{"title":"Eng"}{"title":"Lead"}],"skills":["TS""Node"]}'
+    expect(
+      parseModelJson<{ experience: { title: string }[]; skills: string[] }>(text),
+    ).toEqual({
+      experience: [{ title: 'Eng' }, { title: 'Lead' }],
+      skills: ['TS', 'Node'],
+    })
+  })
+
   it('still throws on genuinely broken JSON', () => {
     expect(() => parseModelJson('{"experience":[ { "title": "Eng" {')).toThrow()
   })

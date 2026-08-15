@@ -8,9 +8,9 @@
 
 | | |
 |--|--|
-| **Working on** | Task 157 |
-| **Blocked** | Task 143 Google Auth provider |
-| **Next** | Smoke GH vs Workday/Apple CTAs · Task **147** |
+| **Working on** | Task 158 tailor JSON retry (ship) |
+| **Blocked** | Human: Google Data access for `gmail.readonly` |
+| **Next** | Deploy Task 158 · smoke Apple Early Career tailor · Task **147** |
 | **Roadmap** | [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md) |
 
 ## System snapshot

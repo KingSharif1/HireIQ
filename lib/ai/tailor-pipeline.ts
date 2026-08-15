@@ -70,8 +70,35 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
     .replace('{seniority}', job.seniority || 'mid')
     .replace('{lengthBudget}', seniorityLengthBudget(job.seniority || 'mid'))
 
-  const genText = await callGenerate(generate, models.strong, generatePrompt, 8000, aiCallsUsed, 1)
-  const current = parseResume(genText)
+  // One rewrite + one parse-retry. Bad JSON on huge JDs (e.g. Apple early career) is common;
+  // retry once with a stricter JSON reminder instead of failing the whole run.
+  const maxGenerateCalls = 2
+  let genText = await callGenerate(
+    generate,
+    models.strong,
+    generatePrompt,
+    8000,
+    aiCallsUsed,
+    maxGenerateCalls,
+  )
+  let current: StructuredResume
+  try {
+    current = parseResume(genText)
+  } catch (firstErr) {
+    console.error('[tailor] rewrite JSON unusable, retrying once', firstErr)
+    const retryPrompt = `${generatePrompt}
+
+CRITICAL RETRY: Your previous reply was not valid JSON (syntax error). Return ONLY one compact JSON object — no markdown fences, no commentary, escape every " inside strings, commas between every array/object element.`
+    genText = await callGenerate(
+      generate,
+      models.strong,
+      retryPrompt,
+      8000,
+      aiCallsUsed,
+      maxGenerateCalls,
+    )
+    current = parseResume(genText)
+  }
   const notes = current.tailoring_notes ?? []
   const changes = buildResumeChanges(resume, current, notes)
 
@@ -88,7 +115,7 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
       changes,
     }),
     meta: {
-      attempts: 1,
+      attempts: aiCallsUsed.n,
       passedGate: true,
       warning: undefined,
       finalOverlapPercent: 0,
