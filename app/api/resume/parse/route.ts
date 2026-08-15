@@ -11,6 +11,7 @@ import { buildProfileSeedFromParse, hasProfileContent, profileRowUpdatesFromSeed
 import { resolveProfileData } from '@/lib/profile/data'
 import { hasParseAdditions, parseAdditions } from '@/lib/profile/parse-additions'
 import { markdownToStructuredResume, streamingResumeProgress } from '@/lib/resume/markdown'
+import { polishStructuredForExport } from '@/lib/export/format'
 import type { StructuredResume, Profile } from '@/types'
 
 export const runtime = 'nodejs'
@@ -62,7 +63,8 @@ export async function POST(request: Request) {
 
   if (!rawText || rawText.trim().length < 50) {
     return NextResponse.json({
-      error: 'Could not read text from file. Please try a different format.',
+      error:
+        'Could not read enough text from that file. Try a text-based PDF or DOCX (not a scanned image).',
     }, { status: 422 })
   }
 
@@ -86,7 +88,8 @@ export async function POST(request: Request) {
     return aiErrorResponse(err, 'AI is not configured')
   }
 
-  const prompt = RESUME_PARSER_PROMPT.replace('{resumeText}', rawText.slice(0, 12000))
+  // Prefer more of the resume for early-career dense one-pagers; still cap for cost.
+  const prompt = RESUME_PARSER_PROMPT.replace('{resumeText}', rawText.slice(0, 20000))
 
   return ndjsonResponse<ParseDone>(async emit => {
     emit({ type: 'progress', detail: 'Reading your resume' })
@@ -97,13 +100,13 @@ export async function POST(request: Request) {
         feature: 'resume_parse',
         tier: 'strong',
         prompt,
-        maxOutputTokens: 4096,
+        maxOutputTokens: 6000,
         partialEveryMs: 800,
         onPartial: text => {
           emit({ type: 'progress', detail: streamingResumeProgress(text) })
         },
       })
-      const parsed = markdownToStructuredResume(result.text)
+      const parsed = polishStructuredForExport(markdownToStructuredResume(result.text))
       if (!parsed.contact.name && !parsed.summary && parsed.experience.length === 0) {
         throw new Error('Could not understand that resume. Try another file.')
       }

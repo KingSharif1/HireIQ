@@ -64,13 +64,14 @@ export function GitHubConnectPanel({ initialGithubData, onSynced }: Props) {
         setError(e instanceof Error ? e.message : 'Failed to load')
       }
       if (initialGithubData) {
+        const repos = initialGithubData.repos ?? []
         setStatus({
           connected: true,
           username: initialGithubData.username,
           profileUrl: initialGithubData.profileUrl,
           syncedAt: initialGithubData.syncedAt,
-          repoCount: initialGithubData.repos.length,
-          activeRepos: initialGithubData.repos.filter(r => r.status === 'active').length,
+          repoCount: repos.length,
+          activeRepos: repos.filter(r => r.status === 'active').length,
         })
       } else {
         setStatus({ connected: false })

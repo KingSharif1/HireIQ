@@ -24,10 +24,12 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 | Setting | Local dev | Production |
 |---------|-----------|------------|
-| Homepage URL | `http://localhost:3000` | `https://your-domain.com` |
-| Authorization callback URL | `http://localhost:3000/api/github/callback` | `https://your-domain.com/api/github/callback` |
+| Homepage URL | `http://localhost:3000` | `https://hireiq.kingsharif.com` |
+| Authorization callback URL | `http://localhost:3000/api/github/callback` | `https://hireiq.kingsharif.com/api/github/callback` |
 
-Copy **Client ID** and generate a **Client Secret** into `.env.local`.
+**Must be the full path** — `/api/github/callback`, not `/api/git`. GitHub rejects truncated callback URLs and HireIQ shows `exchange_failed`.
+
+Copy **Client ID** and generate a **Client Secret** into Vercel / `.env.local`.
 
 ### GitHub App vs OAuth App
 
@@ -74,12 +76,13 @@ Alternatively, create a classic **OAuth App** (no `Iv1.` prefix) — those use `
 
 | Issue | Fix |
 |-------|-----|
-| `GitHub OAuth is not configured` | Set `GITHUB_CLIENT_ID` + `GITHUB_CLIENT_SECRET` in `.env.local` |
+| `GitHub OAuth is not configured` | Set `GITHUB_CLIENT_ID` + `GITHUB_CLIENT_SECRET` in Vercel / `.env.local` |
 | `Manual linking is disabled` | Old flow — pull latest; connect now uses direct OAuth |
 | `state_mismatch` / expired | Click Connect again |
 | `GitHub not connected` on sync | Complete Connect flow first |
 | Sync 502 / table errors | Run migration 008; check token not revoked |
-| Redirect URI mismatch | Callback must exactly match GitHub app settings |
+| Redirect URI mismatch / `exchange_failed` | Callback must be exactly `https://hireiq.kingsharif.com/api/github/callback` (full path) |
+| Connected but Sync errors / 0 repos | Tap Sync again after deploy — empty profiles no longer crash normalize |
 
 ## Security notes
 

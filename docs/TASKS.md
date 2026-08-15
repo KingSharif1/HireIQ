@@ -13,6 +13,15 @@ Files changed: [list]
 
 ---
 
+## Task 160 — GitHub OAuth/sync harden + parse polish
+Status: DONE  
+Scope: `normalizeProfileData`, GitHub oauth/callback/sync UI, resume parse prompt, docs/GITHUB.md  
+Goal: New accounts can connect+sync GitHub; clearer callback URL error; better resume parse extraction.  
+Result: Sparse profile no longer crashes sync; OAuth error shows exact callback URL; soft-fail sync after connect; parse uses categorized skills + polish.  
+Files changed: provenance, oauth, callback, GitHubConnectPanel, resume-bullet, suggestions, prompts, parse/route, docs  
+
+---
+
 ## Task 159 — Pro export + smarter Claude-quality tailor
 Status: DONE  
 Scope: `lib/export/*`, `MasterExportPanel`, profile panel, `ResumePreview`, `prompts.ts`, tailor pipeline/execute-run, `markdown.ts`, docs  

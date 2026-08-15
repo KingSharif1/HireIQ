@@ -1,3 +1,15 @@
+## 2026-08-15 — Task 160: GitHub sync harden + parse polish
+
+**What:** Fix new-account GitHub Sync crash (`normalizeProfileData` on sparse profile). Soft-fail initial sync after OAuth connect. Clearer callback URL error (must be `/api/github/callback`). Resume parse: categorized skills, larger text window, polish after parse.
+
+**Files:** `provenance.ts`, `oauth.ts`, `callback/route.ts`, `GitHubConnectPanel`, `resume-bullet`, `suggestions`, `prompts`, `parse/route`, docs
+
+**Why:** New accounts hit `.map` on undefined experience; GitHub OAuth apps often truncate callback to `/api/git`.
+
+**Next:** User sets callback to full `/api/github/callback` · reconnect · Sync · re-upload resume.
+
+---
+
 ## 2026-08-15 — Task 159: Pro export + smarter tailor
 
 **What:** Master Profile → Export PDF with section include/order + Compact/Standard/Spacious. PDF/preview/DOCX polish: categorized skills, education double-“in” fix, skill dedupe, certs, keep-together entries. Tailor prompt targets Claude-quality one-pagers (curated projects, categorized skills, use full profile+GitHub+Q&A). Early-career themes default to compact.

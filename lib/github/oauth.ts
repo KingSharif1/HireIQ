@@ -75,17 +75,18 @@ export async function exchangeGitHubCode(code: string): Promise<GitHubTokenRespo
 }
 
 export function mapGitHubConnectError(code: string | null): string | null {
+  const { redirectUri } = githubOAuthConfig()
   switch (code) {
     case 'not_configured':
-      return 'GitHub OAuth is not configured. Add GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET to .env.local.'
+      return 'GitHub OAuth is not configured. Add GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET.'
     case 'denied':
       return 'GitHub authorization was cancelled.'
     case 'state_mismatch':
       return 'GitHub sign-in expired. Try Connect again.'
     case 'exchange_failed':
-      return 'Could not complete GitHub authorization. Check your OAuth app callback URL.'
+      return `Could not complete GitHub authorization. In your GitHub OAuth App, set the callback URL exactly to: ${redirectUri}`
     case 'sync_failed':
-      return 'GitHub connected but sync failed. Use Sync to retry.'
+      return 'GitHub connected but sync failed. Tap Sync to retry.'
     default:
       return code ? 'GitHub connection failed. Try again.' : null
   }

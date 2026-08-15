@@ -11,22 +11,29 @@ import type { WriteBackSuggestion } from '@/lib/ai/tailor-types'
 import type { SuggestionEnrichment } from '@/lib/profile/suggestion-followup'
 import { validateEnrichment } from '@/lib/profile/suggestion-followup'
 
-export function normalizeProfileData(data: ProfileData): ProfileData {
+export function normalizeProfileData(data: ProfileData | null | undefined): ProfileData {
   const base = emptyProfileData()
+  const raw = data ?? ({} as ProfileData)
   return {
     ...base,
-    ...data,
-    personal: { ...base.personal, ...data.personal },
-    skills: { ...base.skills, ...data.skills },
-    applyAnswers: normalizeApplyAnswers(data.applyAnswers),
-    provenance: data.provenance ?? {},
-    pendingSuggestions: data.pendingSuggestions ?? [],
-    experience: data.experience.map(ensureExperienceBulletIds),
-    projects: data.projects.map(p => {
+    ...raw,
+    personal: { ...base.personal, ...raw.personal },
+    skills: { ...base.skills, ...raw.skills },
+    applyAnswers: normalizeApplyAnswers(raw.applyAnswers),
+    provenance: raw.provenance ?? {},
+    pendingSuggestions: raw.pendingSuggestions ?? [],
+    urls: Array.isArray(raw.urls) ? raw.urls : [],
+    education: Array.isArray(raw.education) ? raw.education : [],
+    certifications: Array.isArray(raw.certifications) ? raw.certifications : [],
+    achievements: Array.isArray(raw.achievements) ? raw.achievements : [],
+    additionalDocuments: Array.isArray(raw.additionalDocuments) ? raw.additionalDocuments : [],
+    attachments: Array.isArray(raw.attachments) ? raw.attachments : [],
+    experience: (Array.isArray(raw.experience) ? raw.experience : []).map(ensureExperienceBulletIds),
+    projects: (Array.isArray(raw.projects) ? raw.projects : []).map(p => {
       const { bullets, bulletIds } = bulletsWithIds(p.bullets, p.bulletIds, 'pbul')
       return { ...p, bullets, bulletIds }
     }),
-    volunteering: data.volunteering.map(v => {
+    volunteering: (Array.isArray(raw.volunteering) ? raw.volunteering : []).map(v => {
       const { bullets, bulletIds } = bulletsWithIds(v.bullets, v.bulletIds, 'vbul')
       return { ...v, bullets, bulletIds }
     }),
