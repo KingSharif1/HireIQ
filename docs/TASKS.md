@@ -516,11 +516,11 @@ Files changed: `ProfileHome.tsx`, `BuilderHome.tsx`, `ResumeLibrary.tsx`, `app/d
 ---
 
 ## Task 143 — Enable Supabase Google login (site + extension)
-Status: IN PROGRESS  
+Status: DONE (provider) / IN PROGRESS (verification UX)  
 Scope: `proxy.ts`, `lib/auth/messages.ts`, auth pages, `docs/AUTH.md`, extension auth error copy  
 Goal: Users can sign in with Google on `/login` and `/signup`; extension via Connect HireIQ (Google or email) once provider is on.  
-Result (code): Stale refresh-token cookie clear in proxy; friendlier `google_not_enabled` errors; AUTH checklist with exact redirect URIs. **Blocked on human:** enable Google provider in Supabase + Google Cloud OAuth client (see AUTH.md §3). Verified live: authorize returns `provider is not enabled`.  
-Files changed: `proxy.ts`, `lib/auth/messages.ts`, `app/(auth)/login/page.tsx`, `app/(auth)/signup/page.tsx`, `extension/src/auth.ts`, `docs/AUTH.md`, STATUS/CHANGELOG/TASKS  
+Result: Supabase Google provider **enabled** (live authorize → client `746338339011-…`). Brand verification approved for `hireiq-505323`. Users still see “hasn’t verified this app” because login requests `gmail.readonly` — need **Publish branding** + **Data access** verification ([GOOGLE-VERIFICATION.md](./GOOGLE-VERIFICATION.md)).  
+Files changed: `docs/GOOGLE-VERIFICATION.md`, `docs/AUTH.md`, STATUS/CHANGELOG/TASKS  
 
 ---
 

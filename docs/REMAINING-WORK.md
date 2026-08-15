@@ -48,8 +48,8 @@ PRs **#3–#7** merged earlier 2026-08-13; **#8** Task 148 (this merge).
 
 | Task | Action |
 |------|--------|
-| **143 — Google login** | Supabase → Auth → Google provider + Cloud OAuth client ([AUTH.md](./AUTH.md) §3) |
-| **114 — Gmail prod** | Google Cloud verification / test users for `gmail.readonly` |
+| **143 — Google login** | ✓ Provider on. Human: [GOOGLE-VERIFICATION.md](./GOOGLE-VERIFICATION.md) publish branding + Data access |
+| **114 — Gmail prod** | Same Data access verification for `gmail.readonly`; then Connect + Sync now |
 | **Resend webhook** | Confirm prod webhook + redeploy after secret change ([EMAIL.md](./EMAIL.md)) |
 
 ### 4. Engineering backlog (priority)
