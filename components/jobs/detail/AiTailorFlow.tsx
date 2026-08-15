@@ -349,10 +349,21 @@ export function AiTailorFlow({
         ) : null}
 
         {phase === 'generate' ? (
-          <AiFlowLoader
-            title="Writing a version in your voice"
-            subtitle={WAIT_HINTS[hintIndex]}
-          />
+          <div className="flex min-h-0 flex-1 flex-col">
+            {processLog.length > 0 ? (
+              <TailorProcessLog
+                entries={processLog}
+                expanded={logExpanded}
+                onToggle={() => setLogExpanded(v => !v)}
+              />
+            ) : null}
+            <AiFlowLoader
+              title="Writing a version in your voice"
+              subtitle={
+                processLog.find(e => e.status === 'pending')?.detail || WAIT_HINTS[hintIndex]
+              }
+            />
+          </div>
         ) : null}
 
         {phase === 'review' && original && tailored ? (

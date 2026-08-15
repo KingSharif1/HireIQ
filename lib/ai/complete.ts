@@ -36,6 +36,50 @@ export async function generateAiText(args: GenerateArgs): Promise<{ text: string
   return { text: result.text, model }
 }
 
+/**
+ * Stream a completion to the end (for durable workers). Optional throttled `onPartial`
+ * for live progress; usage recorded once finished.
+ */
+export async function streamAiTextToCompletion(
+  args: GenerateArgs & {
+    onPartial?: (text: string) => Promise<void> | void
+    partialEveryMs?: number
+  },
+): Promise<{ text: string; model: string }> {
+  const model = args.modelOverride ?? modelForTier(args.runtime, args.tier)
+  const result = streamText({
+    model: args.runtime.anthropic(model),
+    prompt: args.prompt,
+    maxOutputTokens: args.maxOutputTokens,
+    maxRetries: AI_SDK_MAX_RETRIES,
+  })
+
+  let full = ''
+  let lastPartial = 0
+  const every = args.partialEveryMs ?? 900
+  for await (const delta of result.textStream) {
+    full += delta
+    if (!args.onPartial) continue
+    const now = Date.now()
+    if (now - lastPartial < every) continue
+    lastPartial = now
+    await args.onPartial(full)
+  }
+
+  const usage = await result.usage
+  const { inputTokens, outputTokens } = extractTokenUsage(usage)
+  await recordAiUsage({
+    userId: args.runtime.userId,
+    feature: args.feature,
+    model,
+    keySource: args.runtime.keySource,
+    inputTokens,
+    outputTokens,
+  })
+  if (args.onPartial) await args.onPartial(full)
+  return { text: full, model }
+}
+
 export function streamAiText(
   args: GenerateArgs & {
     onText?: (text: string) => Promise<void>

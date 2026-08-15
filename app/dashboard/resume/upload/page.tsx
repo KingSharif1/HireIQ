@@ -13,6 +13,7 @@ import Link from 'next/link'
 import type { StructuredResume } from '@/types'
 import { AiModelHint } from '@/components/ai/AiModelHint'
 import type { ParseAdditions } from '@/lib/profile/parse-additions'
+import { readNdjsonResponse } from '@/lib/ai/ndjson-stream'
 
 type UploadState = 'idle' | 'uploading' | 'parsing' | 'done' | 'error'
 
@@ -20,6 +21,7 @@ export default function UploadResumePage() {
   const [file, setFile] = useState<File | null>(null)
   const [title, setTitle] = useState('')
   const [state, setState] = useState<UploadState>('idle')
+  const [parseDetail, setParseDetail] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [parsedData, setParsedData] = useState<StructuredResume | null>(null)
   const [resumeId, setResumeId] = useState<string | null>(null)
@@ -48,10 +50,19 @@ export default function UploadResumePage() {
 
     try {
       setState('parsing')
+      setParseDetail('Reading your resume')
       const res = await fetch('/api/resume/parse', { method: 'POST', body: formData })
-      const data = await res.json()
-
-      if (!res.ok) throw new Error(data.error || 'Upload failed')
+      if (!res.ok && !res.headers.get('content-type')?.includes('ndjson')) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error((data as { error?: string }).error || 'Upload failed')
+      }
+      const data = await readNdjsonResponse<{
+        resumeId: string
+        structuredData: StructuredResume
+        replaced?: boolean
+        hasAdditions?: boolean
+        additions?: ParseAdditions | null
+      }>(res, detail => setParseDetail(detail))
 
       setParsedData(data.structuredData)
       setResumeId(data.resumeId)
@@ -60,9 +71,11 @@ export default function UploadResumePage() {
       setAdditions(data.additions ?? null)
       setMerged(false)
       setState('done')
+      setParseDetail(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setState('error')
+      setParseDetail(null)
     }
   }
 
@@ -263,7 +276,9 @@ export default function UploadResumePage() {
           {(state === 'uploading' || state === 'parsing') && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="w-4 h-4 animate-spin" />
-              {state === 'uploading' ? 'Uploading file…' : 'AI is reading your resume…'}
+              {state === 'uploading'
+                ? 'Uploading file…'
+                : parseDetail || 'AI is reading your resume…'}
             </div>
           )}
 

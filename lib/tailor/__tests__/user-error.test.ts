@@ -6,9 +6,16 @@ describe('userFacingTailorError', () => {
     const err = userFacingTailorError(
       `Expected ',' or ']' after array element in JSON at position 9392 (line 125 column 6)`,
     )
-    expect(err.title).toMatch(/Couldn’t finish this step/i)
+    expect(err.title).toMatch(/Couldn’t finish this version/i)
+    expect(err.message).toMatch(/rewrite came back/i)
     expect(err.message).not.toMatch(/position 9392/)
-    expect(err.message.toLowerCase()).not.toContain('rewrite')
+    expect(err.canRetry).toBe(true)
+  })
+
+  it('maps markdown rewrite failures the same way', () => {
+    const err = userFacingTailorError('Markdown rewrite missing summary and experience')
+    expect(err.title).toMatch(/Couldn’t finish this version/i)
+    expect(err.message).toMatch(/rewrite came back/i)
     expect(err.canRetry).toBe(true)
   })
 

@@ -1,5 +1,27 @@
 # HireIQ Decisions
 
+## 2026-08-15 — Tailor rewrite: markdown wire + stream progress
+
+**Context:** Giant JSON rewrites break on huge JDs (Apple Early Career: `Expected ',' or ']'…`). Users wait minutes with a static spinner. Cover letter already streams.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Storage / diffs / export | Still **StructuredResume** JSONB — not markdown files on disk |
+| Model wire format | **HireIQ markdown** in and out (`lib/resume/markdown.ts`) with `<!-- id:… -->` markers |
+| Gap analysis | Resume fed as markdown; response stays small JSON; streamed into process_log |
+| Resume parse | AI returns markdown → StructuredResume for storage; NDJSON progress to UI |
+| Job analyze | Small JSON (schema fits); streamed with NDJSON progress events |
+| Streaming | Stream tokens on linear AI waits; throttle progress updates |
+| Retry | One markdown rewrite retry if parse empty/broken |
+| Not doing | Storing `.md` blobs as source of truth; streaming raw half-JSON as storage |
+
+**Tradeoff:** Deterministic MD↔structured must stay strict; bad headings can drop sections (retry + normalize mitigate).
+
+**Revisit if:** Diff quality drops because ids are lost — tighten id markers or add matcher.
+
+---
+
 ## 2026-08-15 — Hosted auto-apply on easy public forms (Task 157)
 
 **Context:** Not every career URL is Greenhouse. Some company sites are a name/email/resume form; others force account signup (Workday, Taleo, LinkedIn).

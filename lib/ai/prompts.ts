@@ -1,77 +1,42 @@
 export { extractJSON } from '@/lib/ai/parse-json'
 
-export const RESUME_PARSER_PROMPT = `You are an expert resume parser. Extract the resume content into structured JSON.
+export const RESUME_PARSER_PROMPT = `You are an expert resume parser. Convert the resume into HireIQ markdown (not JSON).
 
 RESUME TEXT:
 {resumeText}
 
-Return ONLY valid JSON (no markdown, no explanation):
-{
-  "contact": {
-    "name": "",
-    "email": "",
-    "phone": "",
-    "location": "",
-    "linkedin": "",
-    "github": "",
-    "portfolio": "",
-    "website": ""
-  },
-  "summary": "",
-  "experience": [
-    {
-      "id": "exp_1",
-      "company": "",
-      "title": "",
-      "location": "",
-      "startDate": "MM/YYYY",
-      "endDate": "MM/YYYY or Present",
-      "current": false,
-      "bullets": [""],
-      "skills_used": [""]
-    }
-  ],
-  "education": [
-    {
-      "id": "edu_1",
-      "institution": "",
-      "degree": "",
-      "field": "",
-      "startDate": "YYYY",
-      "endDate": "YYYY",
-      "gpa": "",
-      "relevant_courses": [],
-      "honors": []
-    }
-  ],
-  "skills": {
-    "technical": [""],
-    "soft": [""],
-    "tools": [""],
-    "languages": [""]
-  },
-  "projects": [
-    {
-      "id": "proj_1",
-      "name": "",
-      "description": "",
-      "bullets": [""],
-      "technologies": [""],
-      "url": "",
-      "github": ""
-    }
-  ],
-  "certifications": [
-    {
-      "name": "",
-      "issuer": "",
-      "date": "",
-      "url": ""
-    }
-  ],
-  "volunteer": [],
-  "awards": []
-}`
+Return ONLY HireIQ markdown — no code fences, no commentary. Keep facts honest; do not invent.
+
+# Full Name
+email · phone · location · links
+
+## Summary
+...
+
+## Experience
+### Title | Company | MM/YYYY – Present <!-- id:exp_1 -->
+- bullet
+Skills: tool1, tool2
+
+## Projects
+### Name <!-- id:proj_1 -->
+description
+- bullet
+Tech: a, b
+
+## Skills
+**Technical:** ...
+**Tools:** ...
+**Languages:** ...
+**Soft:** ...
+
+## Education
+### Degree · Field · School <!-- id:edu_1 -->
+YYYY – YYYY
+
+## Certifications
+- Name · Issuer · date
+`
 
 export const JOB_ANALYZER_PROMPT = `You are an expert recruiter. Analyze this job description and extract key requirements.
 
@@ -104,8 +69,8 @@ Return ONLY valid JSON:
 
 export const GAP_ANALYSIS_PROMPT = `You are a rigorous career analyst comparing a candidate's profile to a job description.
 
-CANDIDATE PROFILE (resume + experience — treat as complete unless Q&A adds more):
-{structuredResume}
+CANDIDATE PROFILE (HireIQ markdown — treat as complete unless Q&A adds more):
+{resumeMarkdown}
 
 GITHUB PROJECT CONTEXT (synced repos — README, stack, structure; use for Tier 1/2 evidence):
 {githubContext}
@@ -134,7 +99,7 @@ QUESTIONS (1–3 — REQUIRED when ATS GAP SIGNALS lists missing skills/keywords
 - If they say no, we will not invent it. If they say yes, we can weave it in for ATS + the recruiter.
 - Each question needs: id, question, category, gap_being_filled, why_it_matters, choices (2-4), example_answer
 
-Return ONLY compact valid JSON (no markdown, no trailing commas). Keep arrays short: at most 8 direct_matches, 5 adjacent_matches, 5 real_gaps, 3 questions_for_user. Do not echo the resume.
+Return ONLY compact valid JSON (no markdown fences, no trailing commas). Keep arrays short: at most 8 direct_matches, 5 adjacent_matches, 5 real_gaps, 3 questions_for_user. Do not echo the resume.
 {
   "direct_matches": [
     { "jd_requirement": "", "user_evidence": "", "source": "resume|project|skill" }
@@ -207,8 +172,8 @@ That means TWO audiences at once:
 - ATS / keyword parsers: required skills and JD phrases must appear in real bullets and skills — not a keyword dump at the bottom.
 - A human recruiter: professional, specific, and still sounds like THIS person. No robotic stuffing, no fake metrics, no "synergy".
 
-ORIGINAL RESUME (master — do not invent beyond this + Q&A):
-{structuredResume}
+ORIGINAL RESUME (HireIQ markdown — keep <!-- id:... --> markers on roles/projects you keep):
+{resumeMarkdown}
 
 GITHUB PROJECT CONTEXT (synced repos — use for honest project bullets & skills):
 {githubContext}
@@ -239,30 +204,46 @@ RULES:
 8. Length budget: {lengthBudget}. Strong action verbs. Quantify only when the source has numbers.
 9. Full restructure is allowed on this tailored snapshot only (not the master).
 10. Mirror diction from the original bullets. Do not homogenize into generic corporate resume-speak.
-11. Return compact valid JSON only: no markdown, no comments, no trailing commas, escape quotes inside strings.
+11. Return HireIQ markdown ONLY — no JSON, no code fences, no commentary before/after.
 
 TARGET ATS: {atsSystem}
 SENIORITY: {seniority}
 
-tailoring_notes is mandatory and must be useful to a human reviewing the diff. For EVERY material change:
-- section: summary | experience | skills | projects (plus company or project name if relevant)
-- change: quote the NEW sentence or bullet
-- reason: one concrete sentence, e.g. "Rewrote the Acme API bullet to name REST and Node because this JD asks for them — already true from that role."
-Never write "improved wording" or "tailored for the role". If you did not change a section, omit it.
+OUTPUT FORMAT (exact section order):
+# Full Name
+email · phone · location · links
 
-Return ONLY valid JSON — same structure as the original resume plus tailoring_notes:
-{
-  "contact": {},
-  "summary": "",
-  "experience": [],
-  "education": [],
-  "skills": {},
-  "projects": [],
-  "certifications": [],
-  "volunteer": [],
-  "awards": [],
-  "tailoring_notes": [{ "section": "", "change": "", "reason": "" }]
-}`
+## Summary
+...
+
+## Experience
+### Title | Company | MM/YYYY – Present <!-- id:exp_1 -->
+- bullet
+Skills: tool1, tool2
+
+## Projects
+### Name <!-- id:proj_1 -->
+- bullet
+Tech: a, b
+
+## Skills
+**Technical:** ...
+**Tools:** ...
+**Languages:** ...
+**Soft:** ...
+
+## Education
+### Degree · Field · School <!-- id:edu_1 -->
+YYYY – YYYY
+
+## Certifications
+- Name · Issuer · date
+
+## Tailoring notes
+- **summary** — change: quote the NEW sentence — reason: one concrete why
+- **experience (Acme)** — change: quote the NEW bullet — reason: one concrete why
+
+Tailoring notes are mandatory for every material change. Never write "improved wording" or "tailored for the role". Keep existing <!-- id:... --> values when you keep that role/project; new entries may use new ids.`
 
 /** @deprecated Use TAILOR_GENERATE_PROMPT */
 export const RESUME_TAILOR_PROMPT = TAILOR_GENERATE_PROMPT

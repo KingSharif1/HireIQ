@@ -3,13 +3,22 @@ import { createClient } from '@/lib/supabase/server'
 import { JOB_ANALYZER_PROMPT, extractJSON } from '@/lib/ai/prompts'
 import { aiErrorResponse } from '@/lib/ai/error-response'
 import { resolveAiRuntime } from '@/lib/ai/runtime'
-import { generateAiText } from '@/lib/ai/complete'
-import { withAiOnce, AiInFlightError } from '@/lib/ai/once'
+import { streamAiTextToCompletion } from '@/lib/ai/complete'
+import { withAiOnce } from '@/lib/ai/once'
+import { ndjsonResponse, streamingJobProgress } from '@/lib/ai/ndjson-stream'
+import { parseModelJson } from '@/lib/ai/parse-json'
 import { classifyApplyEase, type ApplyEaseResult } from '@/lib/apply/ease'
 import type { JobExtractedData } from '@/types'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
+
+type AnalyzeDone = {
+  jobId: string
+  extractedData: JobExtractedData
+  model: string
+  keySource: string
+}
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -37,54 +46,63 @@ export async function POST(request: Request) {
 
   const prompt = JOB_ANALYZER_PROMPT.replace('{jobDescription}', description.slice(0, 10000))
 
-  let extractedData: JobExtractedData
-  try {
-    extractedData = await withAiOnce(`job_analyze:${user.id}`, async () => {
-      const result = await generateAiText({
+  return ndjsonResponse<AnalyzeDone>(async emit => {
+    emit({ type: 'progress', detail: 'Analyzing this job' })
+
+    const extractedBase = await withAiOnce(`job_analyze:${user.id}`, async () => {
+      const result = await streamAiTextToCompletion({
         runtime: ai,
         feature: 'job_analyze',
         tier: 'strong',
         prompt,
         maxOutputTokens: 2048,
+        partialEveryMs: 700,
+        onPartial: text => {
+          emit({ type: 'progress', detail: streamingJobProgress(text) })
+        },
       })
-      return JSON.parse(extractJSON(result.text)) as JobExtractedData
+      try {
+        return parseModelJson<JobExtractedData>(result.text)
+      } catch {
+        return JSON.parse(extractJSON(result.text)) as JobExtractedData
+      }
     })
-  } catch (err) {
-    return aiErrorResponse(err, 'Failed to analyze job description')
-  }
 
-  const ease =
-    applyEase && (applyEase.ease === 'easy' || applyEase.ease === 'hard' || applyEase.ease === 'unknown')
-      ? applyEase
-      : classifyApplyEase({ url: applyUrl })
-  extractedData = {
-    ...extractedData,
-    apply_ease: ease.ease,
-    apply_ease_reason: ease.reason,
-  }
+    emit({ type: 'progress', detail: 'Saving to your tracker' })
 
-  // Save to DB
-  const { data: jobRow, error: dbErr } = await supabase
-    .from('jobs')
-    .insert({
-      user_id: user.id,
-      source: source || 'manual',
-      company: company || extractedData.company || 'Unknown',
-      title: title || extractedData.title || 'Unknown Role',
-      description: description.slice(0, 50000),
-      location: location || null,
-      apply_url: applyUrl || null,
-      extracted_data: extractedData,
+    const ease =
+      applyEase && (applyEase.ease === 'easy' || applyEase.ease === 'hard' || applyEase.ease === 'unknown')
+        ? applyEase
+        : classifyApplyEase({ url: applyUrl })
+    const extractedData: JobExtractedData = {
+      ...extractedBase,
+      apply_ease: ease.ease,
+      apply_ease_reason: ease.reason,
+    }
+
+    const { data: jobRow, error: dbErr } = await supabase
+      .from('jobs')
+      .insert({
+        user_id: user.id,
+        source: source || 'manual',
+        company: company || extractedData.company || 'Unknown',
+        title: title || extractedData.title || 'Unknown Role',
+        description: description.slice(0, 50000),
+        location: location || null,
+        apply_url: applyUrl || null,
+        extracted_data: extractedData,
+      })
+      .select()
+      .single()
+
+    if (dbErr || !jobRow) throw new Error('Failed to save job')
+
+    emit({
+      type: 'done',
+      jobId: jobRow.id,
+      extractedData,
+      model: ai.models.strong,
+      keySource: ai.keySource,
     })
-    .select()
-    .single()
-
-  if (dbErr) return NextResponse.json({ error: 'Failed to save job' }, { status: 500 })
-
-  return NextResponse.json({
-    jobId: jobRow.id,
-    extractedData,
-    model: ai.models.strong,
-    keySource: ai.keySource,
   })
 }

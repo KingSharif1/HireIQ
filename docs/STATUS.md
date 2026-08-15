@@ -8,9 +8,9 @@
 
 | | |
 |--|--|
-| **Working on** | Task 157 |
-| **Blocked** | Task 143 Google Auth provider |
-| **Next** | Smoke GH vs Workday/Apple CTAs · Task **147** |
+| **Working on** | Task 158 tailor MD + stream (ship) |
+| **Blocked** | Human: Google Data access for `gmail.readonly` |
+| **Next** | Deploy Task 158 · smoke Apple Early Career tailor · Task **147** |
 | **Roadmap** | [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md) |
 
 ## System snapshot
@@ -28,7 +28,7 @@
 | Job analyze | ✓ |
 | ATS score | ✓ — algorithmic |
 | Gap analysis | ✓ — ATS fallback questions when Claude asks none |
-| Tailor | ✓ Durable runs + calm overlay (Task **156**) — [TAILOR-EDIT.md](./TAILOR-EDIT.md) |
+| Tailor | ✓ Durable runs + **markdown rewrite + streamed progress** (Task **158**) — [TAILOR-EDIT.md](./TAILOR-EDIT.md) |
 | Tailor stepper | ⛔ Redirected — Job Matcher + tracker replace primary flow |
 | Application tracker | ✓ — Teal list/board; facts in header; Auto-apply CTA; timeline-first Activity; tracked Email + Reply via HireIQ |
 | Masked apply email (Resend) | ✓ Infra live — `mail.kingsharif.com` receiving; webhook URL prod; needs smoke + `RESEND_FORWARD_FROM` optional |

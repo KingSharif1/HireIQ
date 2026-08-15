@@ -1,5 +1,4 @@
 import { TAILOR_GENERATE_PROMPT } from '@/lib/ai/prompts'
-import { parseModelJson } from '@/lib/ai/parse-json'
 import { AI_MODELS, TAILOR_MAX_AI_CALLS } from '@/lib/ai/models'
 import type { StructuredResume, JobExtractedData, GapAnalysis } from '@/types'
 import type { GenerateFn, TailorPipelineResult } from '@/lib/ai/tailor-types'
@@ -14,6 +13,10 @@ import {
   jsonForPrompt,
   normalizeStructuredResume,
 } from '@/lib/ai/tailor-engine'
+import {
+  markdownToStructuredResume,
+  structuredResumeToMarkdown,
+} from '@/lib/resume/markdown'
 
 interface PipelineInput {
   resume: StructuredResume
@@ -43,8 +46,8 @@ async function callGenerate(
   return generate({ model, prompt, maxOutputTokens })
 }
 
-function parseResume(text: string): StructuredResume {
-  return normalizeStructuredResume(parseModelJson<Partial<StructuredResume>>(text))
+function parseResumeMarkdown(text: string): StructuredResume {
+  return normalizeStructuredResume(markdownToStructuredResume(text))
 }
 
 export async function runTailorPipeline(input: PipelineInput): Promise<TailorPipelineResult> {
@@ -57,9 +60,10 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
   const aiCallsUsed = { n: 0 }
 
   const atsGaps = formatAtsGapsForPrompt(calculateATSScore(resume, job))
+  const resumeMarkdown = structuredResumeToMarkdown(resume)
 
   const generatePrompt = TAILOR_GENERATE_PROMPT
-    .replace('{structuredResume}', jsonForPrompt(resume))
+    .replace('{resumeMarkdown}', resumeMarkdown)
     .replace('{githubContext}', input.githubContext ?? 'No GitHub repos synced.')
     .replace('{jobAnalysis}', jsonForPrompt(job))
     .replace('{atsGaps}', atsGaps)
@@ -70,8 +74,37 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
     .replace('{seniority}', job.seniority || 'mid')
     .replace('{lengthBudget}', seniorityLengthBudget(job.seniority || 'mid'))
 
-  const genText = await callGenerate(generate, models.strong, generatePrompt, 8000, aiCallsUsed, 1)
-  const current = parseResume(genText)
+  // Markdown wire format is more reliable than giant JSON; still allow one retry if parse is empty/broken.
+  const maxGenerateCalls = 2
+  let genText = await callGenerate(
+    generate,
+    models.strong,
+    generatePrompt,
+    8000,
+    aiCallsUsed,
+    maxGenerateCalls,
+  )
+  let current: StructuredResume
+  try {
+    current = parseResumeMarkdown(genText)
+    if (!current.summary && current.experience.length === 0) {
+      throw new Error('Markdown rewrite missing summary and experience')
+    }
+  } catch (firstErr) {
+    console.error('[tailor] rewrite markdown unusable, retrying once', firstErr)
+    const retryPrompt = `${generatePrompt}
+
+CRITICAL RETRY: Your previous reply was not valid HireIQ markdown (or was empty). Return ONLY the markdown resume in the exact section order. Keep <!-- id:... --> markers. No JSON. No code fences.`
+    genText = await callGenerate(
+      generate,
+      models.strong,
+      retryPrompt,
+      8000,
+      aiCallsUsed,
+      maxGenerateCalls,
+    )
+    current = parseResumeMarkdown(genText)
+  }
   const notes = current.tailoring_notes ?? []
   const changes = buildResumeChanges(resume, current, notes)
 
@@ -88,7 +121,7 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
       changes,
     }),
     meta: {
-      attempts: 1,
+      attempts: aiCallsUsed.n,
       passedGate: true,
       warning: undefined,
       finalOverlapPercent: 0,

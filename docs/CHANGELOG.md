@@ -1,3 +1,27 @@
+## 2026-08-15 — Stream linear AI waits (parse + analyze + gap)
+
+**What:** JSON stays the storage format. AI talks markdown where the payload is a resume. Linear waits stream progress: resume parse + job analyze via NDJSON; tailor gap + rewrite via process_log updates.
+
+**Files:** `lib/ai/ndjson-stream.ts`, `lib/ai/prompts.ts`, `app/api/resume/parse`, `app/api/jobs/analyze`, upload + jobs pages, `execute-run.ts`, docs
+
+**Why:** Static spinners feel broken; streaming progress on linear AI work feels faster without changing product data shapes.
+
+**Next:** Merge + deploy; smoke upload, job fetch, Apple tailor.
+
+---
+
+## 2026-08-15 — Tailor: markdown wire + streamed progress
+
+**What:** Rewrite uses HireIQ markdown (not giant JSON) for model I/O; parse back to StructuredResume for diffs/export. Stream tokens and update process log (“Writing summary…”) so the wait feels live. One retry if markdown is empty/broken.
+
+**Files:** `lib/resume/markdown.ts`, `lib/ai/{prompts,tailor-pipeline,complete,models}.ts`, `lib/tailor/{execute-run,run-types,user-error}.ts`, `AiTailorFlow.tsx`, tests, DECISIONS
+
+**Why:** Models handle markdown more reliably than huge nested JSON; streaming progress is lighter than fake pipeline checklists.
+
+**Next:** Deploy + smoke Apple Early Career tailor.
+
+---
+
 ## 2026-08-15 — Task 157: Easy-form auto-apply + application answers
 
 **What:** Auto-apply shows when the posting is a public form (Greenhouse/Lever/Ashby, or a generic page with name/email/resume and no account wall). It stays hidden for Workday, LinkedIn, aggregators, and login/signup portals. Fetching a job URL classifies this and stores it. Profile has an Application form for work-auth, optional EEO, and saved Q&A reused on later applies.
