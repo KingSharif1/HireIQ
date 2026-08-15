@@ -1,25 +1,20 @@
-## 2026-08-15 — Task 152b: Edit mode polish (live preview, mobile Edit, Match analysis)
+## 2026-08-15 — Task 152: Better tailor + edit (merged PR #19)
 
-**What:** Content Edit button always visible (esp. mobile); contact fields editable with live preview; Match explains interview odds + Accept only for **new** additions; Design on mobile = Styling / Sections / Settings; job-optimized inclusion keeps JD-relevant projects/skills from master.
+**What:** End-to-end tailor quality + job Documents Edit workspace.
 
-**Files:** `EditableText.tsx`, `ContentEditor.tsx`, `AnalyzerPanel.tsx`, `DesignerPanel.tsx`, `JobResumeEditor.tsx`, `job-relevance.ts`, `optimization-brief.ts`, `change-copy.ts`, `change-decisions.ts`, prompts, tests, docs
+1. **Tailor** — If ATS still has skill/keyword gaps, ask (Claude or ATS fallback, max 3). One rewrite for ATS + human recruiter, user’s voice. Prefer JD-relevant projects. Max 2 Claude calls, no retry.
+2. **Content** — Always-visible **Edit** button (mobile-friendly); edit contact/summary/bullets/skills; checkboxes include/exclude; **New** badge on additions; highlights sync with preview.
+3. **Design** — Mobile: Styling / Sections / Settings + Compact/Standard/Spacious. Desktop keeps Advanced.
+4. **Match** — Interview-odds brief, before/after + reason, tap → highlight preview (and Preview pane on mobile). **Accept only for new additions**; rewrites of existing text auto-keep.
+5. **From master** — Default inclusion prefers job-linked projects/skills (`job-relevance.ts`).
 
-**Why:** Prod still showed check-only editor; user wants hover/Edit, correlated highlights, accept-for-new-only, real Match analysis, ATS-focused projects.
+**Files:** `lib/ai/{prompts,tailor-pipeline,tailor-engine}.ts`, `lib/tailor/{ats-gap-hints,change-copy,change-decisions,execute-run,job-relevance,optimization-brief}.ts`, `app/api/tailor/questions/route.ts`, `components/builder/{ContentEditor,EditableText,AnalyzerPanel,designer/DesignerPanel}.tsx`, `JobResumeEditor.tsx`, `ResumePreview.tsx`, `lib/export/theme.ts`, `docs/TAILOR-EDIT.md`, tests
 
-**Next:** Merge PR #19 and smoke on phone + desktop.
+**Why:** Apple 55% / 0 questions was a weak fast rewrite; checkboxes alone are not editing; Match was generic health; Design was hidden on mobile.
 
----
+**Decisions:** See DECISIONS (Task 152). Doc: [TAILOR-EDIT.md](./TAILOR-EDIT.md).
 
-
-**What:** Tailor now asks when ATS still has skill/keyword gaps (even if Claude returns 0 questions). The one rewrite targets both ATS parsers and a human recruiter while keeping the user’s voice. Job Edit: teal pen edits actual text (not just include/exclude), Design (section order + compact/standard/spacious) on mobile, Match tab shows real before/after + reason and highlights those lines on the preview and in the content section.
-
-**Files:** `lib/ai/prompts.ts`, `tailor-pipeline.ts`, `tailor-engine.ts`, `ats-gap-hints.ts`, `change-copy.ts`, `execute-run.ts`, `ContentEditor.tsx`, `EditableText.tsx`, `AnalyzerPanel.tsx`, `DesignerPanel.tsx`, `JobResumeEditor.tsx`, `ResumePreview.tsx`, `theme.ts`
-
-**Why:** Apple resume scored 55% with 6 changes and 0 gap answers — a weak fast rewrite, not an interview-ready tailor. User was right: checkboxes are not editing; Match was generic health, not “what changed.”
-
-**Decisions:** Still max 2 Claude calls, no critique/retry. ATS-derived questions (max 3) if Claude asks nothing. Job editor writes the tailored snapshot only.
-
-**Next:** Smoke a new Apple tailor after deploy; expect questions when skills are missing.
+**Next:** Smoke on prod after Vercel deploy — new Apple tailor should ask questions; Edit/Match on phone.
 
 ---
 ## 2026-08-14 — Durable tailor run (attach on refresh, max 2 Claude calls)
