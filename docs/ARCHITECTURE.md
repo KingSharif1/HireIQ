@@ -86,15 +86,15 @@ Paste JD or job URL
 Tailor flow (durable session — max 2 Claude calls, never overlapping)
     → POST /api/tailor/runs (idempotent: attach if already running)
     → DB: full resume + JD + GitHub (0 Claude)
-    → Local ATS compare; if gaps → 1 Claude gap questions, then wait
-    → After answers → 1 Claude rewrite (`lib/ai/tailor-pipeline.ts`, `maxRetries: 0`)
+    → Local ATS compare; if gaps → 1 Claude gap questions (ATS fallback questions if Claude returns none), then wait
+    → After answers → 1 Claude rewrite for ATS + human recruiter (`lib/ai/tailor-pipeline.ts`, `maxRetries: 0`)
     → `tailor_runs` row survives refresh / navigation; tracker shows Tailoring… / Needs review
-    → tailored_resumes + changes JSONB
-    → app/api/tailor/[id]/decisions → lib/tailor/change-decisions.ts (accept/decline/edit per change)
-    → Documents review → components/tailor/TailorDiff.tsx
+    → tailored_resumes + changes + change_decisions (new additions pending; rewrites auto-accepted)
+    → Documents review → TailorDiff + Edit workspace Match highlights
     → app/api/export/pdf|docx  → approved resume only; blocks if changes pending
     → app/api/tailor/cover-letter (Phase 1+ extra — not in new spec MVP)
     Legacy POST /api/tailor/generate still exists; the job-detail AI flow uses runs.
+    Doc: docs/TAILOR-EDIT.md
 
 Application tracking
     → applications + application_events (migration 010; 1:1 with jobs)
@@ -108,7 +108,7 @@ Application tracking
     → Forward-to-save (Task 115): `profiles.forward_save_email` → same webhook → extract job URL → saveJobFromUrl → tracker
     → Gmail sync (Task 114, next): Google-connected users, default on / opt-out → same email_log adapters
     → Future Gmail sync uses dedicated message storage, then adapts into the same inbox view model
-    → Fixed-job Documents editor: profile_data → inclusion filter → live preview/score → tailored_resumes
+    → Fixed-job Documents editor: Content (Edit) → Design → Match; live preview highlights; job-relevant inclusion from master
     → Gmail scan (Phase 2 remaining: daily cron)
 ```
 
@@ -127,11 +127,11 @@ Application tracking
 | 2.2 JD extraction | `key_phrases`, `ats_keywords`, posting age | `lib/jobs/normalize-job.ts`, `JobExtractedData` | 🟡 Partial — missing key phrase frequency, posting age |
 | **3 Tailoring** | | | |
 | 3.1 Gap analysis | 3-tier direct/adjacent/gap JSON | `lib/ai/gap-analysis.ts`, `app/api/tailor/questions` | ✓ Built — summary UI + prompt injection |
-| 3.2 User questions | Max 2–3, evidence-based | `components/tailor/QuestionFlow.tsx` | ✓ Built |
-| 3.3 Resume build | Role-based section order, bullet rules | `lib/ai/tailor-pipeline.ts`, `tailor-engine.ts` | 🟡 Critique loop exists; section order not role-aware |
+| 3.2 User questions | Max 2–3, evidence-based; ATS fallback if Claude asks none | `QuestionFlow.tsx`, `ats-gap-hints.ts` | ✓ Built |
+| 3.3 Resume build | ATS keywords in real bullets + recruiter voice; relevant projects | `tailor-pipeline.ts`, `job-relevance.ts` | ✓ One rewrite; no critique loop |
 | 3.4 ATS check | 70%+ keywords, density, format | `lib/scoring/ats-scorer.ts` | ✓ Built — weights differ from spec checklist |
 | 3.5 Visual render | PDF length/layout checks | `lib/export/pdf-generator.tsx` | 🟡 Export only; no automated layout QA (Task 106) |
-| 3.6 Tracked changes | Accept / decline / edit per change | `TailorDiff.tsx`, `change-decisions.ts`, Job Hub Changes tab | ✓ Built — export gated on review |
+| 3.6 Tracked changes | Accept new only; rewrites auto-keep; Edit/Match UI | `TailorDiff`, `JobResumeEditor`, `change-decisions` | ✓ Built — see TAILOR-EDIT.md |
 | **4 Application tracker** | | | |
 | 4.1 Schema | `applications` + `application_events` | migration 010 + status APIs | ✓ Backfill + events; jobs status mirrored |
 | 4.2 Tracker UI | Kanban + list + detail | `ApplicationsTracker`, Board/List, JobHub | ✓ Table default + Board drag; timeline Phase 2 |

@@ -157,6 +157,15 @@ Files changed: `016_gmail_sync.sql`, `017_inbound_provider.sql`, `lib/google/*`,
 
 ---
 
+## Task 152 — Better tailor + edit (questions, pen, mobile design, match highlights)
+Status: DONE  
+Scope: tailor prompts/pipeline, ContentEditor, JobResumeEditor, DesignerPanel, AnalyzerPanel, ResumePreview  
+Goal: Weak 55% Apple tailor with 0 questions was not a finished resume. Ask when ATS has gaps; rewrite for ATS + human; let users edit real text; Design on mobile; Match shows real change descriptions on preview and in the edited section.  
+Result: Shipped PR **#19**. ATS-fallback questions; one rewrite for interview odds; Content **Edit** button (mobile); Design Styling/Sections/Settings on phone; Match interview-odds brief + Accept-new-only; job-relevant inclusion from master. Doc: [TAILOR-EDIT.md](./TAILOR-EDIT.md).  
+Files changed: see CHANGELOG 2026-08-15 Task 152; `docs/TAILOR-EDIT.md`
+
+---
+
 ## Task 151 — Durable tailor run (one Claude session, survives refresh)
 Status: DONE  
 Scope: `tailor_runs` migration, `lib/tailor/{runs,execute-run,run-types}`, `/api/tailor/runs`, AiTailorFlow, tracker chips  

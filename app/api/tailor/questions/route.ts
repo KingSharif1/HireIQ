@@ -11,6 +11,7 @@ import { getMasterResumeContext } from '@/lib/profile/master'
 import { formatGitHubContextForAi } from '@/lib/profile/github-context'
 import type { GitHubProfileData } from '@/lib/github/types'
 import { createProcessLog } from '@/lib/tailor/process-log'
+import { withAtsFallbackQuestions } from '@/lib/tailor/ats-gap-hints'
 
 export const runtime = 'nodejs'
 export const maxDuration = 45
@@ -115,7 +116,10 @@ export async function POST(request: Request) {
         maxOutputTokens: 2500,
       }),
     )
-    gapAnalysis = normalizeGapAnalysis(JSON.parse(extractJSON(result.text)))
+    gapAnalysis = withAtsFallbackQuestions(
+      normalizeGapAnalysis(JSON.parse(extractJSON(result.text))),
+      score,
+    )
     log.entries[log.entries.length - 1] = {
       ...log.entries[log.entries.length - 1],
       status: 'ok',

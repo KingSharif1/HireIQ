@@ -1,5 +1,28 @@
 # HireIQ Decisions
 
+## 2026-08-15 — Tailor for interviews + real edit (Task 152 / PR #19)
+
+**Context:** An Apple IS&T tailor scored 55% with 0 questions and 6 shallow changes. User asked if it even tailored; wanted questions when gaps exist; Teal-style **Edit** (not just checkboxes); Design on mobile; Match that explains what changed and interview odds; Accept only when something **new** was added; pull job-relevant projects from master for ATS.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Questions | If ATS missing skills/keywords → ask (Claude, else ATS fallback, max 3). Skip Q&A only when ATS is clean |
+| Rewrite | One Claude call. Weave JD language into real bullets; no stuffing; keep user’s voice; drop unrelated projects |
+| Edit UX | Always-visible **Edit** button (mobile); Save updates this job’s snapshot; master profile never written from Edit |
+| Accept | Pending only for **new additions**. Rewrites of existing text auto-accepted |
+| Mobile Design | Styling / Sections / Settings (+ size templates). Advanced desktop-only |
+| Match | Optimization brief + before/after; tap → preview highlight (Preview pane on mobile) |
+| From master | `buildJobOptimizedInclusion` prefers JD-linked projects/skills |
+| Cost | No critique loop, no retries. Max 2 Claude calls |
+
+**Tradeoff:** Asking 1–3 questions adds a wait; skipping them is how you get a 55% “tailor.”
+
+**Doc:** [TAILOR-EDIT.md](./TAILOR-EDIT.md)
+
+**Revisit if:** ATS fallback questions feel generic — ground them in the user’s real company names without another Claude call.
+
+---
 ## 2026-08-14 — Durable tailor session (Task 151)
 
 **Context:** Refresh / navigation remounted AI tailor and started another Claude call. User wants one session: full resume + JD from DB, compare gaps, ask questions, wait, then one rewrite — and see progress from Applications.

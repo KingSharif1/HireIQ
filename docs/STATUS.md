@@ -1,17 +1,17 @@
 # HireIQ Status
 
-**As of:** 2026-08-14  
-**Branch:** `main` · **Production:** https://hireiq.kingsharif.com  
-**Tests:** 264 unit · 11 live URL · extension **v0.9.9** · Task **148** worker live on Cloud Run (`hireiq-505323`)
+**As of:** 2026-08-15  
+**Branch:** `main` (PR #19 merged) · **Production:** https://hireiq.kingsharif.com  
+**Tests:** 281 unit · 11 live URL · extension **v0.9.9** · Task **148** worker live on Cloud Run (`hireiq-505323`)
 
 ## Session handoff
 
 | | |
 |--|--|
-| **Working on** | Task **151** durable tailor run (background attach, max 2 Claude calls) |
+| **Working on** | Post-merge smoke: Task **152** tailor + Edit/Match on prod |
 | **Blocked** | Task 143 Google Auth provider |
-| **Next** | Merge PR #17 · deploy · smoke one Apple tailor · Task **147** |
-| **Roadmap** | [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md) |
+| **Next** | Smoke Apple tailor (expect questions) + mobile Edit · Task **147** |
+| **Roadmap** | [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md) · [TAILOR-EDIT.md](./TAILOR-EDIT.md) |
 
 ## System snapshot
 
@@ -23,10 +23,12 @@
 | Resume upload (PDF/DOCX) | ✓ |
 | Resume parse (Claude) | 🟡 — needs tiered skills + low-confidence flags + OCR |
 | Profile / Resume Builder | ✓ **Task 146** — one Builder nav; Master scrolling page + Files tab with View/Edit/Download |
+| Job Documents Edit | ✓ **Task 152** — Edit / Design / Match; live preview; accept-new-only — see [TAILOR-EDIT.md](./TAILOR-EDIT.md) |
 | Job URL fetch | ✓ ~90% | Amazon/Microsoft + tiered pipeline; legacy MS URLs need Playwright |
 | Job analyze | ✓ |
 | ATS score | ✓ — algorithmic |
-| Gap analysis | ✓ — still available via APIs; stepper retired from nav |
+| Gap analysis | ✓ — ATS fallback questions when Claude asks none |
+| Tailor | ✓ Durable runs + stronger rewrite (max 2 Claude) — [TAILOR-EDIT.md](./TAILOR-EDIT.md) |
 | Tailor stepper | ⛔ Redirected — Job Matcher + tracker replace primary flow |
 | Application tracker | ✓ — Teal list/board; facts in header; Auto-apply CTA; timeline-first Activity; tracked Email + Reply via HireIQ |
 | Masked apply email (Resend) | ✓ Infra live — `mail.kingsharif.com` receiving; webhook URL prod; needs smoke + `RESEND_FORWARD_FROM` optional |
@@ -36,7 +38,7 @@
 | Gmail sync | 🟡 **Task 114** | History API incremental; prod OAuth + smoke |
 | Settings | ✓ `/dashboard/settings` — **AI** (BYOK + models + usage), tracking, GitHub, password, delete |
 | Mask reply-relay | ✓ **Task 140** first slice live (PR #4) — Reply via HireIQ on Email tab |
-| Auto-apply (Sprout-like) | ✓ **148** Cloud Run worker live (`bootfix`) · Vercel `APPLY_WORKER_*` · dry-run default · **147** next |
+| Auto-apply (Sprout-like) | ✓ **148** Cloud Run worker live (`boot ok`) · Vercel `APPLY_WORKER_*` · dry-run default · **147** next |
 
 ## Phase 1 MVP progress (spec order)
 
@@ -45,9 +47,9 @@
 | 1 | Resume upload + parse | 🟡 80% | Tiered skills, parse confidence flags, OCR fallback |
 | 2 | GitHub connect | ✓ ~85% | OAuth link + repo sync; enable provider + migration 008 |
 | 3 | Job URL ingestion | ✓ ~90% | Tiered fetch + Amazon/Microsoft live tests |
-| 4 | Gap analysis | ✓ ~90% | 3-tier JSON + UI |
-| 5 | Tailored resume + tracked changes | ✓ ~90% | Accept/decline/edit done |
-| 6 | ATS + visual check | 🟡 85% | Documents Export check + page count + font-size heuristics; critical issues still block API export |
+| 4 | Gap analysis | ✓ ~95% | 3-tier + ATS fallback questions |
+| 5 | Tailored resume + tracked changes | ✓ ~95% | Accept-new-only; Edit/Match workspace |
+| 6 | ATS + visual check | 🟡 85% | Documents Export check + page count + font-size heuristics |
 | 7 | Application log | ✓ ~92% | Portal login UI; Gmail history sync |
 
 Legend: ✓ done · 🟡 in progress · 🔴 not started · 🔭 planned
@@ -64,10 +66,10 @@ Migrations 001–**023** applied remotely — see [supabase/MIGRATIONS.md](./sup
 
 ## Next recommended tasks
 
-1. **Smoke Auto-apply** on a real Greenhouse/Lever/Ashby job (dry run — does not submit)
-2. **Task 147** — extension assist CTA when already on ATS
-3. **Task 143** — Enable Google in Supabase ([AUTH.md](./AUTH.md) §3)
-4. Connect Gmail on prod Settings → Sync now
-5. **Chrome Store draft** — [CHROME-STORE.md](./CHROME-STORE.md)
+1. **Smoke Task 152** on prod (Edit buttons, Match, new Apple tailor with questions)
+2. **Smoke Auto-apply** on a real Greenhouse/Lever/Ashby job (dry run — does not submit)
+3. **Task 147** — extension assist CTA when already on ATS
+4. **Task 143** — Enable Google in Supabase ([AUTH.md](./AUTH.md) §3)
+5. Connect Gmail on prod Settings → Sync now
 
-Docs: [REMAINING-WORK.md](./REMAINING-WORK.md) · [EMAIL.md](./EMAIL.md) · [DECISIONS.md](./DECISIONS.md) · [AUTH.md](./AUTH.md) · [EXTENSION.md](./EXTENSION.md) · [AUTO-APPLY.md](./AUTO-APPLY.md)
+Docs: [TAILOR-EDIT.md](./TAILOR-EDIT.md) · [REMAINING-WORK.md](./REMAINING-WORK.md) · [EMAIL.md](./EMAIL.md) · [DECISIONS.md](./DECISIONS.md) · [AUTH.md](./AUTH.md) · [EXTENSION.md](./EXTENSION.md) · [AUTO-APPLY.md](./AUTO-APPLY.md)

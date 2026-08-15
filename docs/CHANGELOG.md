@@ -1,3 +1,22 @@
+## 2026-08-15 — Task 152: Better tailor + edit (merged PR #19)
+
+**What:** End-to-end tailor quality + job Documents Edit workspace.
+
+1. **Tailor** — If ATS still has skill/keyword gaps, ask (Claude or ATS fallback, max 3). One rewrite for ATS + human recruiter, user’s voice. Prefer JD-relevant projects. Max 2 Claude calls, no retry.
+2. **Content** — Always-visible **Edit** button (mobile-friendly); edit contact/summary/bullets/skills; checkboxes include/exclude; **New** badge on additions; highlights sync with preview.
+3. **Design** — Mobile: Styling / Sections / Settings + Compact/Standard/Spacious. Desktop keeps Advanced.
+4. **Match** — Interview-odds brief, before/after + reason, tap → highlight preview (and Preview pane on mobile). **Accept only for new additions**; rewrites of existing text auto-keep.
+5. **From master** — Default inclusion prefers job-linked projects/skills (`job-relevance.ts`).
+
+**Files:** `lib/ai/{prompts,tailor-pipeline,tailor-engine}.ts`, `lib/tailor/{ats-gap-hints,change-copy,change-decisions,execute-run,job-relevance,optimization-brief}.ts`, `app/api/tailor/questions/route.ts`, `components/builder/{ContentEditor,EditableText,AnalyzerPanel,designer/DesignerPanel}.tsx`, `JobResumeEditor.tsx`, `ResumePreview.tsx`, `lib/export/theme.ts`, `docs/TAILOR-EDIT.md`, tests
+
+**Why:** Apple 55% / 0 questions was a weak fast rewrite; checkboxes alone are not editing; Match was generic health; Design was hidden on mobile.
+
+**Decisions:** See DECISIONS (Task 152). Doc: [TAILOR-EDIT.md](./TAILOR-EDIT.md).
+
+**Next:** Smoke on prod after Vercel deploy — new Apple tailor should ask questions; Edit/Match on phone.
+
+---
 ## 2026-08-14 — Durable tailor run (attach on refresh, max 2 Claude calls)
 
 **What:** Tailor is now a background session (`tailor_runs`). Opening AI tailor attaches to the in-flight run instead of starting another. Flow: DB resume + JD → ATS compare → at most 1 Claude gap call → wait for answers → 1 Claude rewrite. Applications list/board and job detail show Tailoring… / Needs your answers / Needs review.

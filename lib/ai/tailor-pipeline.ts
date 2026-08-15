@@ -3,6 +3,8 @@ import { AI_MODELS, TAILOR_MAX_AI_CALLS } from '@/lib/ai/models'
 import type { StructuredResume, JobExtractedData, GapAnalysis } from '@/types'
 import type { GenerateFn, TailorPipelineResult } from '@/lib/ai/tailor-types'
 import { formatAdjacentForPrompt, formatRealGapsForPrompt } from '@/lib/ai/gap-analysis'
+import { calculateATSScore } from '@/lib/scoring/ats-scorer'
+import { formatAtsGapsForPrompt } from '@/lib/tailor/ats-gap-hints'
 import {
   buildResumeChanges,
   buildWriteBackSuggestions,
@@ -53,10 +55,13 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
   const adjacentMatches = formatAdjacentForPrompt(gapAnalysis?.adjacent_matches ?? [])
   const aiCallsUsed = { n: 0 }
 
+  const atsGaps = formatAtsGapsForPrompt(calculateATSScore(resume, job))
+
   const generatePrompt = TAILOR_GENERATE_PROMPT
     .replace('{structuredResume}', jsonForPrompt(resume))
     .replace('{githubContext}', input.githubContext ?? 'No GitHub repos synced.')
     .replace('{jobAnalysis}', jsonForPrompt(job))
+    .replace('{atsGaps}', atsGaps)
     .replace('{enhancements}', enhancements)
     .replace('{realGaps}', realGaps)
     .replace('{adjacentMatches}', adjacentMatches)

@@ -1,4 +1,5 @@
 import type { ChangeDecision, ResumeDiffChange, StructuredResume } from '@/types'
+import { isNewAddition } from '@/lib/tailor/change-copy'
 
 /** Stable id for a diff row (used as key in change_decisions). */
 export function getChangeId(change: ResumeDiffChange, index: number): string {
@@ -137,10 +138,17 @@ export function countPendingDecisions(
   return changes.filter((c, i) => decisionStatus(decisions, getChangeId(c, i)) === 'pending').length
 }
 
+/**
+ * Only NEW additions start pending (need Accept).
+ * Rewrites of text you already had are auto-accepted — no friction.
+ */
 export function initialDecisions(changes: ResumeDiffChange[]): Record<string, ChangeDecision> {
   const out: Record<string, ChangeDecision> = {}
   for (let i = 0; i < changes.length; i++) {
-    out[getChangeId(changes[i], i)] = { status: 'pending' }
+    const change = changes[i]
+    out[getChangeId(change, i)] = {
+      status: isNewAddition(change) ? 'pending' : 'accepted',
+    }
   }
   return out
 }
