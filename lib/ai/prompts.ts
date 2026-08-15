@@ -1,11 +1,23 @@
 export { extractJSON } from '@/lib/ai/parse-json'
 
-export const RESUME_PARSER_PROMPT = `You are an expert resume parser. Convert the resume into HireIQ markdown (not JSON).
+export const RESUME_PARSER_PROMPT = `You are an expert resume parser. Convert the resume into HireIQ markdown (not JSON). Extract EVERYTHING honest from the text — contact, summary, every role, every project, education, certifications, and skills.
 
 RESUME TEXT:
 {resumeText}
 
-Return ONLY HireIQ markdown — no code fences, no commentary. Keep facts honest; do not invent.
+Return ONLY HireIQ markdown — no code fences, no commentary. Keep facts honest; do not invent employers, dates, or metrics. Prefer the candidate's wording.
+
+Rules:
+1. Skills MUST be categorized (not one comma wall):
+   **Languages:** programming languages only (TypeScript, Python, …)
+   **Frameworks & Tools:** frameworks, libraries, platforms
+   **Cloud & Data:** cloud, DBs, DevOps (or omit if none)
+   **Soft Skills:** only if clearly listed
+2. Deduplicate skills across lines. Never repeat the same skill twice.
+3. Education: one clean degree line — never "B.S. in Computer Science in Computer Science".
+4. Keep every substantive experience and project from the source. Do not drop sections that exist in the text.
+5. Preserve concrete tech names inside bullets when the source has them.
+6. If a section is missing from the source, omit that heading entirely.
 
 # Full Name
 email · phone · location · links
@@ -25,10 +37,9 @@ description
 Tech: a, b
 
 ## Skills
-**Technical:** ...
-**Tools:** ...
 **Languages:** ...
-**Soft:** ...
+**Frameworks & Tools:** ...
+**Cloud & Data:** ...
 
 ## Education
 ### Degree · Field · School <!-- id:edu_1 -->

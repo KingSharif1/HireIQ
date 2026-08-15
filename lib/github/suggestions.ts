@@ -55,7 +55,7 @@ export function githubSuggestionsFromRepos(
         name: repo.name,
         description,
         github: repo.htmlUrl,
-        technologies: [...new Set([...(repo.tools ?? []), ...repo.languages])]
+        technologies: [...new Set([...(repo.tools ?? []), ...(repo.languages ?? [])])]
           .filter(t => !['react-dom', 'eslint', 'prettier'].includes(t.toLowerCase()))
           .slice(0, 8),
         bullets: [highlight],

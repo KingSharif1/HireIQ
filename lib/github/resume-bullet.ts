@@ -72,7 +72,9 @@ export function prettyToolName(raw: string): string | null {
 
 export function stackLabels(repo: GitHubRepoSnapshot, limit = 4): string[] {
   const fromTools = (repo.tools ?? []).map(prettyToolName).filter((v): v is string => Boolean(v))
-  const fromLangs = repo.languages.map(prettyToolName).filter((v): v is string => Boolean(v))
+  const fromLangs = (repo.languages ?? [])
+    .map(prettyToolName)
+    .filter((v): v is string => Boolean(v))
   return [...new Set([...fromTools, ...fromLangs])].slice(0, limit)
 }
 

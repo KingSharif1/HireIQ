@@ -8,9 +8,9 @@
 
 | | |
 |--|--|
-| **Working on** | Task 159 done — awaiting merge/deploy + Apple re-tailor smoke |
-| **Blocked** | Human: Google Data access for `gmail.readonly` |
-| **Next** | Merge Task 159 · re-tailor Apple Early Career · smoke master Export PDF |
+| **Working on** | Task 160 — GitHub OAuth/sync + parse polish |
+| **Blocked** | Human: set GitHub OAuth callback to `https://hireiq.kingsharif.com/api/github/callback` (not `/api/git`) · Google Data access for `gmail.readonly` |
+| **Next** | Ship Task 160 · reconnect GitHub · re-upload resume smoke |
 | **Roadmap** | [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md) |
 
 ## System snapshot

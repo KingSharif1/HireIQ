@@ -161,4 +161,12 @@ describe('normalizeProfileData', () => {
     const norm = normalizeProfileData(raw)
     expect(norm.experience[0].bulletIds?.length).toBe(norm.experience[0].bullets.length)
   })
+
+  it('does not crash on sparse/empty profile blobs (new accounts)', () => {
+    const norm = normalizeProfileData({} as ReturnType<typeof emptyProfileData>)
+    expect(norm.experience).toEqual([])
+    expect(norm.projects).toEqual([])
+    expect(norm.urls).toEqual([])
+    expect(normalizeProfileData(null as unknown as ReturnType<typeof emptyProfileData>).skills.technical).toEqual([])
+  })
 })

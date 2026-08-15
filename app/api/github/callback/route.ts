@@ -51,8 +51,13 @@ export async function GET(request: NextRequest) {
       ghUser.login,
       tokenRes.scope
     )
-    await syncGitHubForUser(supabase, user.id, tokenRes.access_token)
-    return NextResponse.redirect(profileProjectsUrl())
+    try {
+      await syncGitHubForUser(supabase, user.id, tokenRes.access_token)
+      return NextResponse.redirect(profileProjectsUrl())
+    } catch (syncErr) {
+      console.error('GitHub connected but initial sync failed:', syncErr)
+      return NextResponse.redirect(profileProjectsUrl('sync_failed'))
+    }
   } catch (e) {
     console.error('GitHub OAuth callback failed:', e)
     const msg = e instanceof Error && e.message.includes('not configured') ? 'not_configured' : 'exchange_failed'
