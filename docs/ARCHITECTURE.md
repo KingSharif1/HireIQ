@@ -132,9 +132,6 @@ Application tracking
 | 3.4 ATS check | 70%+ keywords, density, format | `lib/scoring/ats-scorer.ts` | ✓ Built — weights differ from spec checklist |
 | 3.5 Visual render | PDF length/layout checks | `lib/export/pdf-generator.tsx` | 🟡 Export only; no automated layout QA (Task 106) |
 | 3.6 Tracked changes | Accept new only; rewrites auto-keep; Edit/Match UI | `TailorDiff`, `JobResumeEditor`, `change-decisions` | ✓ Built — see TAILOR-EDIT.md |
-| 3.4 ATS check | 70%+ keywords, density, format | `lib/scoring/ats-scorer.ts` | ✓ Built — weights differ from spec checklist |
-| 3.5 Visual render | PDF length/layout checks | `lib/export/pdf-generator.tsx` | 🟡 Export only; no automated layout QA (Task 106) |
-| 3.6 Tracked changes | Accept / decline / edit per change | `TailorDiff.tsx`, `change-decisions.ts`, Job Hub Changes tab | ✓ Built — export gated on review |
 | **4 Application tracker** | | | |
 | 4.1 Schema | `applications` + `application_events` | migration 010 + status APIs | ✓ Backfill + events; jobs status mirrored |
 | 4.2 Tracker UI | Kanban + list + detail | `ApplicationsTracker`, Board/List, JobHub | ✓ Table default + Board drag; timeline Phase 2 |
