@@ -1,5 +1,26 @@
 # HireIQ Decisions
 
+## 2026-08-15 — Pro export defaults + Claude-quality tailor curation (Task 159)
+
+**Context:** User compared HireIQ export (2 pages, skill wall, “B.S. in CS in CS”, mid-project page break) to a Claude.ai one-pager that used less context but curated harder. Also asked for master-profile export with section/order controls.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Master export | Profile DOCUMENTS → Export PDF: section checkboxes, reorder, density; does not mutate master |
+| Skills layout default | `categorized` (Languages / Frameworks & Tools / Cloud & Data) |
+| Section order default | Summary → Skills → Experience → Projects → Education → Certifications |
+| Deterministic polish | Always `polishStructuredForExport` before PDF/preview/DOCX/save-after-tailor (dedupe + education fix) |
+| Tailor curation | Strict 1-page for early/intern; max 2–3 JD-relevant projects; may promote real founder/shipped work into Experience when honest |
+| Theme on tailor save | Early career gets compact `theme_override` + categorized skills |
+| Not doing | Critique/retry Claude loops; inventing metrics; writing master from tailor |
+
+**Tradeoff:** Aggressive project dropping may surprise users who want every project on every job — they can re-include in Edit.
+
+**Revisit if:** Users complain tailored resumes feel too short, or ATS wants flat skill walls.
+
+---
+
 ## 2026-08-15 — Tailor rewrite: markdown wire + stream progress
 
 **Context:** Giant JSON rewrites break on huge JDs (Apple Early Career: `Expected ',' or ']'…`). Users wait minutes with a static spinner. Cover letter already streams.

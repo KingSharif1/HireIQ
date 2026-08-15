@@ -5,6 +5,11 @@ import {
 import type { StructuredResume } from '@/types'
 import { normalizeResumeForDisplay } from '@/lib/format/normalize'
 import {
+  formatEducationLine,
+  polishStructuredForExport,
+  skillCategoryLines,
+} from '@/lib/export/format'
+import {
   DEFAULT_RESUME_THEME,
   formatSkillsInline,
   mergeResumeTheme,
@@ -138,20 +143,18 @@ interface ResumePDFProps {
 export function ResumePDF({ data: rawData, theme, themeOverride }: ResumePDFProps) {
   const resolvedTheme = mergeResumeTheme(theme ?? DEFAULT_RESUME_THEME, themeOverride)
   const styles = createResumePdfStyles(resolvedTheme)
-  const data = normalizeResumeForDisplay(rawData)
+  const data = polishStructuredForExport(normalizeResumeForDisplay(rawData))
   const contactLine = [
     data.contact.email,
     data.contact.phone,
     data.contact.location,
     data.contact.linkedin,
     data.contact.github,
+    data.contact.portfolio || data.contact.website,
   ].filter(Boolean).join('  ·  ')
 
-  const allSkills = [
-    ...(data.skills?.technical || []),
-    ...(data.skills?.tools || []),
-    ...(data.skills?.languages || []),
-  ]
+  const skillLines = skillCategoryLines(data.skills)
+  const flatSkills = skillLines.flatMap(l => l.items)
 
   const sectionLabel = (key: string, fallback: string) =>
     resolvedTheme.sectionLabels[key] ?? fallback
@@ -159,7 +162,7 @@ export function ResumePDF({ data: rawData, theme, themeOverride }: ResumePDFProp
   const sectionRenderers: Record<string, () => React.ReactNode | null> = {
     summary: () =>
       data.summary ? (
-        <View key="summary">
+        <View key="summary" wrap={false}>
           <Text style={styles.sectionTitle}>{sectionLabel('summary', 'Summary')}</Text>
           <Text style={styles.summaryText}>{data.summary}</Text>
         </View>
@@ -176,16 +179,21 @@ export function ResumePDF({ data: rawData, theme, themeOverride }: ResumePDFProp
       ) : null,
 
     skills: () =>
-      allSkills.length > 0 ? (
-        <View key="skills">
-          <Text style={styles.sectionTitle}>{sectionLabel('skills', 'Skills')}</Text>
-          <SkillsContent skills={allSkills} theme={resolvedTheme} styles={styles} />
+      flatSkills.length > 0 ? (
+        <View key="skills" wrap={false}>
+          <Text style={styles.sectionTitle}>{sectionLabel('skills', 'Technical Skills')}</Text>
+          <SkillsContent
+            skills={flatSkills}
+            skillLines={skillLines}
+            theme={resolvedTheme}
+            styles={styles}
+          />
         </View>
       ) : null,
 
     education: () =>
       data.education?.length > 0 ? (
-        <View key="education">
+        <View key="education" wrap={false}>
           <Text style={styles.sectionTitle}>{sectionLabel('education', 'Education')}</Text>
           {data.education.map(edu => (
             <EducationEntry key={edu.id} edu={edu} theme={resolvedTheme} styles={styles} />
@@ -198,7 +206,7 @@ export function ResumePDF({ data: rawData, theme, themeOverride }: ResumePDFProp
         <View key="projects">
           <Text style={styles.sectionTitle}>{sectionLabel('projects', 'Projects')}</Text>
           {data.projects.map(proj => (
-            <View key={proj.id} style={{ marginTop: resolvedTheme.entrySpacing.project }}>
+            <View key={proj.id} style={{ marginTop: resolvedTheme.entrySpacing.project }} wrap={false}>
               <Text style={styles.jobTitle}>{proj.name}</Text>
               {proj.technologies?.length > 0 && (
                 <Text style={styles.companyName}>{proj.technologies.join(', ')}</Text>
@@ -211,6 +219,16 @@ export function ResumePDF({ data: rawData, theme, themeOverride }: ResumePDFProp
               ))}
             </View>
           ))}
+        </View>
+      ) : null,
+
+    certifications: () =>
+      data.certifications?.length > 0 ? (
+        <View key="certifications" wrap={false}>
+          <Text style={styles.sectionTitle}>{sectionLabel('certifications', 'Certifications')}</Text>
+          <Text style={styles.skillsText}>
+            {data.certifications.map(c => c.name).filter(Boolean).join('  |  ')}
+          </Text>
         </View>
       ) : null,
   }
@@ -234,13 +252,28 @@ type PdfStyles = ReturnType<typeof createResumePdfStyles>
 
 function SkillsContent({
   skills,
+  skillLines,
   theme,
   styles,
 }: {
   skills: string[]
+  skillLines: ReturnType<typeof skillCategoryLines>
   theme: ResumeTheme
   styles: PdfStyles
 }) {
+  if (theme.skillsLayout === 'categorized') {
+    return (
+      <View style={{ marginTop: theme.contentSpacing.body }}>
+        {skillLines.map(line => (
+          <Text key={line.label} style={styles.skillsText}>
+            <Text style={styles.jobTitle}>{line.label}: </Text>
+            {line.items.join(', ')}
+          </Text>
+        ))}
+      </View>
+    )
+  }
+
   if (theme.skillsLayout === 'columns') {
     return (
       <View style={styles.skillsColumns}>
@@ -291,7 +324,7 @@ function ExperienceEntry({
 
   if (showDatesBy === 'inline') {
     return (
-      <View style={{ marginTop: theme.entrySpacing.experience, marginBottom: theme.contentSpacing.subheading }}>
+      <View wrap={false} style={{ marginTop: theme.entrySpacing.experience, marginBottom: theme.contentSpacing.subheading }}>
         <Text style={styles.jobTitle}>
           {primaryWithLocation}
           <Text style={styles.inlineDate}>{'  ·  '}{dateStr}</Text>
@@ -310,7 +343,7 @@ function ExperienceEntry({
   }
 
   return (
-    <View>
+    <View wrap={false}>
       <View style={styles.companyRow}>
         <View>
           <Text style={styles.jobTitle}>{primaryWithLocation}</Text>
@@ -341,7 +374,7 @@ function EducationEntry({
 }) {
   const { showBy, layout } = theme.educationSettings
   const dateStr = `${edu.startDate} – ${edu.endDate}`
-  const degreeText = `${edu.degree}${edu.field ? ` in ${edu.field}` : ''}`
+  const degreeText = formatEducationLine(edu)
 
   const primaryText = showBy === 'degree-first' ? degreeText : edu.institution
   const secondaryText = showBy === 'degree-first' ? edu.institution : degreeText

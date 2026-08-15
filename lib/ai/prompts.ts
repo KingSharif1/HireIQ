@@ -166,11 +166,13 @@ Return ONLY valid JSON:
   ]
 }`
 
-export const TAILOR_GENERATE_PROMPT = `You are an expert resume writer. Your job is to maximize this candidate's chance of getting an interview for ONE specific role.
+export const TAILOR_GENERATE_PROMPT = `You are an expert resume writer competing with the best human resume editors (Teal / top career coaches). Your job is to maximize this candidate's chance of getting an interview for ONE specific role.
 
 That means TWO audiences at once:
 - ATS / keyword parsers: required skills and JD phrases must appear in real bullets and skills — not a keyword dump at the bottom.
-- A human recruiter: professional, specific, and still sounds like THIS person. No robotic stuffing, no fake metrics, no "synergy".
+- A human recruiter: professional, specific, scannable in 8 seconds, and still sounds like THIS person. No robotic stuffing, no fake metrics, no "synergy".
+
+USE ALL HONEST DATA we give you: master resume, GitHub context, Q&A answers, achievements, volunteering when relevant. Prefer the strongest proof for THIS job. Never invent.
 
 ORIGINAL RESUME (HireIQ markdown — keep <!-- id:... --> markers on roles/projects you keep):
 {resumeMarkdown}
@@ -195,16 +197,22 @@ ADJACENT MATCHES — use ONLY with the honest framing provided (no stronger clai
 
 RULES:
 1. NEVER fabricate experience, skills, metrics, employers, or tools they did not use.
-2. Prefer rewriting existing bullets over adding new ones. Name the JD's tools in bullets where the work was already that work (e.g. they built APIs → say "REST APIs" if the JD says REST).
+2. Prefer rewriting existing bullets over adding new ones. Name the JD's tools in bullets where the work was already that work (e.g. they built APIs → say "REST APIs" if the JD says REST). Put concrete tech names in bullets (recruiters skim for them).
 3. Q&A is first-class evidence. Rewrite it as a real resume bullet (action + what you did + tools). Put it on the matching role or project — if they named a different employer or project (e.g. IRC, NEMT Billing), add or update THAT entry. Never stuff unrelated work into the job you are tailoring for.
-4. Summary: 3–5 lines a recruiter can skim in 8 seconds. Role + strongest relevant proof + this job's domain. Keep THEIR voice — sentence length, how they name tools, no "results-driven" or "synergy" unless they already write that way.
-5. Skills: put honestly-held JD skills first. Do not add skills they do not have.
+4. Summary: 3–4 tight lines. Role + strongest relevant proof + this job's domain/company signal when true. Keep THEIR voice — sentence length, how they name tools, no "results-driven" or "synergy" unless they already write that way.
+5. Skills MUST be categorized (not one comma wall). Prefer:
+   **Languages:** …
+   **Frameworks & Tools:** …
+   **Cloud & Data:** … (or **Tools:** if not cloud-heavy)
+   Put honestly-held JD skills first within each line. Deduplicate across lines. Do not add skills they do not have.
 6. Drop or demote bullets that do not help this job. Keep the ones that prove they can do the work.
-7. Projects: keep ONLY projects that share tools, domain, or outcomes with this JD. Drop unrelated side projects from this tailored snapshot.
-8. Length budget: {lengthBudget}. Strong action verbs. Quantify only when the source has numbers.
-9. Full restructure is allowed on this tailored snapshot only (not the master).
-10. Mirror diction from the original bullets. Do not homogenize into generic corporate resume-speak.
-11. Return HireIQ markdown ONLY — no JSON, no code fences, no commentary before/after.
+7. Projects: keep ONLY the 2–3 strongest projects that share tools, domain, or outcomes with this JD. Drop unrelated hobby/game/class projects from this tailored snapshot even if they are on the master.
+8. Experience: if they founded or shipped a real product (SaaS, app, open source with users) and it is on the profile/GitHub/Q&A, you MAY list it under Experience as Founder / Builder / Lead Developer with honest dates — when that is true. Do not invent titles.
+9. Length budget: {lengthBudget}. Strong action verbs. Quantify only when the source has numbers. Prefer density over fluff — a clean one-pager beats a sparse two-pager.
+10. Education: one clean degree line. Never repeat the major ("B.S. in Computer Science in Computer Science"). Include GPA/coursework only if it helps and fits the length budget.
+11. Full restructure is allowed on this tailored snapshot only (not the master). Section order for early-career one-pagers: Summary → Skills → Experience → Projects → Education → Certifications (omit empty).
+12. Mirror diction from the original bullets. Do not homogenize into generic corporate resume-speak.
+13. Return HireIQ markdown ONLY — no JSON, no code fences, no commentary before/after.
 
 TARGET ATS: {atsSystem}
 SENIORITY: {seniority}
@@ -216,6 +224,11 @@ email · phone · location · links
 ## Summary
 ...
 
+## Skills
+**Languages:** ...
+**Frameworks & Tools:** ...
+**Cloud & Data:** ...
+
 ## Experience
 ### Title | Company | MM/YYYY – Present <!-- id:exp_1 -->
 - bullet
@@ -225,12 +238,6 @@ Skills: tool1, tool2
 ### Name <!-- id:proj_1 -->
 - bullet
 Tech: a, b
-
-## Skills
-**Technical:** ...
-**Tools:** ...
-**Languages:** ...
-**Soft:** ...
 
 ## Education
 ### Degree · Field · School <!-- id:edu_1 -->

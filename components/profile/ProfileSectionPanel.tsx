@@ -2,8 +2,10 @@
 
 import type { ProfileData } from '@/types'
 import type { GitHubProfileData } from '@/lib/github/types'
+import type { ResumeTheme } from '@/lib/export/theme'
 import { SECTIONS, profileSectionAnchor, type SectionId } from '@/lib/profile/sections'
 import type { ResumeRow } from '@/lib/profile/resume-row'
+import { MasterExportPanel } from '@/components/profile/MasterExportPanel'
 import {
   PersonalSection,
   ApplyAnswersSection,
@@ -34,10 +36,12 @@ export type ProfileSectionContentProps = {
     enrichment?: import('@/lib/profile/suggestion-followup').SuggestionEnrichment
   ) => Promise<void>
   onGitHubSynced: () => void
+  /** Saved designer theme — used as defaults for master PDF export. */
+  savedTheme?: ResumeTheme | null
 }
 
 export function renderProfileSection(id: SectionId, props: ProfileSectionContentProps) {
-  const { data, update, resumes, githubData, onSuggestionResolved, onGitHubSynced } = props
+  const { data, update, resumes, githubData, onSuggestionResolved, onGitHubSynced, savedTheme } = props
   switch (id) {
     case 'personal':
       return <PersonalSection data={data} update={update} />
@@ -45,6 +49,8 @@ export function renderProfileSection(id: SectionId, props: ProfileSectionContent
       return <ApplyAnswersSection data={data} update={update} />
     case 'resumes':
       return <ResumesSection resumes={resumes} />
+    case 'exportResume':
+      return <MasterExportPanel data={data} savedTheme={savedTheme} />
     case 'additionalDocuments':
       return <AdditionalDocumentsSection data={data} update={update} />
     case 'summary':

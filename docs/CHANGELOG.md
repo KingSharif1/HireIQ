@@ -1,3 +1,15 @@
+## 2026-08-15 — Task 159: Pro export + smarter tailor
+
+**What:** Master Profile → Export PDF with section include/order + Compact/Standard/Spacious. PDF/preview/DOCX polish: categorized skills, education double-“in” fix, skill dedupe, certs, keep-together entries. Tailor prompt targets Claude-quality one-pagers (curated projects, categorized skills, use full profile+GitHub+Q&A). Early-career themes default to compact.
+
+**Files:** `lib/export/{format,theme,pdf-generator,docx-generator}.ts`, `MasterExportPanel`, `ProfileSectionPanel`, `ResumePreview`, `prompts.ts`, `tailor-pipeline`, `execute-run`, `markdown.ts`, docs
+
+**Why:** HireIQ PDFs looked worse than a Claude.ai share (2 pages, skill walls, duplicated education text, dump-all projects). Close that gap without inventing claims.
+
+**Next:** Re-run Apple Early Career tailor + export; compare to Claude one-pager.
+
+---
+
 ## 2026-08-15 — Stream linear AI waits (parse + analyze + gap)
 
 **What:** JSON stays the storage format. AI talks markdown where the payload is a resume. Linear waits stream progress: resume parse + job analyze via NDJSON; tailor gap + rewrite via process_log updates.

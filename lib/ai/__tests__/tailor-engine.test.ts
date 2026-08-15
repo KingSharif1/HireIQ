@@ -63,6 +63,11 @@ describe('seniorityLengthBudget', () => {
   it('targets 1 page for junior/mid', () => {
     expect(seniorityLengthBudget('mid')).toContain('1 page')
   })
+
+  it('forces a strict one-pager for early career / intern', () => {
+    expect(seniorityLengthBudget('intern')).toContain('STRICTLY 1 page')
+    expect(seniorityLengthBudget('early career')).toContain('STRICTLY 1 page')
+  })
 })
 
 describe('buildResumeChanges', () => {
@@ -140,7 +145,7 @@ describe('pickBestAttempt', () => {
 describe('cost guard constants', () => {
   it('bounds retries and AI calls', () => {
     expect(TAILOR_MAX_RETRIES).toBe(0)
-    expect(TAILOR_MAX_AI_CALLS).toBe(1)
+    expect(TAILOR_MAX_AI_CALLS).toBe(2)
   })
 })
 

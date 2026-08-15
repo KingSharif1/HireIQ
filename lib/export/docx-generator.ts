@@ -1,9 +1,14 @@
 import {
-  Document, Packer, Paragraph, TextRun, HeadingLevel,
-  AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType,
+  Document, Packer, Paragraph, TextRun,
+  AlignmentType, BorderStyle,
 } from 'docx'
 import type { StructuredResume } from '@/types'
 import { normalizeResumeForDisplay, toTitleCaseName } from '@/lib/format/normalize'
+import {
+  formatEducationLine,
+  polishStructuredForExport,
+  skillCategoryLines,
+} from '@/lib/export/format'
 
 function hr(): Paragraph {
   return new Paragraph({
@@ -20,7 +25,7 @@ function sectionHeading(text: string): Paragraph {
 }
 
 export async function generateDocx(rawData: StructuredResume): Promise<Buffer> {
-  const data = normalizeResumeForDisplay(rawData)
+  const data = polishStructuredForExport(normalizeResumeForDisplay(rawData))
   const children: Paragraph[] = []
 
   // Name
@@ -37,6 +42,9 @@ export async function generateDocx(rawData: StructuredResume): Promise<Buffer> {
     data.contact.location,
     data.contact.linkedin ? `LinkedIn: ${data.contact.linkedin}` : null,
     data.contact.github ? `GitHub: ${data.contact.github}` : null,
+    data.contact.portfolio || data.contact.website
+      ? `Portfolio: ${data.contact.portfolio || data.contact.website}`
+      : null,
   ].filter(Boolean).join('  |  ')
 
   children.push(new Paragraph({
@@ -53,6 +61,23 @@ export async function generateDocx(rawData: StructuredResume): Promise<Buffer> {
       children: [new TextRun({ text: data.summary, size: 20 })],
       spacing: { after: 120 },
     }))
+  }
+
+  // Skills (categorized — matches PDF default)
+  const skillLines = skillCategoryLines(data.skills)
+  if (skillLines.length > 0) {
+    children.push(sectionHeading('Technical Skills'))
+    children.push(hr())
+    for (const line of skillLines) {
+      children.push(new Paragraph({
+        children: [
+          new TextRun({ text: `${line.label}: `, bold: true, size: 20 }),
+          new TextRun({ text: line.items.join(', '), size: 20 }),
+        ],
+        spacing: { after: 40 },
+      }))
+    }
+    children.push(new Paragraph({ spacing: { after: 80 } }))
   }
 
   // Experience
@@ -89,45 +114,6 @@ export async function generateDocx(rawData: StructuredResume): Promise<Buffer> {
     }
   }
 
-  // Skills
-  const allSkills = [
-    ...(data.skills?.technical || []),
-    ...(data.skills?.tools || []),
-    ...(data.skills?.languages || []),
-  ]
-  if (allSkills.length > 0) {
-    children.push(sectionHeading('Skills'))
-    children.push(hr())
-    children.push(new Paragraph({
-      children: [new TextRun({ text: allSkills.join(' · '), size: 20 })],
-      spacing: { after: 120 },
-    }))
-  }
-
-  // Education
-  if (data.education?.length > 0) {
-    children.push(sectionHeading('Education'))
-    children.push(hr())
-
-    for (const edu of data.education) {
-      children.push(new Paragraph({
-        children: [
-          new TextRun({ text: `${edu.degree}${edu.field ? ` in ${edu.field}` : ''}`, bold: true, size: 22 }),
-          new TextRun({ text: `  ${edu.institution}`, size: 20, color: '555555' }),
-        ],
-        spacing: { after: 40 },
-      }))
-
-      children.push(new Paragraph({
-        children: [new TextRun({
-          text: `${edu.startDate} – ${edu.endDate}${edu.gpa ? ` · GPA: ${edu.gpa}` : ''}`,
-          size: 18, italics: true, color: '777777',
-        })],
-        spacing: { after: 120 },
-      }))
-    }
-  }
-
   // Projects
   if (data.projects?.length > 0) {
     children.push(sectionHeading('Projects'))
@@ -154,6 +140,46 @@ export async function generateDocx(rawData: StructuredResume): Promise<Buffer> {
 
       children.push(new Paragraph({ spacing: { after: 120 } }))
     }
+  }
+
+  // Education
+  if (data.education?.length > 0) {
+    children.push(sectionHeading('Education'))
+    children.push(hr())
+
+    for (const edu of data.education) {
+      const degreeText = formatEducationLine(edu)
+      children.push(new Paragraph({
+        children: [
+          new TextRun({ text: degreeText, bold: true, size: 22 }),
+          new TextRun({ text: `  ${edu.institution}`, size: 20, color: '555555' }),
+        ],
+        spacing: { after: 40 },
+      }))
+
+      children.push(new Paragraph({
+        children: [new TextRun({
+          text: `${edu.startDate} – ${edu.endDate}${edu.gpa ? ` · GPA: ${edu.gpa}` : ''}`,
+          size: 18, italics: true, color: '777777',
+        })],
+        spacing: { after: 120 },
+      }))
+    }
+  }
+
+  // Certifications
+  if (data.certifications?.length > 0) {
+    children.push(sectionHeading('Certifications'))
+    children.push(hr())
+    children.push(new Paragraph({
+      children: [
+        new TextRun({
+          text: data.certifications.map(c => c.name).filter(Boolean).join('  |  '),
+          size: 20,
+        }),
+      ],
+      spacing: { after: 120 },
+    }))
   }
 
   const doc = new Document({

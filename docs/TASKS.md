@@ -13,6 +13,15 @@ Files changed: [list]
 
 ---
 
+## Task 159 — Pro export + smarter Claude-quality tailor
+Status: DONE  
+Scope: `lib/export/*`, `MasterExportPanel`, profile panel, `ResumePreview`, `prompts.ts`, tailor pipeline/execute-run, `markdown.ts`, docs  
+Goal: Master export with section/order; PDF/preview match Claude-quality polish; tailor curates to true one-pager using full profile data.  
+Result: Master Export PDF panel; categorized skills + education polish + skill dedupe on PDF/preview/DOCX; stricter early-career length budget; Claude-style skill labels in MD codec; compact theme_override on tailor save.  
+Files changed: format.ts, theme.ts, pdf-generator, docx-generator, MasterExportPanel, ProfileSectionPanel/Home/Workspace, ResumePreview, prompts, tailor-pipeline, execute-run, markdown, tests, docs  
+
+---
+
 ## Task 158 — Tailor markdown wire + stream progress
 Status: DONE  
 Scope: `lib/resume/markdown.ts`, `lib/ai/*`, `lib/tailor/*`, `AiTailorFlow.tsx`, docs  

@@ -63,8 +63,15 @@ Three tabs (desktop **and** mobile): **Content** · **Design** · **Match**.
 - Live from the edited snapshot + inclusion map.
 - Teal highlights for tailored / selected changes (`ResumePreview` `highlights` prop).
 - Declined new additions are reverted via `buildApprovedResume` before display/save.
+- Default layout: **categorized skills**, Summary→Skills→Experience→Projects→Education→Certs; education lines never double-append “in Field”.
 
 Code: `JobResumeEditor.tsx`, `ContentEditor.tsx`, `EditableText.tsx`, `AnalyzerPanel.tsx`, `DesignerPanel.tsx`, `ResumePreview.tsx`.
+
+---
+
+## Master profile export (Task 159)
+
+Profile → **DOCUMENTS → Export PDF**: pick sections, reorder, Compact/Standard/Spacious, download. Uses `POST /api/export/pdf` with `source: 'master'`. Does not change the master profile.
 
 ---
 

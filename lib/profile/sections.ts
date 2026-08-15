@@ -15,6 +15,7 @@ import {
   Plus,
   Paperclip,
   ClipboardList,
+  Download,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -22,6 +23,7 @@ export type SectionId =
   | 'personal'
   | 'applyAnswers'
   | 'resumes'
+  | 'exportResume'
   | 'additionalDocuments'
   | 'summary'
   | 'urls'
@@ -50,6 +52,7 @@ export const SECTIONS: SectionDef[] = [
   { id: 'applyAnswers', label: 'Application form', group: 'PROFILE', icon: ClipboardList, kind: 'list' },
 
   { id: 'resumes', label: 'Resumes', group: 'DOCUMENTS', icon: FileText, kind: 'static' },
+  { id: 'exportResume', label: 'Export PDF', group: 'DOCUMENTS', icon: Download, kind: 'static' },
   { id: 'additionalDocuments', label: 'Additional Documents', group: 'DOCUMENTS', icon: Files, kind: 'list' },
   { id: 'attachments', label: 'Attachments', group: 'DOCUMENTS', icon: Paperclip, kind: 'list' },
 

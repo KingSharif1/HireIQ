@@ -8,7 +8,7 @@ export type ResumeDateAlign = 'left' | 'right'
 
 export type ResumeLocationAlign = 'left' | 'right'
 
-export type ResumeSkillsLayout = 'comma' | 'comma-list' | 'columns'
+export type ResumeSkillsLayout = 'comma' | 'comma-list' | 'columns' | 'categorized'
 
 export type ResumePaperSize = 'letter'
 
@@ -76,18 +76,20 @@ export type ResumeThemeOverride = {
 
 export const DEFAULT_SECTION_ORDER = [
   'summary',
-  'experience',
   'skills',
-  'education',
+  'experience',
   'projects',
+  'education',
+  'certifications',
 ] as const
 
 export const DEFAULT_SECTION_LABELS: Record<string, string> = {
   summary: 'Summary',
   experience: 'Experience',
-  skills: 'Skills',
+  skills: 'Technical Skills',
   education: 'Education',
   projects: 'Projects',
+  certifications: 'Certifications',
 }
 
 /** HireIQ default — matches current PDF template (~Helvetica, center header, 0.5" margins). */
@@ -102,7 +104,7 @@ export const DEFAULT_RESUME_THEME: ResumeTheme = {
   headerAlign: 'center',
   dateAlign: 'right',
   locationAlign: 'left',
-  skillsLayout: 'comma',
+  skillsLayout: 'categorized',
   paperSize: 'letter',
   marginX: 0.5,
   marginY: 0.5,
@@ -217,12 +219,12 @@ export function themeFontFamilyCss(fontFamily: string): string {
   }
 }
 
-/** Join skill labels for comma / comma-list layouts (columns render separately). */
+/** Join skill labels for comma / comma-list layouts (columns/categorized render separately). */
 export function formatSkillsInline(
   skills: string[],
   layout: ResumeSkillsLayout
 ): string {
-  if (layout === 'comma') return skills.join(', ')
+  if (layout === 'comma' || layout === 'categorized') return skills.join(', ')
   return skills.join(' · ')
 }
 

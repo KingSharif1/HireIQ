@@ -47,6 +47,8 @@ describe('resume markdown codec', () => {
     expect(md).toContain('<!-- id:exp_acme -->')
     expect(md).toContain('<!-- id:proj_hiq -->')
     expect(md).toContain('## Summary')
+    expect(md).toContain('**Frameworks & Tools:**')
+    expect(md).toContain('**Languages:**')
 
     const parsed = markdownToStructuredResume(md)
     expect(parsed.contact.name).toBe(original.contact.name)
@@ -55,6 +57,30 @@ describe('resume markdown codec', () => {
     expect(parsed.experience[0].bullets[0]).toContain('REST')
     expect(parsed.projects[0].id).toBe('proj_hiq')
     expect(parsed.skills.technical).toContain('TypeScript')
+    expect(parsed.skills.tools).toContain('Git')
+    expect(parsed.skills.languages).toContain('English')
+  })
+
+  it('parses Claude-style skill category labels', () => {
+    const md = `# Jane
+jane@example.com
+
+## Summary
+Engineer.
+
+## Skills
+**Languages:** TypeScript, Python
+**Frameworks & Tools:** React, Next.js
+**Cloud & Data:** AWS, Docker
+
+## Experience
+### Eng | Acme | 2022 – Present <!-- id:exp_1 -->
+- Built APIs
+`
+    const parsed = markdownToStructuredResume(md)
+    expect(parsed.skills.languages).toEqual(['TypeScript', 'Python'])
+    expect(parsed.skills.technical).toEqual(['React', 'Next.js'])
+    expect(parsed.skills.tools).toEqual(['AWS', 'Docker'])
   })
 
   it('parses tailoring notes', () => {

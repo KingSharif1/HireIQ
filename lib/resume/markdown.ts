@@ -74,10 +74,10 @@ export function structuredResumeToMarkdown(resume: StructuredResume): string {
   }
 
   const skillBits = [
-    r.skills.technical.length ? `**Technical:** ${r.skills.technical.join(', ')}` : '',
-    r.skills.tools.length ? `**Tools:** ${r.skills.tools.join(', ')}` : '',
     r.skills.languages.length ? `**Languages:** ${r.skills.languages.join(', ')}` : '',
-    r.skills.soft.length ? `**Soft:** ${r.skills.soft.join(', ')}` : '',
+    r.skills.technical.length ? `**Frameworks & Tools:** ${r.skills.technical.join(', ')}` : '',
+    r.skills.tools.length ? `**Cloud & Data:** ${r.skills.tools.join(', ')}` : '',
+    r.skills.soft.length ? `**Soft Skills:** ${r.skills.soft.join(', ')}` : '',
   ].filter(Boolean)
   if (skillBits.length) {
     lines.push('## Skills')
@@ -303,18 +303,20 @@ export function markdownToStructuredResume(text: string): StructuredResume {
     : []
 
   const skillsBody = sections.get('skills') || ''
-  const technical =
-    skillsBody.match(/\*\*Technical:\*\*\s*(.+)/i)?.[1] ||
-    skillsBody.match(/^Technical:\s*(.+)/im)?.[1] ||
-    ''
-  const tools =
-    skillsBody.match(/\*\*Tools:\*\*\s*(.+)/i)?.[1] || skillsBody.match(/^Tools:\s*(.+)/im)?.[1] || ''
-  const languages =
-    skillsBody.match(/\*\*Languages:\*\*\s*(.+)/i)?.[1] ||
-    skillsBody.match(/^Languages:\s*(.+)/im)?.[1] ||
-    ''
-  const soft =
-    skillsBody.match(/\*\*Soft:\*\*\s*(.+)/i)?.[1] || skillsBody.match(/^Soft:\s*(.+)/im)?.[1] || ''
+  const matchSkillLine = (...labels: string[]) => {
+    for (const label of labels) {
+      const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const bold = skillsBody.match(new RegExp(`\\*\\*${escaped}:\\*\\*\\s*(.+)`, 'i'))?.[1]
+      if (bold) return bold
+      const plain = skillsBody.match(new RegExp(`^${escaped}:\\s*(.+)`, 'im'))?.[1]
+      if (plain) return plain
+    }
+    return ''
+  }
+  const technical = matchSkillLine('Frameworks & Tools', 'Technical', 'Frameworks')
+  const tools = matchSkillLine('Cloud & Data', 'Cloud & DevOps', 'Tools')
+  const languages = matchSkillLine('Languages')
+  const soft = matchSkillLine('Soft Skills', 'Soft')
 
   const certBody = sections.get('certifications') || ''
   const certifications: ResumeCertification[] = certBody

@@ -170,6 +170,7 @@ export function PresentationTab({ theme, onChange }: Props) {
           value={theme.skillsLayout}
           onChange={(skillsLayout) => onChange({ skillsLayout })}
           options={[
+            { value: 'categorized', label: 'By Category' },
             { value: 'comma', label: 'Comma Separated' },
             { value: 'comma-list', label: 'Comma Separated List' },
             { value: 'columns', label: 'Columns' },
