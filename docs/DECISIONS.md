@@ -9,10 +9,12 @@
 |------|--------|
 | Storage / diffs / export | Still **StructuredResume** JSONB — not markdown files on disk |
 | Model wire format | **HireIQ markdown** in and out (`lib/resume/markdown.ts`) with `<!-- id:… -->` markers |
-| Gap analysis | Keep small JSON (already has ATS fallback) |
-| Streaming | Stream rewrite tokens; throttle-update `process_log` detail (“Writing summary…”) so poll UI feels live |
+| Gap analysis | Resume fed as markdown; response stays small JSON; streamed into process_log |
+| Resume parse | AI returns markdown → StructuredResume for storage; NDJSON progress to UI |
+| Job analyze | Small JSON (schema fits); streamed with NDJSON progress events |
+| Streaming | Stream tokens on linear AI waits; throttle progress updates |
 | Retry | One markdown rewrite retry if parse empty/broken |
-| Not doing | Storing `.md` blobs as source of truth; streaming raw half-JSON |
+| Not doing | Storing `.md` blobs as source of truth; streaming raw half-JSON as storage |
 
 **Tradeoff:** Deterministic MD↔structured must stay strict; bad headings can drop sections (retry + normalize mitigate).
 

@@ -15,6 +15,7 @@ import { isLinkedInJobUrl, LINKEDIN_PASTE_MESSAGE } from '@/lib/jobs/url-detect'
 import type { JobExtractedData } from '@/types'
 import { AiModelHint } from '@/components/ai/AiModelHint'
 import { AiFlowLoader } from '@/components/ai/AiFlowLoader'
+import { readNdjsonResponse } from '@/lib/ai/ndjson-stream'
 
 const URL_STAGES = [
   { id: 'fetch', label: 'Fetching job posting' },
@@ -33,6 +34,7 @@ export default function JobsPage() {
   const [loading, setLoading] = useState(false)
   const [loadingStage, setLoadingStage] = useState(0)
   const [loadingMode, setLoadingMode] = useState<'url' | 'paste'>('url')
+  const [loadingDetail, setLoadingDetail] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [urlWarning, setUrlWarning] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'url' | 'paste'>('url')
@@ -52,12 +54,39 @@ export default function JobsPage() {
     }
   }
 
+  async function analyzeJob(body: Record<string, unknown>, mode: 'url' | 'paste') {
+    setLoadingDetail('Analyzing this job')
+    const analyzeRes = await fetch('/api/jobs/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (!analyzeRes.ok && !analyzeRes.headers.get('content-type')?.includes('ndjson')) {
+      const analyzeData = await analyzeRes.json().catch(() => ({}))
+      throw new Error((analyzeData as { error?: string }).error || 'Failed to analyze job')
+    }
+    const analyzeData = await readNdjsonResponse<{
+      jobId: string
+      extractedData: JobExtractedData
+    }>(analyzeRes, detail => {
+      setLoadingDetail(detail)
+      if (detail.toLowerCase().includes('saving')) {
+        setLoadingStage(mode === 'url' ? 2 : 1)
+      } else {
+        setLoadingStage(mode === 'url' ? 1 : 0)
+      }
+    })
+    setExtractedData(analyzeData.extractedData)
+    setJobId(analyzeData.jobId)
+  }
+
   async function handleFetchUrl() {
     if (!url.trim() || linkedInDetected || analyzeLock.current) return
     analyzeLock.current = true
     setLoading(true)
     setLoadingMode('url')
     setLoadingStage(0)
+    setLoadingDetail('Fetching job posting')
     setError(null)
     setUrlWarning(null)
 
@@ -82,29 +111,23 @@ export default function JobsPage() {
       }
 
       setLoadingStage(1)
-      const analyzeRes = await fetch('/api/jobs/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      await analyzeJob(
+        {
           description: scrapeData.text,
           source: scrapeData.source,
           company: scrapeData.company,
           title: scrapeData.title,
           applyUrl: url,
           applyEase: scrapeData.applyEase,
-        }),
-      })
-      const analyzeData = await analyzeRes.json()
-      if (!analyzeRes.ok) throw new Error(analyzeData.error)
-
-      setLoadingStage(2)
-      setExtractedData(analyzeData.extractedData)
-      setJobId(analyzeData.jobId)
+        },
+        'url',
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch job')
     } finally {
       analyzeLock.current = false
       setLoading(false)
+      setLoadingDetail(null)
     }
   }
 
@@ -114,28 +137,23 @@ export default function JobsPage() {
     setLoading(true)
     setLoadingMode('paste')
     setLoadingStage(0)
+    setLoadingDetail('Analyzing this job')
     setError(null)
 
     try {
-      const res = await fetch('/api/jobs/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      await analyzeJob(
+        {
           description,
           applyUrl: url.trim() || undefined,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-
-      setLoadingStage(1)
-      setExtractedData(data.extractedData)
-      setJobId(data.jobId)
+        },
+        'paste',
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to analyze job')
     } finally {
       analyzeLock.current = false
       setLoading(false)
+      setLoadingDetail(null)
     }
   }
 
@@ -145,7 +163,7 @@ export default function JobsPage() {
       <div className="max-w-xl mx-auto px-4 py-8">
         <AiFlowLoader
           title={loadingMode === 'url' ? 'Getting job details' : 'Analyzing job description'}
-          subtitle="We extract skills, keywords, and requirements for tailoring."
+          subtitle={loadingDetail || 'We extract skills, keywords, and requirements for tailoring.'}
           stages={stages}
           activeIndex={loadingStage}
         />

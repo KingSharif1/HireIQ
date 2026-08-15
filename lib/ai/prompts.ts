@@ -1,77 +1,42 @@
 export { extractJSON } from '@/lib/ai/parse-json'
 
-export const RESUME_PARSER_PROMPT = `You are an expert resume parser. Extract the resume content into structured JSON.
+export const RESUME_PARSER_PROMPT = `You are an expert resume parser. Convert the resume into HireIQ markdown (not JSON).
 
 RESUME TEXT:
 {resumeText}
 
-Return ONLY valid JSON (no markdown, no explanation):
-{
-  "contact": {
-    "name": "",
-    "email": "",
-    "phone": "",
-    "location": "",
-    "linkedin": "",
-    "github": "",
-    "portfolio": "",
-    "website": ""
-  },
-  "summary": "",
-  "experience": [
-    {
-      "id": "exp_1",
-      "company": "",
-      "title": "",
-      "location": "",
-      "startDate": "MM/YYYY",
-      "endDate": "MM/YYYY or Present",
-      "current": false,
-      "bullets": [""],
-      "skills_used": [""]
-    }
-  ],
-  "education": [
-    {
-      "id": "edu_1",
-      "institution": "",
-      "degree": "",
-      "field": "",
-      "startDate": "YYYY",
-      "endDate": "YYYY",
-      "gpa": "",
-      "relevant_courses": [],
-      "honors": []
-    }
-  ],
-  "skills": {
-    "technical": [""],
-    "soft": [""],
-    "tools": [""],
-    "languages": [""]
-  },
-  "projects": [
-    {
-      "id": "proj_1",
-      "name": "",
-      "description": "",
-      "bullets": [""],
-      "technologies": [""],
-      "url": "",
-      "github": ""
-    }
-  ],
-  "certifications": [
-    {
-      "name": "",
-      "issuer": "",
-      "date": "",
-      "url": ""
-    }
-  ],
-  "volunteer": [],
-  "awards": []
-}`
+Return ONLY HireIQ markdown — no code fences, no commentary. Keep facts honest; do not invent.
+
+# Full Name
+email · phone · location · links
+
+## Summary
+...
+
+## Experience
+### Title | Company | MM/YYYY – Present <!-- id:exp_1 -->
+- bullet
+Skills: tool1, tool2
+
+## Projects
+### Name <!-- id:proj_1 -->
+description
+- bullet
+Tech: a, b
+
+## Skills
+**Technical:** ...
+**Tools:** ...
+**Languages:** ...
+**Soft:** ...
+
+## Education
+### Degree · Field · School <!-- id:edu_1 -->
+YYYY – YYYY
+
+## Certifications
+- Name · Issuer · date
+`
 
 export const JOB_ANALYZER_PROMPT = `You are an expert recruiter. Analyze this job description and extract key requirements.
 
@@ -104,8 +69,8 @@ Return ONLY valid JSON:
 
 export const GAP_ANALYSIS_PROMPT = `You are a rigorous career analyst comparing a candidate's profile to a job description.
 
-CANDIDATE PROFILE (resume + experience — treat as complete unless Q&A adds more):
-{structuredResume}
+CANDIDATE PROFILE (HireIQ markdown — treat as complete unless Q&A adds more):
+{resumeMarkdown}
 
 GITHUB PROJECT CONTEXT (synced repos — README, stack, structure; use for Tier 1/2 evidence):
 {githubContext}
@@ -134,7 +99,7 @@ QUESTIONS (1–3 — REQUIRED when ATS GAP SIGNALS lists missing skills/keywords
 - If they say no, we will not invent it. If they say yes, we can weave it in for ATS + the recruiter.
 - Each question needs: id, question, category, gap_being_filled, why_it_matters, choices (2-4), example_answer
 
-Return ONLY compact valid JSON (no markdown, no trailing commas). Keep arrays short: at most 8 direct_matches, 5 adjacent_matches, 5 real_gaps, 3 questions_for_user. Do not echo the resume.
+Return ONLY compact valid JSON (no markdown fences, no trailing commas). Keep arrays short: at most 8 direct_matches, 5 adjacent_matches, 5 real_gaps, 3 questions_for_user. Do not echo the resume.
 {
   "direct_matches": [
     { "jd_requirement": "", "user_evidence": "", "source": "resume|project|skill" }

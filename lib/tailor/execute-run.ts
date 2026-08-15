@@ -1,6 +1,6 @@
 import { GAP_ANALYSIS_PROMPT } from '@/lib/ai/prompts'
 import { parseModelJson } from '@/lib/ai/parse-json'
-import { generateAiText, streamAiTextToCompletion } from '@/lib/ai/complete'
+import { streamAiTextToCompletion } from '@/lib/ai/complete'
 import { resolveAiRuntime } from '@/lib/ai/runtime'
 import { withAiOnce } from '@/lib/ai/once'
 import { normalizeGapAnalysis } from '@/lib/ai/gap-analysis'
@@ -20,7 +20,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { claimGapPhase, claimGeneratePhase, getTailorRun, patchTailorRun } from '@/lib/tailor/runs'
 import { TAILOR_RUN_CLAUDE } from '@/lib/tailor/run-types'
 import { userFacingTailorError } from '@/lib/tailor/user-error'
-import { streamingResumeProgress } from '@/lib/resume/markdown'
+import { streamingResumeProgress, structuredResumeToMarkdown } from '@/lib/resume/markdown'
 import type { GapAnalysis } from '@/types'
 
 async function failRun(runId: string, log: ReturnType<typeof createProcessLog>, err: unknown) {
@@ -104,7 +104,7 @@ export async function executeGapPhase(runId: string, userId: string): Promise<vo
   ].join('\n')
 
   const prompt = GAP_ANALYSIS_PROMPT
-    .replace('{structuredResume}', jsonForPrompt(resume))
+    .replace('{resumeMarkdown}', structuredResumeToMarkdown(resume))
     .replace('{githubContext}', githubContext)
     .replace('{jobRequirements}', jsonForPrompt(jobData))
     .replace('{gaps}', gaps || 'No major gaps identified from ATS pre-scan')
@@ -113,12 +113,29 @@ export async function executeGapPhase(runId: string, userId: string): Promise<vo
   let gapAnalysis: GapAnalysis
   try {
     const result = await withAiOnce(`gap_questions:${userId}:${run.job_id}`, () =>
-      generateAiText({
+      streamAiTextToCompletion({
         runtime: ai,
         feature: 'gap_questions',
         tier: 'strong',
         prompt,
         maxOutputTokens: 4000,
+        partialEveryMs: 1000,
+        onPartial: async text => {
+          const last = log.entries[log.entries.length - 1]
+          if (!last || last.status !== 'pending') return
+          const detail = text.includes('questions_for_user')
+            ? 'Choosing questions to ask you'
+            : text.includes('real_gaps')
+              ? 'Finding real gaps'
+              : text.includes('adjacent_matches')
+                ? 'Checking adjacent matches'
+                : text.includes('direct_matches')
+                  ? 'Listing direct matches'
+                  : 'Comparing your experience to what they’re asking for'
+          if (last.detail === detail) return
+          last.detail = detail
+          await patchTailorRun(admin, runId, { process_log: log.entries })
+        },
       }),
     )
     let parsed: GapAnalysis

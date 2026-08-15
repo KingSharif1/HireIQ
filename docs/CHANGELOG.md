@@ -1,3 +1,15 @@
+## 2026-08-15 — Stream linear AI waits (parse + analyze + gap)
+
+**What:** JSON stays the storage format. AI talks markdown where the payload is a resume. Linear waits stream progress: resume parse + job analyze via NDJSON; tailor gap + rewrite via process_log updates.
+
+**Files:** `lib/ai/ndjson-stream.ts`, `lib/ai/prompts.ts`, `app/api/resume/parse`, `app/api/jobs/analyze`, upload + jobs pages, `execute-run.ts`, docs
+
+**Why:** Static spinners feel broken; streaming progress on linear AI work feels faster without changing product data shapes.
+
+**Next:** Merge + deploy; smoke upload, job fetch, Apple tailor.
+
+---
+
 ## 2026-08-15 — Tailor: markdown wire + streamed progress
 
 **What:** Rewrite uses HireIQ markdown (not giant JSON) for model I/O; parse back to StructuredResume for diffs/export. Stream tokens and update process log (“Writing summary…”) so the wait feels live. One retry if markdown is empty/broken.
