@@ -31,6 +31,7 @@ export type FetchAttempt = {
 export type HtmlExtractionOutcome = {
   result: ExtractionResult | null
   attempts: FetchAttempt[]
+  pageHtml?: string
 }
 
 /** Minimum chars to consider an extraction usable without Playwright fallback. */

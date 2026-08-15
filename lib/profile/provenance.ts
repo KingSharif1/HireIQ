@@ -5,6 +5,7 @@ import type {
   ResumeExperience,
 } from '@/types'
 import { uid, emptyProfileData } from './data'
+import { normalizeApplyAnswers } from './apply-answers'
 import { bulletsWithIds, isHeavyEdit } from './bullets'
 import type { WriteBackSuggestion } from '@/lib/ai/tailor-types'
 import type { SuggestionEnrichment } from '@/lib/profile/suggestion-followup'
@@ -17,6 +18,7 @@ export function normalizeProfileData(data: ProfileData): ProfileData {
     ...data,
     personal: { ...base.personal, ...data.personal },
     skills: { ...base.skills, ...data.skills },
+    applyAnswers: normalizeApplyAnswers(data.applyAnswers),
     provenance: data.provenance ?? {},
     pendingSuggestions: data.pendingSuggestions ?? [],
     experience: data.experience.map(ensureExperienceBulletIds),

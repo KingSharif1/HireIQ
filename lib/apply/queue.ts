@@ -3,6 +3,7 @@ import { assertSavableJobUrl } from '@/lib/extension/job-page'
 import { normalizeProfileData } from '@/lib/profile/provenance'
 import { resolveApplyIdentity } from '@/lib/extension/apply-identity'
 import { ensureAccessTokenForUser } from '@/lib/google/token-access'
+import { canHostedAutoApply } from '@/lib/apply/ease'
 import {
   boardFromApplyUrl,
   estimateApplyComplexity,
@@ -98,7 +99,7 @@ export async function queueServerApply(opts: {
 
   const { data: job, error: jobError } = await admin
     .from('jobs')
-    .select('id, user_id, apply_url, title, company')
+    .select('id, user_id, apply_url, title, company, extracted_data')
     .eq('id', opts.jobId)
     .eq('user_id', opts.userId)
     .maybeSingle()
@@ -115,6 +116,13 @@ export async function queueServerApply(opts: {
   if (host.includes('linkedin.com') || host.includes('indeed.com')) {
     throw new ApplyQueueError(
       'LinkedIn and Indeed auto-submit are blocked. Open the listing and apply manually or with the extension.',
+    )
+  }
+
+  const extracted = (job.extracted_data || null) as { apply_ease?: 'easy' | 'hard' | 'unknown' } | null
+  if (!canHostedAutoApply(applyUrl, extracted)) {
+    throw new ApplyQueueError(
+      'Auto-apply is only for public apply forms (Greenhouse, Lever, Ashby, or a simple resume form). This posting looks like an account portal — apply on the employer site.',
     )
   }
 

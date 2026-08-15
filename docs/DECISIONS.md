@@ -1,5 +1,21 @@
 # HireIQ Decisions
 
+## 2026-08-15 — Hosted auto-apply on easy public forms (Task 157)
+
+**Context:** Not every career URL is Greenhouse. Some company sites are a name/email/resume form; others force account signup (Workday, Taleo, LinkedIn).
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Show Auto-apply | `apply_ease === easy`: GH/Lever/Ashby, similar ATS hosts, or HTML with contact fields + resume and no password wall |
+| Hide | Account portals, aggregators, LinkedIn, Workday, Amazon/Microsoft careers, HTML login/signup walls, unknown generic URLs with no form signals |
+| When | Classify on URL fetch (host first, HTML if generic). Store on `extracted_data`. Existing GH links still match from URL alone |
+| Answers | Structured Application form on Profile; per-job answers still on the job Questions tab |
+
+**Revisit if:** Hosted worker covers Workday OTP reliably.
+
+---
+
 ## 2026-08-15 — Tailor overlay is a wait, not a pipeline (Task 156)
 
 **Context:** Users saw “1 Claude call”, model names, and raw `JSON.parse` errors while the spinner kept going. Refresh hid failed runs and started another.

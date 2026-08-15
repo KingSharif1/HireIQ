@@ -81,7 +81,7 @@ Upload PDF/DOCX
 Paste JD or job URL
     → lib/jobs/url-detect.ts (Greenhouse / Lever / Ashby / Workday / LinkedIn block / aggregators)
     → app/api/jobs/fetch-url → lib/jobs/job-scraper.ts
-    → app/api/jobs/analyze → Claude (PROMPT 2) via `lib/ai/runtime.ts` (HireIQ key or user BYOK) → jobs.extracted_data JSONB
+    → app/api/jobs/analyze → Claude (PROMPT 2) via `lib/ai/runtime.ts` (HireIQ key or user BYOK) → jobs.extracted_data JSONB (`apply_ease` from URL/HTML classifier)
 
 Tailor flow (durable session — max 2 Claude calls, never overlapping)
     → POST /api/tailor/runs (idempotent: attach if already running)

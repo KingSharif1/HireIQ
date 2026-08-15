@@ -9,6 +9,8 @@ import {
   LINKEDIN_PASTE_MESSAGE,
 } from '@/lib/jobs/url-detect'
 
+import { classifyApplyEase, type ApplyEaseResult } from '@/lib/apply/ease'
+
 export type JobSource =
   | 'greenhouse'
   | 'lever'
@@ -177,11 +179,12 @@ async function scrapeGeneric(url: string): Promise<{
   title: string
   extractionMethod?: string
   extractionRuleId?: string
+  pageHtml?: string
 }> {
   const { extractJobFromHtmlUrl } = await import('@/lib/jobs/extract-pipeline')
-  const { result } = await extractJobFromHtmlUrl(url)
+  const { result, pageHtml } = await extractJobFromHtmlUrl(url)
   if (!result) {
-    return { text: '', company: '', title: '' }
+    return { text: '', company: '', title: '', pageHtml }
   }
 
   return {
@@ -190,6 +193,7 @@ async function scrapeGeneric(url: string): Promise<{
     title: result.title,
     extractionMethod: result.method,
     extractionRuleId: result.ruleId,
+    pageHtml,
   }
 }
 
@@ -278,6 +282,7 @@ export async function scrapeJobUrl(url: string): Promise<{
   warning?: string
   extractionMethod?: string
   extractionRuleId?: string
+  applyEase: ApplyEaseResult
 }> {
   if (isLinkedInJobUrl(url)) {
     throw new LinkedInBlockedError()
@@ -297,6 +302,7 @@ export async function scrapeJobUrl(url: string): Promise<{
     title: string
     extractionMethod?: string
     extractionRuleId?: string
+    pageHtml?: string
   }
 
   switch (source) {
@@ -343,12 +349,20 @@ export async function scrapeJobUrl(url: string): Promise<{
           : 'high'
       : confidence
 
+  const applyEase = classifyApplyEase({
+    url,
+    html: 'pageHtml' in result ? result.pageHtml : undefined,
+  })
+
   return {
-    ...result,
+    text: result.text,
+    company: result.company,
+    title: result.title,
     source,
     atsSystem: source === 'generic' ? '' : source,
     confidence: warning ? 'medium' : genericConfidence,
     warning,
+    applyEase,
     ...genericMeta,
   }
 }

@@ -129,5 +129,5 @@ export async function extractJobFromHtmlUrl(url: string): Promise<HtmlExtraction
     }
   }
 
-  return { result: best, attempts }
+  return { result: best, attempts, pageHtml: html.slice(0, 250_000) }
 }

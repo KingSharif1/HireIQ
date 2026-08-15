@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveExtensionUserId } from '@/lib/extension/tokens'
 import { isLastingCareerFact } from '@/lib/extension/draft-kind'
 import { normalizeFormAnswers, upsertFormAnswer } from '@/lib/applications/form-answers'
+import { rememberApplyAnswer } from '@/lib/profile/apply-answers'
 import { mergePendingSuggestions, normalizeProfileData } from '@/lib/profile/provenance'
 import { uid } from '@/lib/profile/data'
 import type { ApplicationFormAnswer, PendingSuggestion, PendingSuggestionSection, ProfileData } from '@/types'
@@ -129,20 +130,20 @@ export async function POST(request: Request) {
   const lasting = isLastingCareerFact(question)
   let pendingSuggestionId: string | undefined
 
+  const { data: profileRow, error: profileError } = await admin
+    .from('profiles')
+    .select('profile_data')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (profileError) {
+    return NextResponse.json({ error: profileError.message }, { status: 500, headers })
+  }
+
+  let profileData = normalizeProfileData(((profileRow?.profile_data ?? {}) as ProfileData))
+  profileData = rememberApplyAnswer(profileData, entry)
+
   if (body.promoteToMaster && lasting && answer) {
-    const { data: profileRow, error: profileError } = await admin
-      .from('profiles')
-      .select('profile_data')
-      .eq('id', userId)
-      .maybeSingle()
-
-    if (profileError) {
-      return NextResponse.json({ error: profileError.message }, { status: 500, headers })
-    }
-
-    const profileData = normalizeProfileData(
-      ((profileRow?.profile_data ?? {}) as ProfileData),
-    )
     const suggestion: PendingSuggestion = {
       id: uid('psug'),
       section: suggestionSectionForLabel(question),
@@ -154,17 +155,17 @@ export async function POST(request: Request) {
       source: 'tailor',
     }
     const merged = mergePendingSuggestions(profileData.pendingSuggestions ?? [], [suggestion])
-    const nextData: ProfileData = { ...profileData, pendingSuggestions: merged }
-
-    const { error: saveError } = await admin
-      .from('profiles')
-      .update({ profile_data: nextData, updated_at: new Date().toISOString() })
-      .eq('id', userId)
-
-    if (saveError) {
-      return NextResponse.json({ error: saveError.message }, { status: 500, headers })
-    }
+    profileData = { ...profileData, pendingSuggestions: merged }
     pendingSuggestionId = suggestion.id
+  }
+
+  const { error: saveError } = await admin
+    .from('profiles')
+    .update({ profile_data: profileData, updated_at: new Date().toISOString() })
+    .eq('id', userId)
+
+  if (saveError) {
+    return NextResponse.json({ error: saveError.message }, { status: 500, headers })
   }
 
   return NextResponse.json(

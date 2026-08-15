@@ -6,7 +6,9 @@ import {
   removeFormAnswer,
   upsertFormAnswer,
 } from '@/lib/applications/form-answers'
-import type { ApplicationFormAnswer } from '@/types'
+import { rememberApplyAnswer } from '@/lib/profile/apply-answers'
+import { normalizeProfileData } from '@/lib/profile/provenance'
+import type { ApplicationFormAnswer, ProfileData } from '@/types'
 
 export const runtime = 'nodejs'
 
@@ -96,6 +98,22 @@ export async function PATCH(
 
   if (error || !data) {
     return NextResponse.json({ error: error?.message ?? 'Update failed' }, { status: 500 })
+  }
+
+  const { data: profileRow } = await supabase
+    .from('profiles')
+    .select('profile_data')
+    .eq('id', user.id)
+    .maybeSingle()
+  if (profileRow) {
+    const nextProfile = rememberApplyAnswer(
+      normalizeProfileData((profileRow.profile_data ?? {}) as ProfileData),
+      entry,
+    )
+    await supabase
+      .from('profiles')
+      .update({ profile_data: nextProfile, updated_at: new Date().toISOString() })
+      .eq('id', user.id)
   }
 
   return NextResponse.json({

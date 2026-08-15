@@ -65,8 +65,8 @@ Job + tailored PDF + profile + tracking mode
 ## Background: Cloud Run worker
 
 ```
-HireIQ web "Auto-apply with HireIQ"
-    → ensure tailored PDF exists (or offer tailor first — billed)
+HireIQ web "Auto-apply with HireIQ" (only if `apply_ease` is easy)
+    → classify on URL fetch: known public ATS **or** HTML form (contact + resume, no account wall)
     → enqueue apply_runs (queued)
     → Cloud Run receives job (HTTP or Pub/Sub / Cloud Tasks)
     → Playwright launches Chromium

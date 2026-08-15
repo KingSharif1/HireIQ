@@ -1,17 +1,17 @@
 # HireIQ Status
 
 **As of:** 2026-08-15  
-**Branch:** `main` (PR #19 merged) · **Production:** https://hireiq.kingsharif.com  
-**Tests:** 281 unit · 11 live URL · extension **v0.9.9** · Task **148** worker live on Cloud Run (`hireiq-505323`)
+**Branch:** `main` · **Production:** https://hireiq.kingsharif.com  
+**Tests:** unit + live URL · extension **v0.9.9** · Task **157** easy-form auto-apply gate
 
 ## Session handoff
 
 | | |
 |--|--|
-| **Working on** | — |
+| **Working on** | Task 157 |
 | **Blocked** | Task 143 Google Auth provider |
-| **Next** | Smoke tailor overlay (leave/refresh + error retry) · Task **147** |
-| **Roadmap** | [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md) · [TAILOR-EDIT.md](./TAILOR-EDIT.md) |
+| **Next** | Smoke GH vs Workday/Apple CTAs · Task **147** |
+| **Roadmap** | [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md) |
 
 ## System snapshot
 
@@ -38,7 +38,7 @@
 | Gmail sync | 🟡 **Task 114** | History API incremental; prod OAuth + smoke |
 | Settings | ✓ `/dashboard/settings` — **AI** (BYOK + models + usage), tracking, GitHub, password, delete |
 | Mask reply-relay | ✓ **Task 140** first slice live (PR #4) — Reply via HireIQ on Email tab |
-| Auto-apply (Sprout-like) | ✓ **148** Cloud Run worker live (`boot ok`) · Vercel `APPLY_WORKER_*` · dry-run default · **147** next |
+| Auto-apply (Sprout-like) | ✓ **157** CTA only on easy public forms · **148** Cloud Run worker live · **147** next |
 
 ## Phase 1 MVP progress (spec order)
 

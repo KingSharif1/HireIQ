@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { Check, Loader2, Pencil, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -110,7 +111,11 @@ export function ApplicationAnswers({
             Application answers
           </h2>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Answers saved from the Chrome extension autofill for this job.
+            Answers saved for this job.{' '}
+            <Link href="/dashboard/profile?section=applyAnswers" className="underline underline-offset-2">
+              Edit reusable answers on Profile
+            </Link>
+            .
           </p>
         </div>
         <span className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold tabular-nums text-muted-foreground">

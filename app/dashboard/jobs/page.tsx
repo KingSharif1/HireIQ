@@ -91,6 +91,7 @@ export default function JobsPage() {
           company: scrapeData.company,
           title: scrapeData.title,
           applyUrl: url,
+          applyEase: scrapeData.applyEase,
         }),
       })
       const analyzeData = await analyzeRes.json()
@@ -174,6 +175,15 @@ export default function JobsPage() {
             {extractedData.summary && (
               <p className="text-sm text-muted-foreground">{extractedData.summary}</p>
             )}
+            {extractedData.apply_ease === 'easy' ? (
+              <p className="text-sm text-foreground">
+                HireIQ can auto-apply here — this looks like a public form.
+              </p>
+            ) : extractedData.apply_ease === 'hard' ? (
+              <p className="text-sm text-muted-foreground">
+                This looks like an account portal. Auto-apply stays hidden; open the employer site.
+              </p>
+            ) : null}
 
             {extractedData.required_skills.length > 0 && (
               <div>

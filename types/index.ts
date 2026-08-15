@@ -105,6 +105,9 @@ export interface JobExtractedData {
   work_type: string
   seniority: string
   summary: string
+  /** Hosted auto-apply: simple public form vs account/portal. Set when the URL is fetched. */
+  apply_ease?: 'easy' | 'hard' | 'unknown'
+  apply_ease_reason?: string
 }
 
 export interface ATSScoreBreakdown {
@@ -199,6 +202,22 @@ export interface ChangeDecision {
 // ---------------------------------------------------------------------------
 // Structured profile (Sprout-style sectioned profile)
 // ---------------------------------------------------------------------------
+
+export type YesNoBlank = '' | 'yes' | 'no' | 'prefer_not'
+
+/** Reusable ATS / EEO answers — not printed on the resume. */
+export interface ProfileApplyAnswers {
+  country: string
+  workAuthorizedUS: YesNoBlank
+  requiresSponsorship: YesNoBlank
+  willingToRelocate: YesNoBlank
+  inOfficeOk: YesNoBlank
+  gender: string
+  ethnicity: string
+  veteran: string
+  disability: string
+  saved: ApplicationFormAnswer[]
+}
 
 export interface ProfilePersonalInfo {
   firstName: string
@@ -298,6 +317,8 @@ export interface ProfileData {
   additional: string
   additionalDocuments: ProfileDocument[]
   attachments: ProfileDocument[]
+  /** Sprout-style application form — reused across Greenhouse-like applies. */
+  applyAnswers?: ProfileApplyAnswers
   provenance?: Record<string, ProvenanceEntry>
   pendingSuggestions?: PendingSuggestion[]
 }

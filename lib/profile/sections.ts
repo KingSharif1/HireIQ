@@ -1,4 +1,5 @@
 import type { ProfileData } from '@/types'
+import { applyAnswersFilledCount } from '@/lib/profile/apply-answers'
 import {
   User,
   FileText,
@@ -13,11 +14,13 @@ import {
   Award,
   Plus,
   Paperclip,
+  ClipboardList,
   type LucideIcon,
 } from 'lucide-react'
 
 export type SectionId =
   | 'personal'
+  | 'applyAnswers'
   | 'resumes'
   | 'additionalDocuments'
   | 'summary'
@@ -44,6 +47,7 @@ export interface SectionDef {
 
 export const SECTIONS: SectionDef[] = [
   { id: 'personal', label: 'Personal Info', group: 'PROFILE', icon: User, kind: 'text' },
+  { id: 'applyAnswers', label: 'Application form', group: 'PROFILE', icon: ClipboardList, kind: 'list' },
 
   { id: 'resumes', label: 'Resumes', group: 'DOCUMENTS', icon: FileText, kind: 'static' },
   { id: 'additionalDocuments', label: 'Additional Documents', group: 'DOCUMENTS', icon: Files, kind: 'list' },
@@ -114,6 +118,8 @@ export function sectionCount(id: SectionId, data: ProfileData, resumeCount: numb
       return data.achievements.length
     case 'attachments':
       return data.attachments.length
+    case 'applyAnswers':
+      return applyAnswersFilledCount(data)
     default:
       return null
   }
@@ -124,6 +130,8 @@ export function sectionComplete(id: SectionId, data: ProfileData, resumeCount: n
   switch (id) {
     case 'personal':
       return Boolean(data.personal.firstName && data.personal.lastName && data.personal.email)
+    case 'applyAnswers':
+      return applyAnswersFilledCount(data) > 0
     case 'summary':
       return data.summary.trim().length > 0
     case 'additional':

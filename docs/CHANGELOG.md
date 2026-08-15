@@ -1,3 +1,15 @@
+## 2026-08-15 — Task 157: Easy-form auto-apply + application answers
+
+**What:** Auto-apply shows when the posting is a public form (Greenhouse/Lever/Ashby, or a generic page with name/email/resume and no account wall). It stays hidden for Workday, LinkedIn, aggregators, and login/signup portals. Fetching a job URL classifies this and stores it. Profile has an Application form for work-auth, optional EEO, and saved Q&A reused on later applies.
+
+**Files:** `lib/apply/ease.ts`, `job-scraper.ts`, `save-from-url.ts`, `analyze/route.ts`, `queue.ts`, `JobDetailPage.tsx`, `lib/profile/apply-answers.ts`, profile sections, answers APIs
+
+**Why:** Easy company forms should get the same CTA as Greenhouse. Account-heavy portals should not pretend we can auto-apply.
+
+**Next:** Smoke Aechelon (show) vs Apple/Workday (hide). Fill Application form once.
+
+---
+
 ## 2026-08-15 — Task 156: Tailor wait + errors feel human
 
 **What:** The tailor overlay no longer lists Claude calls or pipeline steps. Wait copy is short; leave/refresh still attaches to the same background run. Failures stay on screen (not auto-restarted) with a plain-language reason, Details log, and Try again. Model JSON is repaired when possible. The rewrite prompt is stricter about keeping the candidate’s voice.

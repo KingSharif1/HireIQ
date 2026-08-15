@@ -3,6 +3,7 @@ import type {
   StructuredResume,
   Profile,
 } from '@/types'
+import { emptyApplyAnswers, normalizeApplyAnswers } from '@/lib/profile/apply-answers'
 
 /** A fully-empty ProfileData object. */
 export function emptyProfileData(): ProfileData {
@@ -28,6 +29,7 @@ export function emptyProfileData(): ProfileData {
     additional: '',
     additionalDocuments: [],
     attachments: [],
+    applyAnswers: emptyApplyAnswers(),
     provenance: {},
     pendingSuggestions: [],
   }
@@ -52,6 +54,7 @@ export function resolveProfileData(
     skills: { ...base.skills, ...(stored?.skills ?? {}) },
     provenance: stored?.provenance ?? {},
     pendingSuggestions: stored?.pendingSuggestions ?? [],
+    applyAnswers: normalizeApplyAnswers(stored?.applyAnswers),
   }
 
   // Personal info falls back to the profile row.

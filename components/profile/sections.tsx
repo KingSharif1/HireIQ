@@ -10,8 +10,10 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Plus, FileText, Star, ExternalLink, Upload, Trash2 } from 'lucide-react'
 import { uid } from '@/lib/profile/data'
+import { normalizeApplyAnswers } from '@/lib/profile/apply-answers'
 import type {
   ProfileData,
+  ProfileApplyAnswers,
   ResumeExperience,
   ResumeProject,
   ResumeEducation,
@@ -23,6 +25,7 @@ import type {
 } from '@/types'
 import {
   Field,
+  NativeSelect,
   SectionHeader,
   EmptyState,
   EntryCard,
@@ -81,6 +84,167 @@ export function PersonalSection({ data, update }: { data: ProfileData; update: U
           <Field label="Pronouns">
             <Input value={p.pronouns} onChange={e => set({ pronouns: e.target.value })} placeholder="they/them" />
           </Field>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const YES_NO = [
+  { value: '', label: 'Not set' },
+  { value: 'yes', label: 'Yes' },
+  { value: 'no', label: 'No' },
+]
+
+function ApplySelect({
+  label,
+  hint,
+  value,
+  onChange,
+  options = YES_NO,
+}: {
+  label: string
+  hint?: string
+  value: string
+  onChange: (value: string) => void
+  options?: { value: string; label: string }[]
+}) {
+  return (
+    <Field label={label} hint={hint}>
+      <NativeSelect value={value} onChange={onChange} aria-label={label}>
+        {options.map(opt => (
+          <option key={opt.value || 'blank'} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </NativeSelect>
+    </Field>
+  )
+}
+
+export function ApplyAnswersSection({ data, update }: { data: ProfileData; update: Update }) {
+  const answers = normalizeApplyAnswers(data.applyAnswers)
+  const set = (patch: Partial<ProfileApplyAnswers>) =>
+    update({ applyAnswers: { ...answers, ...patch } })
+
+  return (
+    <div>
+      <SectionHeader
+        title="Application form"
+        description="Answers HireIQ reuses on Greenhouse-like apply forms. Not printed on your resume."
+      />
+      <div className="space-y-6">
+        <div className="space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Work eligibility
+          </p>
+          <Field label="Country" hint="Used for Country dropdowns on apply forms.">
+            <Input
+              value={answers.country}
+              onChange={e => set({ country: e.target.value })}
+              placeholder="United States"
+            />
+          </Field>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <ApplySelect
+              label="Authorized to work in the U.S.?"
+              value={answers.workAuthorizedUS}
+              onChange={v => set({ workAuthorizedUS: v as ProfileApplyAnswers['workAuthorizedUS'] })}
+            />
+            <ApplySelect
+              label="Will you need visa sponsorship?"
+              value={answers.requiresSponsorship}
+              onChange={v => set({ requiresSponsorship: v as ProfileApplyAnswers['requiresSponsorship'] })}
+            />
+            <ApplySelect
+              label="Willing to relocate?"
+              value={answers.willingToRelocate}
+              onChange={v => set({ willingToRelocate: v as ProfileApplyAnswers['willingToRelocate'] })}
+            />
+            <ApplySelect
+              label="OK with in-office / hybrid?"
+              value={answers.inOfficeOk}
+              onChange={v => set({ inOfficeOk: v as ProfileApplyAnswers['inOfficeOk'] })}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-4 rounded-xl border border-border bg-secondary/20 p-4">
+          <div>
+            <p className="text-sm font-medium text-foreground">Equal opportunity (optional)</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Voluntary. Employers often ask. Leave blank to skip. Never invented by HireIQ.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Gender">
+              <Input
+                value={answers.gender}
+                onChange={e => set({ gender: e.target.value })}
+                placeholder="Prefer not to say"
+              />
+            </Field>
+            <Field label="Race / ethnicity">
+              <Input
+                value={answers.ethnicity}
+                onChange={e => set({ ethnicity: e.target.value })}
+                placeholder="Prefer not to say"
+              />
+            </Field>
+            <Field label="Veteran status">
+              <Input
+                value={answers.veteran}
+                onChange={e => set({ veteran: e.target.value })}
+                placeholder="Prefer not to say"
+              />
+            </Field>
+            <Field label="Disability">
+              <Input
+                value={answers.disability}
+                onChange={e => set({ disability: e.target.value })}
+                placeholder="Prefer not to say"
+              />
+            </Field>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Saved from applications
+          </p>
+          {answers.saved.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              When you answer a question on a job (or in the extension), it shows up here so the next
+              apply can reuse it.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {answers.saved.map(entry => (
+                <li key={entry.key} className="rounded-lg border border-border px-3 py-2.5">
+                  <p className="text-sm font-medium text-foreground">{entry.question}</p>
+                  <Textarea
+                    className="mt-2"
+                    rows={2}
+                    value={entry.answer}
+                    onChange={e =>
+                      set({
+                        saved: answers.saved.map(s =>
+                          s.key === entry.key ? { ...s, answer: e.target.value } : s,
+                        ),
+                      })
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="mt-1 text-xs text-destructive hover:underline"
+                    onClick={() => set({ saved: answers.saved.filter(s => s.key !== entry.key) })}
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </div>
@@ -598,7 +762,7 @@ export function AchievementsSection({ data, update }: { data: ProfileData; updat
 export function AdditionalSection({ data, update }: { data: ProfileData; update: Update }) {
   return (
     <div>
-      <SectionHeader title="Additional" description="Anything else worth noting — interests, availability, work authorization, etc." />
+      <SectionHeader title="Additional" description="Anything else worth noting — interests, hobbies, or context that is not an application form field." />
       <Textarea value={data.additional} onChange={e => update({ additional: e.target.value })} rows={8} placeholder="Add any extra context here…" />
     </div>
   )

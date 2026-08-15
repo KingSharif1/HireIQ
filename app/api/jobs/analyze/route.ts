@@ -5,6 +5,7 @@ import { aiErrorResponse } from '@/lib/ai/error-response'
 import { resolveAiRuntime } from '@/lib/ai/runtime'
 import { generateAiText } from '@/lib/ai/complete'
 import { withAiOnce, AiInFlightError } from '@/lib/ai/once'
+import { classifyApplyEase, type ApplyEaseResult } from '@/lib/apply/ease'
 import type { JobExtractedData } from '@/types'
 
 export const runtime = 'nodejs'
@@ -16,7 +17,15 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { description, source, company, title, location, applyUrl } = await request.json()
+  const { description, source, company, title, location, applyUrl, applyEase } = await request.json() as {
+    description?: string
+    source?: string
+    company?: string
+    title?: string
+    location?: string
+    applyUrl?: string
+    applyEase?: ApplyEaseResult
+  }
   if (!description) return NextResponse.json({ error: 'Job description required' }, { status: 400 })
 
   let ai
@@ -42,6 +51,16 @@ export async function POST(request: Request) {
     })
   } catch (err) {
     return aiErrorResponse(err, 'Failed to analyze job description')
+  }
+
+  const ease =
+    applyEase && (applyEase.ease === 'easy' || applyEase.ease === 'hard' || applyEase.ease === 'unknown')
+      ? applyEase
+      : classifyApplyEase({ url: applyUrl })
+  extractedData = {
+    ...extractedData,
+    apply_ease: ease.ease,
+    apply_ease_reason: ease.reason,
   }
 
   // Save to DB

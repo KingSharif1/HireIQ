@@ -6,6 +6,7 @@ import { SECTIONS, profileSectionAnchor, type SectionId } from '@/lib/profile/se
 import type { ResumeRow } from '@/lib/profile/resume-row'
 import {
   PersonalSection,
+  ApplyAnswersSection,
   SummarySection,
   UrlsSection,
   ExperienceSection,
@@ -40,6 +41,8 @@ export function renderProfileSection(id: SectionId, props: ProfileSectionContent
   switch (id) {
     case 'personal':
       return <PersonalSection data={data} update={update} />
+    case 'applyAnswers':
+      return <ApplyAnswersSection data={data} update={update} />
     case 'resumes':
       return <ResumesSection resumes={resumes} />
     case 'additionalDocuments':

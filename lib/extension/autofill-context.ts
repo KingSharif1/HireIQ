@@ -80,7 +80,9 @@ export function extractKnownSensitiveFacts(
   if (typeof yearsExperience === 'number' && Number.isFinite(yearsExperience) && yearsExperience >= 0) {
     facts.years_experience = String(yearsExperience)
   }
-  // No dedicated work-auth / EEOC / salary fields on profile today — omit rather than invent.
-  void profileData
+  const data = normalizeProfileData(profileData ?? ({} as ProfileData))
+  const auth = data.applyAnswers?.workAuthorizedUS
+  if (auth === 'yes') facts.work_authorization = 'Authorized to work in the United States'
+  if (auth === 'no') facts.work_authorization = 'Not authorized to work in the United States without sponsorship'
   return facts
 }

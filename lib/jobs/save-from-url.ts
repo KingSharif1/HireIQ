@@ -3,6 +3,7 @@ import { assertSavableJobUrl } from '@/lib/extension/job-page'
 import { normalizeApplyUrl } from '@/lib/extension/normalize-url'
 import { normalizeJobDescription } from '@/lib/jobs/description'
 import { scrapeJobUrl, LinkedInBlockedError } from '@/lib/jobs/job-scraper'
+import { classifyApplyEase } from '@/lib/apply/ease'
 import { detectJobUrlKind } from '@/lib/jobs/url-detect'
 
 const MAX_DESCRIPTION = 50_000
@@ -60,6 +61,8 @@ function buildExtractedData(opts: {
   company: string
   description: string
   atsSystem?: string
+  applyUrl?: string
+  applyEase?: ReturnType<typeof classifyApplyEase>
 }) {
   const cleaned = normalizeJobDescription(opts.description) || opts.description
   const summarySource = cleaned.replace(/\s+/g, ' ').trim()
@@ -69,6 +72,8 @@ function buildExtractedData(opts: {
     .map(s => s.trim())
     .filter(Boolean)
     .slice(0, 40)
+
+  const ease = opts.applyEase ?? classifyApplyEase({ url: opts.applyUrl })
 
   return {
     title: opts.title,
@@ -86,6 +91,8 @@ function buildExtractedData(opts: {
     work_type: '',
     seniority: '',
     summary,
+    apply_ease: ease.ease,
+    apply_ease_reason: ease.reason,
   }
 }
 
@@ -94,6 +101,7 @@ async function tryScrape(url: string): Promise<{
   company: string
   description: string
   atsSystem: string
+  applyEase?: ReturnType<typeof classifyApplyEase>
 } | null> {
   try {
     const scraped = await scrapeJobUrl(url)
@@ -104,6 +112,7 @@ async function tryScrape(url: string): Promise<{
       company: scraped.company?.trim().slice(0, 500) || '',
       description: cleaned,
       atsSystem: scraped.atsSystem || scraped.source || 'unknown',
+      applyEase: scraped.applyEase,
     }
   } catch (err) {
     if (err instanceof LinkedInBlockedError) return null
@@ -125,6 +134,7 @@ export async function saveJobFromUrl(input: SaveJobFromUrlInput): Promise<SaveJo
   const location = input.location?.trim() ? input.location.trim().slice(0, 500) : null
   let description = (input.description?.trim() || `Saved from ${applyUrl}`).slice(0, MAX_DESCRIPTION)
   let atsSystem = 'unknown'
+  let applyEase = classifyApplyEase({ url: applyUrl })
 
   const admin = createAdminClient()
 
@@ -161,6 +171,8 @@ export async function saveJobFromUrl(input: SaveJobFromUrlInput): Promise<SaveJo
               company: scraped.company || savedCompany,
               description: scraped.description,
               atsSystem: scraped.atsSystem,
+              applyUrl,
+              applyEase: scraped.applyEase,
             }),
           })
           .eq('id', existing.id)
@@ -189,6 +201,7 @@ export async function saveJobFromUrl(input: SaveJobFromUrlInput): Promise<SaveJo
       if (scraped.title) title = scraped.title
       if (scraped.company) company = scraped.company
       atsSystem = scraped.atsSystem
+      if (scraped.applyEase) applyEase = scraped.applyEase
     }
   }
 
@@ -209,6 +222,8 @@ export async function saveJobFromUrl(input: SaveJobFromUrlInput): Promise<SaveJo
         company,
         description,
         atsSystem,
+        applyUrl,
+        applyEase,
       }),
     })
     .select('id')

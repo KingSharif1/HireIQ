@@ -13,6 +13,15 @@ Files changed: [list]
 
 ---
 
+## Task 157 — Auto-apply on easy forms + reusable application answers
+Status: DONE  
+Scope: `lib/apply/ease.ts`, job fetch/save, job detail CTA, `lib/profile/apply-answers.ts`, Profile Application form, form_answers APIs  
+Goal: Show hosted Auto-apply for public forms (GH/Lever/Ashby **or** a simple resume form). Hide it for account portals (Workday, LinkedIn, login walls). Save apply Q&A on Profile for reuse.  
+Result: URL + HTML classifier stores `extracted_data.apply_ease`. CTA + queue honor it. Profile → Application form holds work-auth / EEO / saved questions. Job Questions tab edits per-job answers and copies lasting ones to Profile.  
+Files changed: `ease.ts`, job-scraper, save-from-url, analyze, JobDetailPage, queue, profile sections, answers APIs, tests, docs  
+
+---
+
 ## Task 156 — Tailor UX: calm wait, durable errors, human voice
 Status: DONE  
 Scope: `components/jobs/detail/AiTailorFlow.tsx`, `components/ai/AiFlowLoader.tsx`, `lib/ai/{parse-json,prompts,tailor-pipeline,error-response}.ts`, `lib/tailor/{execute-run,runs,user-error,run-types}.ts`, `app/api/tailor/runs/route.ts`  

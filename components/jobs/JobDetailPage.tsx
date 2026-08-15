@@ -18,6 +18,7 @@ import {
   JobSummaryDescription,
   JobSummaryOverview,
 } from '@/components/jobs/detail/JobSummary'
+import { canHostedAutoApply } from '@/lib/apply/ease'
 import { AutoApplyWithHireIQ } from '@/components/jobs/detail/AutoApplyWithHireIQ'
 import { QuestionsPanel } from '@/components/jobs/detail/QuestionsPanel'
 import { TailorRunChip } from '@/components/jobs/detail/TailorRunChip'
@@ -207,6 +208,7 @@ export function JobDetailPage({
   )
   const showRail = canShowRail && railOpen
   const safeApplyUrl = safeHttpUrl(item.job.apply_url)
+  const hostedAutoApply = canHostedAutoApply(safeApplyUrl, item.job.extracted_data)
   const sourceDomain = getSourceDomain(safeApplyUrl)
   const headerFacts = buildHeaderFacts({
     location: item.job.location,
@@ -430,7 +432,7 @@ export function JobDetailPage({
                 {copiedApplyEmail ? 'Copied' : 'Copy apply email'}
               </Button>
             ) : null}
-            {safeApplyUrl ? <AutoApplyWithHireIQ jobId={item.job.id} hasApplyUrl /> : null}
+            {hostedAutoApply ? <AutoApplyWithHireIQ jobId={item.job.id} hasApplyUrl /> : null}
             <div className="sm:hidden">
               <label htmlFor="mobile-application-status" className="sr-only">
                 Application status
@@ -587,7 +589,14 @@ export function JobDetailPage({
           ) : null}
 
           {tab === 'questions' ? (
-            <QuestionsPanel answers={questions} tailoredResumeId={suggestResumeId} />
+            <div className="space-y-5">
+              <QuestionsPanel answers={questions} tailoredResumeId={suggestResumeId} />
+              <ApplicationAnswers
+                applicationId={item.id}
+                jobId={item.job_id}
+                initialAnswers={formAnswers}
+              />
+            </div>
           ) : null}
 
           {tab === 'activity' ? (
