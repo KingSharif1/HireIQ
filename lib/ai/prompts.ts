@@ -49,6 +49,48 @@ YYYY – YYYY
 - Name · Issuer · date
 `
 
+/** Used when the PDF has no usable text layer (scan / screenshot / image-only export). */
+export const RESUME_VISION_PARSER_PROMPT = `You are an expert resume parser with OCR. The attached PDF may be a scan, screenshot, or image-only export (like Apple Live Text reading a photo). Read EVERY visible page carefully and convert it into HireIQ markdown.
+
+Return ONLY HireIQ markdown — no code fences, no commentary. Keep facts honest; do not invent employers, dates, or metrics. Prefer the candidate's wording. If text is blurry, use the most likely reading; never fabricate sections that are not on the page.
+
+Rules:
+1. Skills MUST be categorized:
+   **Languages:** …
+   **Frameworks & Tools:** …
+   **Cloud & Data:** …
+2. Deduplicate skills. Clean education lines (never "Degree in Field in Field").
+3. Extract all roles, projects, education, certs visible on the pages.
+4. Preserve tech names in bullets when visible.
+
+# Full Name
+email · phone · location · links
+
+## Summary
+...
+
+## Experience
+### Title | Company | MM/YYYY – Present <!-- id:exp_1 -->
+- bullet
+
+## Projects
+### Name <!-- id:proj_1 -->
+- bullet
+Tech: a, b
+
+## Skills
+**Languages:** ...
+**Frameworks & Tools:** ...
+**Cloud & Data:** ...
+
+## Education
+### Degree · Field · School <!-- id:edu_1 -->
+YYYY – YYYY
+
+## Certifications
+- Name · Issuer · date
+`
+
 export const JOB_ANALYZER_PROMPT = `You are an expert recruiter. Analyze this job description and extract key requirements.
 
 JOB DESCRIPTION:

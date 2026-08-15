@@ -1,5 +1,21 @@
 # HireIQ Decisions
 
+## 2026-08-15 — Claude PDF vision for scanned resumes (Task 161)
+
+**Context:** `pdf-parse` only reads text layers. Scans/screenshots fail before AI. Apple Live Text is on-device OCR; HireIQ’s best equivalent without a separate OCR stack is Claude’s native PDF/document reading.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Primary extract | `pdf-parse` / mammoth text layer |
+| Fallback | Claude multimodal PDF (`streamAiMessagesToCompletion`) when PDF text &lt; 50 chars |
+| Size | 10MB max (15MB left for later if needed — vision cost scales with pages) |
+| Not doing | Client-side Tesseract; separate OCR microservice |
+
+**Revisit if:** Vision cost spikes or Anthropic PDF page limits bite multi-page image resumes.
+
+---
+
 ## 2026-08-15 — Pro export defaults + Claude-quality tailor curation (Task 159)
 
 **Context:** User compared HireIQ export (2 pages, skill wall, “B.S. in CS in CS”, mid-project page break) to a Claude.ai one-pager that used less context but curated harder. Also asked for master-profile export with section/order controls.

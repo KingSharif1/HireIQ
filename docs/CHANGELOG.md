@@ -1,3 +1,15 @@
+## 2026-08-15 — Task 161: Scan OCR + 10MB uploads + mobile profile nav
+
+**What:** When PDF text extraction fails or returns &lt;50 chars, fall back to Claude PDF vision (scan/screenshot OCR). Upload limit 5MB → 10MB. Profile mobile nav is a dense collapsible section drawer.
+
+**Files:** `lib/resume/extract-text.ts`, `app/api/resume/parse/route.ts`, `lib/ai/complete.ts`, `prompts.ts`, `ResumeUploader`, `ProfileSectionNav`, `ProfileHome`, docs
+
+**Why:** Prior “parse polish” only improved the AI text prompt — image PDFs still failed at extraction with “Failed to extract text from file”.
+
+**Next:** Re-upload the failing scan; reconnect GitHub after callback fix; smoke Profile mobile drawer.
+
+---
+
 ## 2026-08-15 — Task 160: GitHub sync harden + parse polish
 
 **What:** Fix new-account GitHub Sync crash (`normalizeProfileData` on sparse profile). Soft-fail initial sync after OAuth connect. Clearer callback URL error (must be `/api/github/callback`). Resume parse: categorized skills, larger text window, polish after parse.
