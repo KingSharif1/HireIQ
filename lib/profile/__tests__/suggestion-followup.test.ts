@@ -66,6 +66,16 @@ describe('suggestionNeedsFollowUp', () => {
   })
 })
 
+describe('enrichmentDefaults', () => {
+  it('prefills a new employer from Q&A routing', () => {
+    const defaults = enrichmentDefaults(
+      baseSuggestion({ newExperience: { company: 'IRC' } })
+    )
+    expect(defaults.company).toBe('IRC')
+    expect(defaults.entryKind).toBe('experience')
+  })
+})
+
 describe('validateEnrichment', () => {
   it('requires title and a bullet', () => {
     expect(validateEnrichment({ entryKind: 'experience', title: '', bullets: ['x'] })).toMatch(/Title/)

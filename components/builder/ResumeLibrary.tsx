@@ -1,23 +1,18 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Briefcase, Download, ExternalLink, Eye, FileText, Pencil, Upload } from 'lucide-react'
+import { ArrowRight, ChevronDown, Download, FileText, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import type { ResumeRow } from '@/lib/profile/resume-row'
+import {
+  groupTailoredByJob,
+  type TailoredLibraryRow,
+} from '@/lib/builder/group-tailored'
 
-export type LibraryTailoredRow = {
-  id: string
-  job_id: string
-  version?: number
-  tailored_score: number | null
-  match_score: number | null
-  created_at: string
-  job_title: string | null
-  company: string | null
-  apply_url?: string | null
-}
+export type LibraryTailoredRow = TailoredLibraryRow
 
 interface ResumeLibraryProps {
   resumes: ResumeRow[]
@@ -25,11 +20,13 @@ interface ResumeLibraryProps {
 }
 
 /**
- * Files & versions tab — uploads plus job-first tailored resumes.
+ * Files & versions — uploads plus tailored resumes grouped by job.
  */
 export function ResumeLibrary({ resumes, tailored }: ResumeLibraryProps) {
   const hasUploads = resumes.length > 0
   const primaryResume = resumes.find(r => r.is_primary) ?? resumes[0]
+  const groups = groupTailoredByJob(tailored)
+  const jobCount = groups.length
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
@@ -49,29 +46,23 @@ export function ResumeLibrary({ resumes, tailored }: ResumeLibraryProps) {
             <Button asChild size="sm" variant={hasUploads ? 'outline' : 'default'}>
               <Link href="/dashboard/resume/upload">
                 <Upload className="size-3.5" />
-                Import resume
+                {hasUploads ? 'Replace resume' : 'Import resume'}
               </Link>
             </Button>
           </div>
         </div>
         <div className="grid gap-px bg-border sm:grid-cols-2">
-          <LibraryStat label="Uploaded resumes" value={String(resumes.length)} />
-          <LibraryStat label="Job versions" value={String(tailored.length)} />
+          <LibraryStat label="Source resume" value={hasUploads ? '1' : '0'} />
+          <LibraryStat label="Jobs with versions" value={String(jobCount)} />
         </div>
       </div>
 
-      {resumes.length > 0 ? (
+      {primaryResume ? (
         <section className="mb-10">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Uploaded source files
+            Uploaded source file
           </h2>
-          <ul className="flex flex-col gap-2">
-            {resumes.map(resume => (
-              <li key={resume.id}>
-                <LibraryResumeRow resume={resume} />
-              </li>
-            ))}
-          </ul>
+          <LibraryResumeRow resume={primaryResume} />
         </section>
       ) : null}
 
@@ -79,75 +70,99 @@ export function ResumeLibrary({ resumes, tailored }: ResumeLibraryProps) {
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           Tailored resumes by job
         </h2>
-        {tailored.length === 0 ? (
+        {groups.length === 0 ? (
           <p className="text-sm leading-6 text-muted-foreground">
             Tailored resumes for applications appear here after you tailor from the tracker.
           </p>
         ) : (
           <ul className="flex flex-col gap-2">
-            {tailored.map(row => {
-              const postingUrl = safeHttpUrl(row.apply_url)
-              return (
-                <li key={row.id}>
-                  <div
-                    className={cn(
-                      'flex flex-col gap-3 rounded-xl border border-border bg-card px-4 py-3',
-                      'transition-colors hover:border-foreground/25 sm:flex-row sm:items-center'
-                    )}
-                  >
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-secondary">
-                      <Briefcase className="size-4 text-foreground/80" strokeWidth={1.5} />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <a
-                        href={postingUrl ?? `/dashboard/tracker/${row.job_id}`}
-                        target={postingUrl ? '_blank' : undefined}
-                        rel={postingUrl ? 'noreferrer' : undefined}
-                        className="block truncate text-sm font-medium text-foreground no-underline hover:underline"
-                      >
-                        {row.job_title || 'Untitled role'}
-                        {row.company ? (
-                          <span className="font-normal text-muted-foreground"> · {row.company}</span>
-                        ) : null}
-                        {postingUrl ? (
-                          <ExternalLink className="ml-1 inline h-3 w-3 align-[-1px]" />
-                        ) : null}
-                      </a>
-                      <span className="mt-0.5 block text-xs text-muted-foreground">
-                        {row.version ? `Resume v${row.version} · ` : ''}
-                        {new Date(row.created_at).toLocaleDateString()}
-                      </span>
-                    </span>
-                    {(row.tailored_score ?? row.match_score) != null ? (
-                      <Badge
-                        variant={(row.tailored_score ?? row.match_score)! >= 70 ? 'success' : 'warning'}
-                        className="w-fit"
-                      >
-                        {row.tailored_score ?? row.match_score}%
-                      </Badge>
-                    ) : null}
-                    <div className="flex flex-wrap gap-2 sm:justify-end">
-                      <Button asChild size="sm" variant="outline">
-                        <Link href={`/dashboard/tracker/${row.job_id}?tab=documents&docId=${row.id}&docMode=preview`}>
-                          <Eye className="h-3.5 w-3.5" />
-                          View
-                        </Link>
-                      </Button>
-                      <Button asChild size="sm" variant="outline">
-                        <Link href={`/dashboard/tracker/${row.job_id}?tab=documents&docId=${row.id}&docMode=edit`}>
-                          <Pencil className="h-3.5 w-3.5" />
-                          Edit
-                        </Link>
-                      </Button>
-                      <TailoredDownloadButton tailoredId={row.id} />
-                    </div>
-                  </div>
-                </li>
-              )
-            })}
+            {groups.map(group => (
+              <li key={group.folderKey}>
+                <JobVersionGroup group={group} />
+              </li>
+            ))}
           </ul>
         )}
       </section>
+    </div>
+  )
+}
+
+function JobVersionGroup({ group }: { group: ReturnType<typeof groupTailoredByJob>[number] }) {
+  const [open, setOpen] = useState(false)
+  const score = group.latest.tailored_score ?? group.latest.match_score
+  const versionCount = group.versions.length
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="flex items-center gap-3 px-4 py-3">
+        <button
+          type="button"
+          onClick={() => setOpen(v => !v)}
+          className="flex size-9 shrink-0 items-center justify-center rounded-md bg-secondary text-foreground/80"
+          aria-expanded={open}
+          aria-label={open ? 'Collapse versions' : 'Open versions'}
+        >
+          <ChevronDown className={cn('size-4 transition-transform', open && 'rotate-180')} />
+        </button>
+        <span className="min-w-0 flex-1">
+          <Link
+            href={`/dashboard/tracker/${group.jobId}`}
+            className="block truncate text-sm font-medium text-foreground no-underline hover:underline"
+          >
+            {group.jobTitle}
+            {group.company ? (
+              <span className="font-normal text-muted-foreground"> · {group.company}</span>
+            ) : null}
+          </Link>
+          <span className="mt-0.5 block text-xs text-muted-foreground">
+            {versionCount} {versionCount === 1 ? 'version' : 'versions'}
+          </span>
+        </span>
+        {score != null ? (
+          <Badge variant={score >= 70 ? 'success' : 'warning'} className="w-fit">
+            {score}%
+          </Badge>
+        ) : null}
+      </div>
+      {open ? (
+        <ul className="border-t border-border bg-secondary/25">
+          {group.versions.map(row => (
+            <li
+              key={row.id}
+              className="flex flex-col gap-2 border-b border-border/60 px-4 py-2.5 last:border-b-0 sm:flex-row sm:items-center"
+            >
+              <span className="min-w-0 flex-1 text-sm text-foreground">
+                Resume v{row.version ?? '—'}
+                <span className="ml-2 text-xs text-muted-foreground">
+                  {new Date(row.created_at).toLocaleDateString()}
+                </span>
+              </span>
+              {(row.tailored_score ?? row.match_score) != null ? (
+                <Badge
+                  variant={(row.tailored_score ?? row.match_score)! >= 70 ? 'success' : 'warning'}
+                  className="w-fit"
+                >
+                  {row.tailored_score ?? row.match_score}%
+                </Badge>
+              ) : null}
+              <div className="flex flex-wrap gap-2">
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/dashboard/tracker/${row.job_id}?tab=documents&docId=${row.id}&docMode=preview`}>
+                    View
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/dashboard/tracker/${row.job_id}?tab=documents&docId=${row.id}&docMode=edit`}>
+                    Edit
+                  </Link>
+                </Button>
+                <TailoredDownloadButton tailoredId={row.id} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   )
 }
@@ -215,12 +230,3 @@ function TailoredDownloadButton({ tailoredId }: { tailoredId: string }) {
   )
 }
 
-function safeHttpUrl(value: string | null | undefined): string | null {
-  if (!value) return null
-  try {
-    const url = new URL(value)
-    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null
-  } catch {
-    return null
-  }
-}

@@ -3,6 +3,7 @@ import type { StructuredResume, ResumeDiffChange, JobExtractedData, ResumeExperi
 import type { TailorCritiqueReport, TailorCritiqueFlag, WriteBackSuggestion } from './tailor-types'
 import { TAILOR_MAX_RETRIES, TAILOR_OVERLAP_GATE } from './models'
 import { reasonForChange } from '@/lib/tailor/change-copy'
+import { buildRoutedWriteBacks, polishResumeBullet } from '@/lib/profile/route-gap-answer'
 
 function asStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter(v => typeof v === 'string') : []
@@ -205,18 +206,32 @@ function bulletChangeType(before: string[], after: string[]): ResumeDiffChange['
   return 'changed'
 }
 
-/** Draft write-back suggestions from Q&A answers (Phase 3 will persist). */
+/** Draft write-back suggestions from Q&A — routed to the matching project/role, resume wording preferred. */
 export function buildWriteBackSuggestions(
   answers: Record<string, string>,
-  jobTitle: string
+  jobTitle: string,
+  opts?: {
+    questionLabels?: Record<string, string>
+    profile?: { experience: { id: string; company: string; title: string }[]; projects: { id: string; name: string }[] }
+    changes?: import('@/types').ResumeDiffChange[]
+  }
 ): WriteBackSuggestion[] {
+  if (opts?.profile) {
+    return buildRoutedWriteBacks({
+      answers,
+      questionLabels: opts.questionLabels,
+      jobTitle,
+      profile: opts.profile,
+      changes: opts.changes,
+    })
+  }
   return Object.entries(answers)
     .filter(([, answer]) => answer.trim().length > 20)
     .map(([questionId, answer], i) => ({
       id: `wb-${questionId}-${i}`,
       section: 'experience' as const,
-      proposedText: answer.trim(),
-      reason: `From your answer for ${jobTitle} — review before adding to master profile.`,
+      proposedText: polishResumeBullet(answer),
+      reason: `Resume line from your answer for ${jobTitle} — confirm which role before adding to master.`,
       sourceQuestionId: questionId,
     }))
 }
@@ -232,7 +247,8 @@ export function formatEnhancements(
 ): string {
   const entries = Object.entries(answers || {}).filter(([, a]) => a.trim())
   if (entries.length === 0) return 'No additional information provided.'
-  return entries.map(([id, a]) => `Q: ${labels?.[id] ?? id}\nA: ${a}`).join('\n\n')
+  const body = entries.map(([id, a]) => `Q: ${labels?.[id] ?? id}\nA: ${a}`).join('\n\n')
+  return `${body}\n\nPlace each answer on the employer or project it names. Rewrite as a resume bullet (not the chat reply). If they name a workplace that is not on the resume, add it as a new job — do not attach it to the role you are tailoring for.`
 }
 
 /** Safety cap only — a master resume is typically 8–25k; never truncate to a few thousand. */

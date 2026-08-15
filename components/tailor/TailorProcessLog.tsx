@@ -45,9 +45,13 @@ export function TailorProcessLog({ entries, expanded, onToggle, className }: Tai
     <div className={cn('mx-4 mt-3 rounded-lg border border-border bg-card/80', className)}>
       <div className="flex items-center justify-between gap-2 px-3 py-2">
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium text-foreground">Process log</p>
+          <p className="text-xs font-medium text-foreground">Details</p>
           <p className="truncate text-[11px] text-muted-foreground">
-            {pending ? `Running: ${last?.label ?? '…'}` : hasError ? 'Stopped with an error' : `${entries.length} steps completed`}
+            {pending && last?.status === 'pending'
+              ? `Running: ${last.label}`
+              : hasError
+                ? 'Stopped'
+                : `${entries.length} steps completed`}
           </p>
         </div>
         <Button type="button" variant="ghost" size="sm" className="h-7 shrink-0 px-2 text-xs" onClick={onToggle}>

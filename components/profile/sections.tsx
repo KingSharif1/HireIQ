@@ -32,10 +32,13 @@ import {
 } from './primitives'
 import { ProvenanceBulletEditor } from './ProvenanceBulletEditor'
 import { GitHubConnectPanel } from './GitHubConnectPanel'
+import { GitHubRepoField } from './GitHubRepoField'
+import { GitHubAddProject } from './GitHubAddProject'
 import { PendingSuggestionsPanel } from './PendingSuggestionsPanel'
 import { Suspense } from 'react'
 import { bulletsWithIds } from '@/lib/profile/bullets'
 import { recordBulletEdit, entrySourceLabel } from '@/lib/profile/provenance'
+import { focusNewEntry } from '@/lib/profile/focus-entry'
 
 type Update = (patch: Partial<ProfileData>) => void
 type ResumeRow = Pick<Resume, 'id' | 'title' | 'ats_format_score' | 'is_primary' | 'created_at' | 'original_file_url'>
@@ -123,7 +126,11 @@ export function SummarySection({
 
 export function UrlsSection({ data, update }: { data: ProfileData; update: Update }) {
   const urls = data.urls
-  const add = () => update({ urls: [...urls, { id: uid('url'), label: '', url: '' }] })
+  const add = () => {
+    const item = { id: uid('url'), label: '', url: '' }
+    update({ urls: [item, ...urls] })
+    focusNewEntry(item.id)
+  }
   const setItem = (id: string, patch: Partial<ProfileURL>) =>
     update({ urls: urls.map(u => (u.id === id ? { ...u, ...patch } : u)) })
   const remove = (id: string) => update({ urls: urls.filter(u => u.id !== id) })
@@ -140,7 +147,7 @@ export function UrlsSection({ data, update }: { data: ProfileData; update: Updat
       ) : (
         <div className="space-y-3">
           {urls.map(u => (
-            <div key={u.id} className="grid grid-cols-[1fr_2fr_auto] gap-2 items-start">
+            <div key={u.id} id={`entry-${u.id}`} className="grid grid-cols-[1fr_2fr_auto] gap-2 items-start">
               <Input value={u.label} onChange={e => setItem(u.id, { label: e.target.value })} placeholder="LinkedIn" />
               <Input value={u.url} onChange={e => setItem(u.id, { url: e.target.value })} placeholder="https://…" />
               <Button variant="ghost" size="icon" onClick={() => remove(u.id)} aria-label="Remove">×</Button>
@@ -169,23 +176,20 @@ export function ExperienceSection({
   const pending = (data.pendingSuggestions ?? []).filter(s => s.section === 'experience')
   const add = () => {
     const { bullets, bulletIds } = bulletsWithIds([''], undefined, 'bul')
-    update({
-      experience: [
-        ...items,
-        {
-          id: uid('exp'),
-          company: '',
-          title: '',
-          location: '',
-          startDate: '',
-          endDate: '',
-          current: false,
-          bullets,
-          bulletIds,
-          skills_used: [],
-        },
-      ],
-    })
+    const item = {
+      id: uid('exp'),
+      company: '',
+      title: '',
+      location: '',
+      startDate: '',
+      endDate: '',
+      current: false,
+      bullets,
+      bulletIds,
+      skills_used: [],
+    }
+    update({ experience: [item, ...items] })
+    focusNewEntry(item.id)
   }
   const setItem = (id: string, patch: Partial<ResumeExperience>) =>
     update({ experience: items.map(x => (x.id === id ? { ...x, ...patch } : x)) })
@@ -210,9 +214,10 @@ export function ExperienceSection({
           {items.map(exp => (
             <EntryCard
               key={exp.id}
+              entryId={exp.id}
               title={exp.title || 'New role'}
               subtitle={[exp.company, exp.location].filter(Boolean).join(' · ')}
-              sourceLine={entrySourceLabel(data.provenance, exp.bulletIds)}
+              sourceLine={entrySourceLabel(data.provenance, exp.bulletIds, exp.bullets)}
               onRemove={() => remove(exp.id)}
               defaultOpen={!exp.title}
             >
@@ -265,13 +270,20 @@ export function ExperienceSection({
 
 export function VolunteeringSection({ data, update }: { data: ProfileData; update: Update }) {
   const items = data.volunteering
-  const add = () =>
-    update({
-      volunteering: [
-        ...items,
-        { id: uid('vol'), organization: '', role: '', location: '', startDate: '', endDate: '', current: false, bullets: [''] },
-      ],
-    })
+  const add = () => {
+    const item = {
+      id: uid('vol'),
+      organization: '',
+      role: '',
+      location: '',
+      startDate: '',
+      endDate: '',
+      current: false,
+      bullets: [''],
+    }
+    update({ volunteering: [item, ...items] })
+    focusNewEntry(item.id)
+  }
   const setItem = (id: string, patch: Partial<ProfileVolunteering>) =>
     update({ volunteering: items.map(x => (x.id === id ? { ...x, ...patch } : x)) })
   const remove = (id: string) => update({ volunteering: items.filter(x => x.id !== id) })
@@ -290,6 +302,7 @@ export function VolunteeringSection({ data, update }: { data: ProfileData; updat
           {items.map(v => (
             <EntryCard
               key={v.id}
+              entryId={v.id}
               title={v.role || 'New entry'}
               subtitle={v.organization}
               onRemove={() => remove(v.id)}
@@ -331,13 +344,23 @@ export function ProjectsSection({
 }) {
   const items = data.projects
   const pending = (data.pendingSuggestions ?? []).filter(s => s.section === 'projects')
-  const add = () =>
-    update({
-      projects: [
-        ...items,
-        { id: uid('proj'), name: '', description: '', bullets: [''], technologies: [], url: '', github: '' },
-      ],
-    })
+  const add = () => {
+    const item = {
+      id: uid('proj'),
+      name: '',
+      description: '',
+      bullets: [''],
+      technologies: [],
+      url: '',
+      github: '',
+    }
+    update({ projects: [item, ...items] })
+    focusNewEntry(item.id)
+  }
+  const addFromGithub = (project: ResumeProject) => {
+    update({ projects: [project, ...items] })
+    focusNewEntry(project.id)
+  }
   const setItem = (id: string, patch: Partial<ResumeProject>) =>
     update({ projects: items.map(x => (x.id === id ? { ...x, ...patch } : x)) })
   const remove = (id: string) => update({ projects: items.filter(x => x.id !== id) })
@@ -357,6 +380,11 @@ export function ProjectsSection({
         description="Side projects, open source, or notable work products."
         action={<Button size="sm" onClick={add}><Plus className="w-4 h-4" />Add project</Button>}
       />
+      <GitHubAddProject
+        repos={githubData?.repos ?? []}
+        existing={items}
+        onAdd={addFromGithub}
+      />
       {items.length === 0 ? (
         <EmptyState message="No projects added yet." actionLabel="Add project" onAction={add} />
       ) : (
@@ -364,6 +392,7 @@ export function ProjectsSection({
           {items.map(proj => (
             <EntryCard
               key={proj.id}
+              entryId={proj.id}
               title={proj.name || 'New project'}
               subtitle={proj.technologies?.join(', ')}
               sourceBadge={
@@ -382,10 +411,12 @@ export function ProjectsSection({
               defaultOpen={!proj.name}
             >
               <Field label="Name"><Input value={proj.name} onChange={e => setItem(proj.id, { name: e.target.value })} placeholder="Project name" /></Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Live URL"><Input value={proj.url} onChange={e => setItem(proj.id, { url: e.target.value })} placeholder="https://…" /></Field>
-                <Field label="Repository"><Input value={proj.github} onChange={e => setItem(proj.id, { github: e.target.value })} placeholder="https://github.com/…" /></Field>
-              </div>
+              <Field label="Live URL"><Input value={proj.url} onChange={e => setItem(proj.id, { url: e.target.value })} placeholder="https://…" /></Field>
+              <GitHubRepoField
+                project={proj}
+                repos={githubData?.repos ?? []}
+                onChange={patch => setItem(proj.id, patch)}
+              />
               <Field label="Technologies">
                 <TagInput tags={proj.technologies} onChange={technologies => setItem(proj.id, { technologies })} placeholder="React, Node, Postgres…" />
               </Field>
@@ -406,13 +437,21 @@ export function ProjectsSection({
 
 export function EducationSection({ data, update }: { data: ProfileData; update: Update }) {
   const items = data.education
-  const add = () =>
-    update({
-      education: [
-        ...items,
-        { id: uid('edu'), institution: '', degree: '', field: '', startDate: '', endDate: '', gpa: '', relevant_courses: [], honors: [] },
-      ],
-    })
+  const add = () => {
+    const item = {
+      id: uid('edu'),
+      institution: '',
+      degree: '',
+      field: '',
+      startDate: '',
+      endDate: '',
+      gpa: '',
+      relevant_courses: [],
+      honors: [],
+    }
+    update({ education: [item, ...items] })
+    focusNewEntry(item.id)
+  }
   const setItem = (id: string, patch: Partial<ResumeEducation>) =>
     update({ education: items.map(x => (x.id === id ? { ...x, ...patch } : x)) })
   const remove = (id: string) => update({ education: items.filter(x => x.id !== id) })
@@ -429,7 +468,7 @@ export function EducationSection({ data, update }: { data: ProfileData; update: 
       ) : (
         <div className="space-y-3">
           {items.map(edu => (
-            <EntryCard key={edu.id} title={edu.degree || 'New entry'} subtitle={edu.institution} onRemove={() => remove(edu.id)} defaultOpen={!edu.degree}>
+            <EntryCard key={edu.id} entryId={edu.id} title={edu.degree || 'New entry'} subtitle={edu.institution} onRemove={() => remove(edu.id)} defaultOpen={!edu.degree}>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Degree"><Input value={edu.degree} onChange={e => setItem(edu.id, { degree: e.target.value })} placeholder="B.S." /></Field>
                 <Field label="Field of study"><Input value={edu.field} onChange={e => setItem(edu.id, { field: e.target.value })} placeholder="Computer Science" /></Field>
@@ -516,7 +555,11 @@ export function SkillsSection({
 
 export function AchievementsSection({ data, update }: { data: ProfileData; update: Update }) {
   const items = data.achievements
-  const add = () => update({ achievements: [...items, { id: uid('ach'), title: '', issuer: '', date: '', description: '' }] })
+  const add = () => {
+    const item = { id: uid('ach'), title: '', issuer: '', date: '', description: '' }
+    update({ achievements: [item, ...items] })
+    focusNewEntry(item.id)
+  }
   const setItem = (id: string, patch: Partial<ProfileAchievement>) =>
     update({ achievements: items.map(x => (x.id === id ? { ...x, ...patch } : x)) })
   const remove = (id: string) => update({ achievements: items.filter(x => x.id !== id) })
@@ -533,7 +576,7 @@ export function AchievementsSection({ data, update }: { data: ProfileData; updat
       ) : (
         <div className="space-y-3">
           {items.map(a => (
-            <EntryCard key={a.id} title={a.title || 'New achievement'} subtitle={[a.issuer, a.date].filter(Boolean).join(' · ')} onRemove={() => remove(a.id)} defaultOpen={!a.title}>
+            <EntryCard key={a.id} entryId={a.id} title={a.title || 'New achievement'} subtitle={[a.issuer, a.date].filter(Boolean).join(' · ')} onRemove={() => remove(a.id)} defaultOpen={!a.title}>
               <div className="grid grid-cols-[2fr_1fr] gap-3">
                 <Field label="Title"><Input value={a.title} onChange={e => setItem(a.id, { title: e.target.value })} placeholder="Employee of the Year" /></Field>
                 <Field label="Date"><Input value={a.date} onChange={e => setItem(a.id, { date: e.target.value })} placeholder="2024" /></Field>
@@ -576,7 +619,11 @@ function DocumentList({
   docs: ProfileDocument[]
   onChange: (next: ProfileDocument[]) => void
 }) {
-  const add = () => onChange([...docs, { id: uid('doc'), name: '', url: '', note: '' }])
+  const add = () => {
+    const item = { id: uid('doc'), name: '', url: '', note: '' }
+    onChange([item, ...docs])
+    focusNewEntry(item.id)
+  }
   const setItem = (id: string, patch: Partial<ProfileDocument>) =>
     onChange(docs.map(d => (d.id === id ? { ...d, ...patch } : d)))
   const remove = (id: string) => onChange(docs.filter(d => d.id !== id))
@@ -589,7 +636,7 @@ function DocumentList({
       ) : (
         <div className="space-y-3">
           {docs.map(d => (
-            <EntryCard key={d.id} title={d.name || 'New document'} subtitle={d.url} onRemove={() => remove(d.id)} defaultOpen={!d.name}>
+            <EntryCard key={d.id} entryId={d.id} title={d.name || 'New document'} subtitle={d.url} onRemove={() => remove(d.id)} defaultOpen={!d.name}>
               <Field label="Name"><Input value={d.name} onChange={e => setItem(d.id, { name: e.target.value })} placeholder="Transcript, reference letter…" /></Field>
               <Field label="Link"><Input value={d.url} onChange={e => setItem(d.id, { url: e.target.value })} placeholder="https://…" /></Field>
               <Field label="Note"><Input value={d.note} onChange={e => setItem(d.id, { note: e.target.value })} placeholder="Optional note" /></Field>

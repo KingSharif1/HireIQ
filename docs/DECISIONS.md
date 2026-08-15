@@ -1,5 +1,68 @@
 # HireIQ Decisions
 
+## 2026-08-15 — Tailor overlay is a wait, not a pipeline (Task 156)
+
+**Context:** Users saw “1 Claude call”, model names, and raw `JSON.parse` errors while the spinner kept going. Refresh hid failed runs and started another.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Wait UI | Short status + rotating hint. No vendor/model/call counts |
+| Durable | Leave/refresh attaches to in-flight. Failed stays until Try again |
+| Errors | User-facing title/message + Details log (technical). Credits / network / JSON mapped |
+| Voice | Prompt: keep their diction; no generic “results-driven” unless they write that way |
+
+---
+
+## 2026-08-15 — One source resume + job folders (Task 155)
+
+**Context:** Native GitHub `<select>` was unreadable. New profile cards appeared at the bottom. Harper tailored v1/v2 showed as two rows because they had different `job_id`s. Upload created extra resume rows and rewrote master. Public storage “View original” 404’d.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| GitHub field | Searchable dropdown, not native select |
+| Add from GitHub | New project from last sync (no extra Claude) |
+| New entries | Prepend + scroll into view |
+| Builder folders | Group by title+company; expand versions; name → `/dashboard/tracker/[jobId]`; no posting URL |
+| Uploads | One source file; replace updates it; ask before merging new parse diffs into master |
+
+---
+
+## 2026-08-15 — Q&A write-back routing (Task 154)
+
+**Context:** Gap answers were queued as raw chat text on Experience, and accept without a target attached them to the first job (Harper). IRC belonged as a new role; NEMT belonged on that project.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Wording | Prefer the tailored resume’s new bullet when it overlaps the answer; else polish the answer (no extra Claude call) |
+| Projects | Name match in question/answer → that project |
+| Existing job | Name match → that experience |
+| New employer | Extract “worked at X” → new experience follow-up, company prefilled |
+| Fallback | No target — follow-up sheet; never default to job[0] |
+| Empty bullets | No “From …” label |
+
+---
+
+## 2026-08-15 — Profile is its own page (Task 153)
+
+**Context:** Master resume lived inside Resume Builder as one long scroll. User wants Profile back on the rail: it is still the master resume, but also the identity store for autofill/Sprout. Tailored copies stay in Builder. GitHub “Repository” should be a picker of their repos — link only, or optionally check for a highlight. Do **not** merge tailored versions into the master from this work.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Nav | Dashboard · Applications · **Profile** · Resume Builder |
+| Profile | `/dashboard/profile` — one section at a time |
+| Builder | `/dashboard/builder` — uploads + tailored **grouped by job** (version dropdown) |
+| Repository field | Dropdown of synced GitHub repos; paste URL still available |
+| Highlights | Opt-in “Look for highlights” on that project. Sync does not dump README into pending bullets for already-listed projects |
+| New repos | Sync may still ask to add a repo that is not on the profile yet, with resume-shaped copy |
+
+**Tradeoff:** Four rail items on mobile. Profile and Builder are two clicks instead of one.
+
+---
+
 ## 2026-08-15 — Tailor for interviews + real edit (Task 152 / PR #19)
 
 **Context:** An Apple IS&T tailor scored 55% with 0 questions and 6 shallow changes. User asked if it even tailored; wanted questions when gaps exist; Teal-style **Edit** (not just checkboxes); Design on mobile; Match that explains what changed and interview odds; Accept only when something **new** was added; pull job-relevant projects from master for ATS.

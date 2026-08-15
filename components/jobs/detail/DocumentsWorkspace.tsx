@@ -229,9 +229,9 @@ export function DocumentsWorkspace({
             <TailorRunChip status={tailorRunStatus} />
             <p className="mt-1 text-xs text-muted-foreground">
               {isBusyTailorStatus(tailorRunStatus)
-                ? 'Still running in the background. Refresh won’t start another Claude call.'
+                ? 'Still running in the background. Refresh won’t start over.'
                 : tailorRunStatus === 'awaiting_answers'
-                  ? 'Answer a few questions, then we’ll do the one rewrite.'
+                  ? 'Answer a couple of questions, then we’ll write your version.'
                   : 'Your tailored resume is ready to review.'}
             </p>
           </div>

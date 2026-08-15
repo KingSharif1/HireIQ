@@ -1,16 +1,4 @@
-export function extractJSON(text: string): string {
-  const fence = text.match(/```(?:json)?\n?([\s\S]*?)\n?```/)
-  if (fence) return fence[1].trim()
-  const objStart = text.indexOf('{')
-  const arrStart = text.indexOf('[')
-  const start =
-    objStart === -1 ? arrStart : arrStart === -1 ? objStart : Math.min(objStart, arrStart)
-  if (start === -1) return text
-  const close = text[start] === '[' ? ']' : '}'
-  const end = text.lastIndexOf(close)
-  if (end !== -1 && end > start) return text.slice(start, end + 1)
-  return text
-}
+export { extractJSON } from '@/lib/ai/parse-json'
 
 export const RESUME_PARSER_PROMPT = `You are an expert resume parser. Extract the resume content into structured JSON.
 
@@ -146,7 +134,7 @@ QUESTIONS (1–3 — REQUIRED when ATS GAP SIGNALS lists missing skills/keywords
 - If they say no, we will not invent it. If they say yes, we can weave it in for ATS + the recruiter.
 - Each question needs: id, question, category, gap_being_filled, why_it_matters, choices (2-4), example_answer
 
-Return ONLY valid JSON:
+Return ONLY compact valid JSON (no markdown, no trailing commas). Keep arrays short: at most 8 direct_matches, 5 adjacent_matches, 5 real_gaps, 3 questions_for_user. Do not echo the resume.
 {
   "direct_matches": [
     { "jd_requirement": "", "user_evidence": "", "source": "resume|project|skill" }
@@ -243,13 +231,15 @@ ADJACENT MATCHES — use ONLY with the honest framing provided (no stronger clai
 RULES:
 1. NEVER fabricate experience, skills, metrics, employers, or tools they did not use.
 2. Prefer rewriting existing bullets over adding new ones. Name the JD's tools in bullets where the work was already that work (e.g. they built APIs → say "REST APIs" if the JD says REST).
-3. Q&A answers are first-class evidence — fold them into the matching role/project bullet, in the candidate's voice.
-4. Summary: 3–5 lines that a recruiter can skim in 8 seconds. Role + strongest relevant proof + this job's domain. Still their voice.
+3. Q&A is first-class evidence. Rewrite it as a real resume bullet (action + what you did + tools). Put it on the matching role or project — if they named a different employer or project (e.g. IRC, NEMT Billing), add or update THAT entry. Never stuff unrelated work into the job you are tailoring for.
+4. Summary: 3–5 lines a recruiter can skim in 8 seconds. Role + strongest relevant proof + this job's domain. Keep THEIR voice — sentence length, how they name tools, no "results-driven" or "synergy" unless they already write that way.
 5. Skills: put honestly-held JD skills first. Do not add skills they do not have.
 6. Drop or demote bullets that do not help this job. Keep the ones that prove they can do the work.
 7. Projects: keep ONLY projects that share tools, domain, or outcomes with this JD. Drop unrelated side projects from this tailored snapshot.
 8. Length budget: {lengthBudget}. Strong action verbs. Quantify only when the source has numbers.
 9. Full restructure is allowed on this tailored snapshot only (not the master).
+10. Mirror diction from the original bullets. Do not homogenize into generic corporate resume-speak.
+11. Return compact valid JSON only: no markdown, no comments, no trailing commas, escape quotes inside strings.
 
 TARGET ATS: {atsSystem}
 SENIORITY: {seniority}

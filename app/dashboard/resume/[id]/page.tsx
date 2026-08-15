@@ -1,11 +1,10 @@
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, ExternalLink } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import type { ResumeExperience, ResumeProject } from '@/types'
 
 export default async function ResumeDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -42,16 +41,6 @@ export default async function ResumeDetailPage({ params }: { params: Promise<{ i
             )}
           </div>
         </div>
-        {resume.original_file_url && (
-          <Button asChild variant="outline">
-            <a href={resume.original_file_url} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="w-4 h-4" />View original upload
-            </a>
-          </Button>
-        )}
-        <Button asChild>
-          <Link href="/dashboard/builder?view=master">Open master</Link>
-        </Button>
       </div>
 
       <Card>

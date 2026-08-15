@@ -25,6 +25,7 @@ const CODE_ROOT_HINTS = new Set([
 export function cleanReadmeExcerpt(raw: string, maxLen = 480): string {
   const lines = raw
     .replace(/\r\n/g, '\n')
+    .replace(/<[^>]+>/g, ' ')
     .split('\n')
     .map(line =>
       line
@@ -32,6 +33,7 @@ export function cleanReadmeExcerpt(raw: string, maxLen = 480): string {
         .replace(/!\[[^\]]*]\([^)]+\)/g, '')
         .replace(/\[([^\]]+)]\([^)]+\)/g, '$1')
         .replace(/`+/g, '')
+        .replace(/[👑✨🔥]+/gu, '')
         .trim()
     )
     .filter(line => line.length > 0 && !/^[-*_=]{3,}$/.test(line))

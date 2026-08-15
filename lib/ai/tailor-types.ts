@@ -30,6 +30,14 @@ export interface WriteBackSuggestion {
   proposedText: string
   reason: string
   sourceQuestionId?: string
+  newExperience?: { company: string; title?: string }
+  newProject?: {
+    name: string
+    description: string
+    github: string
+    technologies: string[]
+    bullets: string[]
+  }
 }
 
 export interface TailorPipelineMeta {

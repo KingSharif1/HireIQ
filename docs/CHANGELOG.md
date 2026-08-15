@@ -1,4 +1,50 @@
-## 2026-08-15 — Task 152: Better tailor + edit (merged PR #19)
+## 2026-08-15 — Task 156: Tailor wait + errors feel human
+
+**What:** The tailor overlay no longer lists Claude calls or pipeline steps. Wait copy is short; leave/refresh still attaches to the same background run. Failures stay on screen (not auto-restarted) with a plain-language reason, Details log, and Try again. Model JSON is repaired when possible. The rewrite prompt is stricter about keeping the candidate’s voice.
+
+**Files:** `AiTailorFlow.tsx`, `AiFlowLoader.tsx`, `lib/ai/parse-json.ts`, `lib/tailor/user-error.ts`, `execute-run.ts`, `runs.ts`, `app/api/tailor/runs/route.ts`, `prompts.ts`
+
+**Why:** A JSON parse error showed as raw SyntaxError on top of a spinning “1 Claude call” checklist. Refresh hid the failure and started another run.
+
+**Next:** Smoke a tailor, leave mid-run, come back; force a failure and hit Try again.
+
+---
+
+
+
+**What:** GitHub repo field is a searchable dropdown. Projects can be added from a synced repo (name/stack/highlight from last sync). New profile entries go to the top and the page scrolls to them. Builder groups tailored resumes by job title + company (Harper v1/v2 in one folder); the job name links to job detail, not the posting URL. One uploaded source file: replace updates that file and asks before adding new parse diffs to master. Resume detail no longer has View original upload / Open profile.
+
+**Files:** `GitHubRepoPicker.tsx`, `GitHubAddProject.tsx`, `ResumeLibrary.tsx`, `group-tailored.ts`, `focus-entry.ts`, `parse-additions.ts`, `app/api/resume/parse/route.ts`, `app/api/profile/merge-parse/route.ts`, `app/dashboard/resume/**`
+
+**Why:** Native selects were hard to scan; new cards appeared off-screen; two Harper jobs looked like two applications; extra uploads silently rewrote master.
+
+**Next:** Smoke Profile → Projects (picker + Add from GitHub), Builder job folders, replace-upload merge prompt.
+
+---
+
+
+
+**What:** Master suggestions from tailor Q&A now use resume wording (the tailored rewrite when it matches, otherwise a cleaned-up bullet — not “yeah I worked at…”). NEMT-style answers go to that project. “I worked at the IRC” becomes a new role to confirm, not a Harper bullet. Untargeted accept no longer dumps onto the first job. Empty highlight fields don’t show a From-label.
+
+**Files:** `lib/profile/route-gap-answer.ts`, `lib/ai/tailor-engine.ts`, `lib/ai/prompts.ts`, `lib/ai/tailor-pipeline.ts`, `app/api/profile/suggestions/suggest/route.ts`, `lib/profile/provenance.ts`, `ProvenanceBulletEditor.tsx`
+
+**Why:** Chat answers aren’t resume lines, and unrelated work was landing on the job being tailored.
+
+**Next:** Tailor a job, answer a question about another employer/project, Suggest for master, confirm the pending card is on the right section.
+
+---
+
+
+**What:** Profile is back on the left rail as its own page (master + autofill). Clicking a left-nav item shows only that section. Project Repository is a dropdown of the user’s GitHub repos — link, or optionally look for a highlight. Resume Builder keeps tailored copies grouped by job with a versions dropdown. GitHub sync no longer dumps README HTML onto existing projects.
+
+**Files:** `primary-nav.ts`, `ProfileHome.tsx`, `GitHubRepoField.tsx`, `ResumeLibrary.tsx`, `app/dashboard/{profile,builder}/**`, `lib/github/{resume-bullet,scan-project,suggestions}.ts`, `lib/builder/group-tailored.ts`, docs
+
+**Why:** Profile is identity for apply/autofill, not just a resume editor. Tailored versions belong in Builder.
+
+**Next:** Smoke Profile section switch + repo picker on a connected GitHub account.
+
+---
+
 
 **What:** End-to-end tailor quality + job Documents Edit workspace.
 

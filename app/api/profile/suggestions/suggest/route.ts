@@ -7,12 +7,13 @@ import {
   writeBackToPending,
 } from '@/lib/profile/provenance'
 import { buildSuggestionNotification } from '@/lib/notifications'
+import { profilePath } from '@/lib/profile/paths'
 import { insertNotifications } from '@/lib/supabase/queries'
-import type { Profile, ProfileData, TailorGapAnswer } from '@/types'
+import type { Profile, ProfileData, ResumeDiffChange, TailorGapAnswer } from '@/types'
 
 /**
  * Explicit Suggest for master — queues pending proposals from a tailored resume's Q&A.
- * Does not silently overwrite profile_data content.
+ * Uses the tailored rewrite when possible, routed to the matching project/role.
  */
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -27,12 +28,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'tailoredResumeId required' }, { status: 400 })
   }
 
-  const { data: tailored } = await supabase
-    .from('tailored_resumes')
-    .select('id, job_id, gap_answers, jobs(title, company)')
-    .eq('id', tailoredResumeId)
-    .eq('user_id', user.id)
-    .maybeSingle()
+  const [{ data: tailored }, { data: profileRow }] = await Promise.all([
+    supabase
+      .from('tailored_resumes')
+      .select('id, job_id, gap_answers, changes, jobs(title, company)')
+      .eq('id', tailoredResumeId)
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    supabase.from('profiles').select('profile_data').eq('id', user.id).single<Pick<Profile, 'profile_data'>>(),
+  ])
 
   if (!tailored) {
     return NextResponse.json({ error: 'Tailored resume not found' }, { status: 404 })
@@ -40,9 +44,11 @@ export async function POST(request: Request) {
 
   const gapAnswers = (Array.isArray(tailored.gap_answers) ? tailored.gap_answers : []) as TailorGapAnswer[]
   const answers: Record<string, string> = {}
+  const questionLabels: Record<string, string> = {}
   for (const row of gapAnswers) {
     if (row.questionId && row.answer?.trim()) {
       answers[row.questionId] = row.answer.trim()
+      if (row.question) questionLabels[row.questionId] = row.question
     }
   }
 
@@ -53,7 +59,15 @@ export async function POST(request: Request) {
   const job = Array.isArray(jobJoin) ? jobJoin[0] ?? null : jobJoin
   const jobLabel = `${job?.title || 'Role'} @ ${job?.company || 'Company'}`
 
-  const writeBack = buildWriteBackSuggestions(answers, job?.title || 'this role')
+  const profileData = normalizeProfileData(profileRow?.profile_data ?? ({} as ProfileData))
+  const writeBack = buildWriteBackSuggestions(answers, job?.title || 'this role', {
+    questionLabels,
+    profile: {
+      experience: profileData.experience.map(e => ({ id: e.id, company: e.company, title: e.title })),
+      projects: profileData.projects.map(p => ({ id: p.id, name: p.name })),
+    },
+    changes: (Array.isArray(tailored.changes) ? tailored.changes : []) as ResumeDiffChange[],
+  })
   if (writeBack.length === 0) {
     return NextResponse.json({
       queued: 0,
@@ -61,16 +75,8 @@ export async function POST(request: Request) {
     })
   }
 
-  // No targetEntryId — Accept opens follow-up sheet for a new experience/project
   const pending = writeBackToPending(writeBack, tailored.id, jobLabel, undefined)
 
-  const { data: profileRow } = await supabase
-    .from('profiles')
-    .select('profile_data')
-    .eq('id', user.id)
-    .single<Pick<Profile, 'profile_data'>>()
-
-  const profileData = normalizeProfileData(profileRow?.profile_data ?? ({} as ProfileData))
   const existingIds = new Set((profileData.pendingSuggestions ?? []).map(s => s.id))
   const fresh = pending.filter(s => !existingIds.has(s.id))
   const merged = mergePendingSuggestions(profileData.pendingSuggestions ?? [], fresh)
@@ -85,21 +91,16 @@ export async function POST(request: Request) {
 
   if (error) return NextResponse.json({ error: 'Failed to queue suggestions' }, { status: 500 })
 
+  const section = fresh[0]?.section ?? 'experience'
   if (fresh.length > 0) {
     await insertNotifications(supabase, [
-      buildSuggestionNotification(
-        user.id,
-        jobLabel,
-        tailored.id,
-        fresh.length,
-        fresh[0]?.section ?? 'experience'
-      ),
+      buildSuggestionNotification(user.id, jobLabel, tailored.id, fresh.length, section),
     ])
   }
 
   return NextResponse.json({
     queued: fresh.length,
     pendingCount: merged.length,
-    profilePath: '/dashboard/builder?view=master&section=experience',
+    profilePath: profilePath(section),
   })
 }

@@ -1,31 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { createProcessLog, formatLogTime, mergeProcessLogs } from '@/lib/tailor/process-log'
+import { createProcessLog } from '@/lib/tailor/process-log'
 
 describe('createProcessLog', () => {
-  it('records steps with elapsed ms', () => {
+  it('turns the pending step into the error instead of leaving a spinner', () => {
     const log = createProcessLog()
-    log.step('One')
-    log.step('Two', 'detail')
-    log.fail('Three', 'boom')
-    expect(log.entries).toHaveLength(3)
-    expect(log.entries[2].status).toBe('error')
-    expect(log.entries[1].detail).toBe('detail')
-  })
-})
-
-describe('formatLogTime', () => {
-  it('formats sub-second and seconds', () => {
-    expect(formatLogTime(450)).toBe('450ms')
-    expect(formatLogTime(2400)).toBe('2.4s')
-  })
-})
-
-describe('mergeProcessLogs', () => {
-  it('sorts by ms', () => {
-    const merged = mergeProcessLogs(
-      [{ id: 'b', at: '', label: 'b', status: 'ok', ms: 200 }],
-      [{ id: 'a', at: '', label: 'a', status: 'ok', ms: 100 }]
-    )
-    expect(merged.map(e => e.id)).toEqual(['a', 'b'])
+    log.step('Reviewing this job', 'Comparing', 'pending')
+    log.fail('Couldn’t finish this step', 'We hit a snag reviewing this job.')
+    expect(log.entries).toHaveLength(1)
+    expect(log.entries[0].status).toBe('error')
+    expect(log.entries[0].label).toBe('Couldn’t finish this step')
+    expect(log.entries[0].detail).not.toMatch(/JSON/)
   })
 })

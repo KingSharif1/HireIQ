@@ -11,15 +11,19 @@ How HireIQ tailors a resume for one job and how the Documents **Edit** workspace
 
 ```
 POST /api/tailor/runs
-  → load full master resume + JD + GitHub from DB (0 Claude)
-  → ATS pre-scan (skills / keywords)
-  → if gaps: 1 Claude gap analysis
-       · if Claude returns 0 questions → ATS fallback questions (max 3)
-  → status: awaiting_answers (user answers)
-  → 1 Claude rewrite (ATS + recruiter voice, no inventing)
-  → save tailored_resumes + changes + change_decisions
+  → load full master resume + JD + GitHub from DB
+  → ATS pre-scan
+  → if gaps: 1 gap-analysis pass
+       · if that returns 0 questions → ATS fallback questions (max 3)
+  → status: awaiting_answers
+  → 1 rewrite (ATS + recruiter, still their voice, no inventing)
+  → save tailored_resumes + changes
   → status: needs_review
 ```
+
+Leave or refresh: attach to the same run. Failed runs stay failed until the user taps Try again.
+
+UI: calm wait (“Reviewing this job” / “Writing a version in your voice”). No call counts or model names. Errors show on the wait card + Details.
 
 | Rule | Detail |
 |------|--------|

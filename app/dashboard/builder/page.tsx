@@ -3,11 +3,12 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { BuilderHome } from '@/components/builder/BuilderHome'
 import { loadProfileWorkspaceData } from '@/lib/profile/load-workspace'
+import { profilePath } from '@/lib/profile/paths'
 import type { LibraryTailoredRow } from '@/components/builder/ResumeLibrary'
 
 export const dynamic = 'force-dynamic'
 
-/** Resume Builder — master editor + files/versions on one surface. */
+/** Resume Builder — uploads + tailored versions by job. Master lives on Profile. */
 export default async function BuilderLibraryPage({
   searchParams,
 }: {
@@ -17,6 +18,9 @@ export default async function BuilderLibraryPage({
   if (params.jobId) {
     redirect(`/dashboard/tracker/${params.jobId}?tab=documents`)
   }
+  if (params.view === 'master' || params.section) {
+    redirect(profilePath(params.section ?? 'personal'))
+  }
 
   const supabase = await createClient()
   const {
@@ -24,16 +28,14 @@ export default async function BuilderLibraryPage({
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const view = params.view === 'files' || params.view === 'library' ? 'files' : 'master'
-
-  const [{ profile, initialData, resumes, githubData }, tailoredRes] = await Promise.all([
+  const [{ resumes }, tailoredRes] = await Promise.all([
     loadProfileWorkspaceData(user.id),
     supabase
       .from('tailored_resumes')
       .select('id, job_id, version, tailored_score, match_score, created_at, jobs(title, company, apply_url)')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(20),
+      .limit(80),
   ])
 
   type TailoredJoin = {
@@ -49,7 +51,7 @@ export default async function BuilderLibraryPage({
       | null
   }
 
-  const tailoredRaw: LibraryTailoredRow[] = ((tailoredRes.data ?? []) as TailoredJoin[]).map(row => {
+  const tailored: LibraryTailoredRow[] = ((tailoredRes.data ?? []) as TailoredJoin[]).map(row => {
     const job = Array.isArray(row.jobs) ? row.jobs[0] ?? null : row.jobs
     return {
       id: row.id,
@@ -64,25 +66,9 @@ export default async function BuilderLibraryPage({
     }
   })
 
-  const seenJobs = new Set<string>()
-  const tailored = tailoredRaw.filter(row => {
-    if (seenJobs.has(row.job_id)) return false
-    seenJobs.add(row.job_id)
-    return true
-  })
-
   return (
     <Suspense fallback={null}>
-      <BuilderHome
-        view={view}
-        userId={user.id}
-        initialData={initialData}
-        profile={profile}
-        resumes={resumes}
-        githubData={githubData}
-        libraryResumes={resumes}
-        tailored={tailored}
-      />
+      <BuilderHome libraryResumes={resumes} tailored={tailored} />
     </Suspense>
   )
 }

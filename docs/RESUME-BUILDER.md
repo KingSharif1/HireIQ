@@ -1,33 +1,6 @@
 # Resume Builder — current map + next-session brief
 
-**As of:** 2026-08-13 · **Task 146 done** (one Builder surface + scrolling Master)  
-**Prod:** https://hireiq.kingsharif.com · **Commit baseline:** `3c1d4f4` (+ STATUS `1b08bd2`)
-
-Use this file as the **starting brief** for a new chat whose only job is making Resume Builder look and act like one coherent product surface.
-
----
-
-## User intent (lock for next session)
-
-> The application tracker is fine. Resume Builder should look and act how it’s supposed to. Too many pages / tabs that should live on **one page** and look better.
-
-Do **not** expand Applications / Job Hub unless needed for redirects. Prefer grilling IA (one question at a time) before a big rewrite.
-
----
-
-## What’s wrong today (pain)
-
-| Symptom | Why |
-|---------|-----|
-| Two primary nav items for one mental model | **Fixed** — one Resume Builder nav; Profile redirects in |
-| Builder is only a library | **Fixed** — Master is the default Builder view |
-| Profile is a **section carousel** | **Fixed 2026-08-13** — Master is one scrolling page; left nav jumps |
-| Duplicate documents door | Library “Your resumes” ≈ Profile → Documents (`?section=resumes`) |
-| Upload is a third route | `/dashboard/resume/upload` |
-| Teal design chrome orphaned from “Builder” | Content / Designer / Matcher live under **Applications → job → Documents** (`JobResumeEditor`) |
-| Legacy redirects still exist | `/builder/master`, `/profile/documents`, `/profile/professional` |
-
-Prior lock ([DECISIONS 2026-08-09](./DECISIONS.md)): Profile = master; Builder = library; Teal tabs = per-job only. User is now **revisiting** that — next chat should re-grill and replace with a clearer single surface.
+**As of:** 2026-08-15 · **Task 153** Profile rail + Builder files-by-job
 
 ---
 
@@ -35,16 +8,14 @@ Prior lock ([DECISIONS 2026-08-09](./DECISIONS.md)): Profile = master; Builder =
 
 | Route | Role |
 |-------|------|
-| `/dashboard/builder` | **Master resume** (default) + **Files & versions** |
-| `/dashboard/builder/master` | Redirect → Builder master (or tracker if `jobId`) |
-| `/dashboard/profile` | Redirect → `/dashboard/builder?view=master` |
+| `/dashboard/profile` | **Master resume + autofill** — one section at a time |
+| `/dashboard/builder` | Uploads + tailored resumes **grouped by job** |
+| `/dashboard/builder/master` | Redirect → Profile (or tracker if `jobId`) |
 | `/dashboard/profile/documents` | Legacy redirect → Profile documents section |
-| `/dashboard/profile/professional` | Legacy redirect → Profile professional sections |
+| `/dashboard/profile/professional` | Legacy redirect → Profile |
 | `/dashboard/resume/upload` | Upload / parse flow |
 | `/dashboard/resume/[id]` | Resume detail |
 | `/dashboard/tracker/[id]?tab=documents` | Per-job Teal editor (Content / Design / Match + preview) |
-
-Nav: `components/shared/primary-nav.ts` — Dashboard · Applications · Resume Builder.
 
 ---
 

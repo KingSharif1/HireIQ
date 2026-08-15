@@ -1,4 +1,5 @@
-import { TAILOR_GENERATE_PROMPT, extractJSON } from '@/lib/ai/prompts'
+import { TAILOR_GENERATE_PROMPT } from '@/lib/ai/prompts'
+import { parseModelJson } from '@/lib/ai/parse-json'
 import { AI_MODELS, TAILOR_MAX_AI_CALLS } from '@/lib/ai/models'
 import type { StructuredResume, JobExtractedData, GapAnalysis } from '@/types'
 import type { GenerateFn, TailorPipelineResult } from '@/lib/ai/tailor-types'
@@ -43,7 +44,7 @@ async function callGenerate(
 }
 
 function parseResume(text: string): StructuredResume {
-  return normalizeStructuredResume(JSON.parse(extractJSON(text)) as Partial<StructuredResume>)
+  return normalizeStructuredResume(parseModelJson<Partial<StructuredResume>>(text))
 }
 
 export async function runTailorPipeline(input: PipelineInput): Promise<TailorPipelineResult> {
@@ -69,7 +70,7 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
     .replace('{seniority}', job.seniority || 'mid')
     .replace('{lengthBudget}', seniorityLengthBudget(job.seniority || 'mid'))
 
-  const genText = await callGenerate(generate, models.strong, generatePrompt, 6000, aiCallsUsed, 1)
+  const genText = await callGenerate(generate, models.strong, generatePrompt, 8000, aiCallsUsed, 1)
   const current = parseResume(genText)
   const notes = current.tailoring_notes ?? []
   const changes = buildResumeChanges(resume, current, notes)
@@ -78,7 +79,14 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
     tailoredResume: current,
     changes,
     tailoringNotes: notes,
-    writeBackSuggestions: buildWriteBackSuggestions(answers, job.title || 'this role'),
+    writeBackSuggestions: buildWriteBackSuggestions(answers, job.title || 'this role', {
+      questionLabels,
+      profile: {
+        experience: resume.experience.map(e => ({ id: e.id, company: e.company, title: e.title })),
+        projects: resume.projects.map(p => ({ id: p.id, name: p.name })),
+      },
+      changes,
+    }),
     meta: {
       attempts: 1,
       passedGate: true,

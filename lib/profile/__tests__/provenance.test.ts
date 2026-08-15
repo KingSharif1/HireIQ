@@ -53,6 +53,25 @@ describe('acceptSuggestion', () => {
     expect(next.provenance?.[newBulletId]?.origin).toBe('tailor')
     expect(next.provenance?.[newBulletId]?.history.length).toBeGreaterThanOrEqual(2)
   })
+
+  it('does not dump an untargeted Q&A bullet onto the first job', () => {
+    const data = profileWithExperience()
+    const suggestion = {
+      id: 's-irc',
+      section: 'experience' as const,
+      proposedText: 'Supported resettlement operations at IRC.',
+      reason: 'New role',
+      sourceTailoredResumeId: 'tailor-1',
+      jobLabel: 'FDE @ Harper',
+      createdAt: new Date().toISOString(),
+      newExperience: { company: 'IRC' },
+    }
+    const next = acceptSuggestion({ ...data, pendingSuggestions: [suggestion] }, 's-irc')
+    expect(next.experience[0].company).toBe('Acme')
+    expect(next.experience[0].bullets).toHaveLength(1)
+    expect(next.experience[1].company).toBe('IRC')
+    expect(next.experience[1].bullets[0]).toContain('IRC')
+  })
 })
 
 describe('declineSuggestion', () => {

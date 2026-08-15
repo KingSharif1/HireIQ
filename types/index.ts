@@ -277,6 +277,11 @@ export interface PendingSuggestion {
     technologies: string[]
     bullets: string[]
   }
+  /** When set, accepting should create a new experience role (Q&A named an employer not on the profile). */
+  newExperience?: {
+    company: string
+    title?: string
+  }
 }
 
 export interface ProfileData {

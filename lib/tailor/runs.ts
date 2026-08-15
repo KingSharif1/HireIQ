@@ -29,6 +29,22 @@ function asRun(row: Record<string, unknown>): TailorRunRow {
   }
 }
 
+export async function getLatestTailorRun(
+  supabase: SupabaseClient,
+  userId: string,
+  jobId: string,
+): Promise<TailorRunRow | null> {
+  const { data } = await supabase
+    .from('tailor_runs')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('job_id', jobId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return data ? asRun(data as Record<string, unknown>) : null
+}
+
 export async function getActiveTailorRun(
   supabase: SupabaseClient,
   userId: string,
@@ -177,7 +193,7 @@ export async function claimGeneratePhase(
 }
 
 const STALE_FAIL_MESSAGE =
-  'Stopped — the background tailor did not finish. We did not start another Claude call. You can try again.'
+  'This took too long. We stopped waiting so you aren’t stuck. Try again when you’re ready.'
 
 export async function failStaleBusyRun(
   supabase: SupabaseClient,

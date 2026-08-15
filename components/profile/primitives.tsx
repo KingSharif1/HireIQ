@@ -80,6 +80,7 @@ export function EntryCard({
   onRemove,
   children,
   defaultOpen = true,
+  entryId,
 }: {
   title: string
   subtitle?: string
@@ -91,10 +92,11 @@ export function EntryCard({
   onRemove: () => void
   children: React.ReactNode
   defaultOpen?: boolean
+  entryId?: string
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="rounded-xl border border-border bg-card/50 overflow-hidden">
+    <div id={entryId ? `entry-${entryId}` : undefined} className="rounded-xl border border-border bg-card/50 overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-3">
         <button
           type="button"

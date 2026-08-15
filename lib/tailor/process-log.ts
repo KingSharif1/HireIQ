@@ -26,6 +26,14 @@ export function createProcessLog() {
   }
 
   function fail(label: string, detail: string) {
+    const pending = [...entries].reverse().find(e => e.status === 'pending')
+    if (pending) {
+      pending.status = 'error'
+      pending.label = label
+      pending.detail = detail
+      pending.ms = Date.now() - started
+      return
+    }
     step(label, detail, 'error')
   }
 

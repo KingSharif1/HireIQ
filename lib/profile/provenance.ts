@@ -79,6 +79,8 @@ export function writeBackToPending(
     sourceTailoredResumeId: tailoredResumeId,
     jobLabel,
     createdAt: now,
+    newExperience: s.newExperience,
+    newProject: s.newProject,
   }))
 }
 
@@ -181,15 +183,15 @@ function seedBulletsProvenance(
 
 function applyExperienceBullet(data: ProfileData, suggestion: PendingSuggestion): ProfileData {
   const experience = [...data.experience]
-  let targetIdx = suggestion.targetEntryId
+  const targetIdx = suggestion.targetEntryId
     ? experience.findIndex(e => e.id === suggestion.targetEntryId)
-    : experience.length > 0 ? 0 : -1
+    : -1
 
   if (targetIdx < 0) {
     const newExp: ResumeExperience = {
       id: uid('exp'),
-      company: '',
-      title: '',
+      company: suggestion.newExperience?.company ?? '',
+      title: suggestion.newExperience?.title ?? '',
       location: '',
       startDate: '',
       endDate: '',
@@ -353,11 +355,13 @@ export function getProvenanceLabel(entry: ProvenanceEntry | undefined): string |
 /** First tailor/GitHub source label across bullet ids (for entry cards). */
 export function entrySourceLabel(
   provenance: Record<string, ProvenanceEntry> | undefined,
-  bulletIds: string[] | undefined
+  bulletIds: string[] | undefined,
+  bullets?: string[]
 ): string | null {
   if (!provenance || !bulletIds?.length) return null
-  for (const id of bulletIds) {
-    const label = getProvenanceLabel(provenance[id])
+  for (let i = 0; i < bulletIds.length; i++) {
+    if (bullets && !bullets[i]?.trim()) continue
+    const label = getProvenanceLabel(provenance[bulletIds[i]])
     if (label) return label
   }
   return null

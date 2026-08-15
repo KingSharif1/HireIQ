@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { profilePath } from '@/lib/profile/paths'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,8 +16,5 @@ export default async function BuilderMasterPage({
   if (params.jobId) {
     redirect(`/dashboard/tracker/${params.jobId}?tab=documents`)
   }
-  if (params.section) {
-    redirect(`/dashboard/builder?view=master&section=${encodeURIComponent(params.section)}`)
-  }
-  redirect('/dashboard/builder?view=master')
+  redirect(profilePath(params.section ?? null))
 }

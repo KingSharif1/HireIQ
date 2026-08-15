@@ -26,22 +26,10 @@ const repo = (): GitHubRepoSnapshot => ({
 describe('mergeGitHubPendingSuggestions', () => {
   it('replaces stale github pending on re-sync', () => {
     const data = emptyProfileData()
-    data.projects = [
-      {
-        id: 'p1',
-        name: 'HireIQ',
-        description: '',
-        bullets: [],
-        technologies: [],
-        url: '',
-        github: '',
-      },
-    ]
 
     const stale = {
       id: 'gh-42',
       section: 'projects' as const,
-      targetEntryId: 'p1',
       proposedText: 'Open-source project — built with TypeScript (active on GitHub)',
       reason: 'old',
       sourceTailoredResumeId: 'github-sync',

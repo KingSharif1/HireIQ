@@ -1,5 +1,5 @@
-import type { GitHubApiRepo, GitHubRepoSnapshot } from './types'
-import { cleanReadmeExcerpt, hasCodeStructure } from './repo-quality'
+import type { GitHubApiRepo } from './types'
+import { cleanReadmeExcerpt } from './repo-quality'
 
 const GITHUB_API = 'https://api.github.com'
 
@@ -221,52 +221,4 @@ export interface RepoEnrichment {
   tools: string[]
 }
 
-function headlineFromRepo(repo: GitHubRepoSnapshot): string {
-  const fromReadme = repo.readmeExcerpt?.trim()
-  if (fromReadme && fromReadme.length >= 40) {
-    const sentence = fromReadme.match(/^[^.!?]+[.!?]?/)?.[0]?.trim()
-    if (sentence && sentence.length >= 30) return sentence.replace(/[.!?]+$/, '')
-    return fromReadme.slice(0, 140).trim()
-  }
-  const fromDesc = repo.description?.trim()
-  if (fromDesc) return fromDesc
-  if (repo.topics.length) {
-    return `${repo.name} — ${repo.topics.slice(0, 4).join(', ')} project`
-  }
-  return repo.name
-}
-
-export function buildRepoHighlight(repo: GitHubRepoSnapshot): string {
-  let headline = headlineFromRepo(repo)
-  if (repo.readmeExcerpt && headline.length >= 30 && !/^built\b/i.test(headline)) {
-    headline = `Built ${repo.name} — ${headline.charAt(0).toLowerCase()}${headline.slice(1)}`
-  }
-
-  const packageTools = (repo.tools ?? []).filter(t => !repo.languages.includes(t))
-  const stackParts = [...new Set([...packageTools, ...repo.languages.slice(0, 3)])].slice(0, 5)
-
-  const structureBits: string[] = []
-  if (hasCodeStructure(repo.rootPaths)) {
-    const dirs = (repo.rootPaths ?? [])
-      .filter(p =>
-        ['src', 'app', 'components', 'lib', 'api', 'services', 'packages'].includes(p.toLowerCase())
-      )
-      .slice(0, 3)
-    if (dirs.length) structureBits.push(`${dirs.join('/')} structure`)
-  }
-
-  const parts: string[] = [headline]
-  if (packageTools.length) {
-    parts.push(`Tools: ${packageTools.join(', ')}`)
-  } else if (stackParts.length && (repo.readmeExcerpt || repo.description)) {
-    parts.push(`Tech: ${stackParts.join(', ')}`)
-  }
-  if (structureBits.length) parts.push(structureBits[0])
-  if (repo.topics.length && !repo.description && !repo.readmeExcerpt) {
-    parts.push(`Topics: ${repo.topics.slice(0, 4).join(', ')}`)
-  }
-
-  let bullet = parts.join(' · ')
-  if (repo.stars > 0) bullet += ` · ${repo.stars} GitHub stars`
-  return bullet.length > 240 ? `${bullet.slice(0, 237).trim()}…` : bullet
-}
+export { buildRepoHighlight } from './resume-bullet'

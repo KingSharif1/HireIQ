@@ -66,7 +66,7 @@ export function ProvenanceBulletEditor({ bullets, bulletIds, provenance, onChang
                       : 'border-input bg-input'
                   )}
                 />
-                {label && entry && (
+                {label && entry && b.trim() && (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground cursor-help">

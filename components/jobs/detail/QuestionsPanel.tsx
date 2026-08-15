@@ -89,8 +89,8 @@ export function QuestionsPanel({ answers, tailoredResumeId }: QuestionsPanelProp
       {message ? (
         <p className="mt-3 text-sm text-foreground">
           {message}{' '}
-          <Link href="/dashboard/builder?view=master&section=experience" className="underline underline-offset-2">
-            Open master resume
+          <Link href="/dashboard/profile?section=experience" className="underline underline-offset-2">
+            Open profile
           </Link>
         </p>
       ) : null}

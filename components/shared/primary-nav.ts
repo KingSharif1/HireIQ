@@ -1,6 +1,6 @@
-import { Briefcase, FileText, Home, type LucideIcon } from 'lucide-react'
+import { Home, User, Briefcase, FileText, type LucideIcon } from 'lucide-react'
 
-/** Primary rail — Resume Builder owns master + files; account menu opens Settings. */
+/** Primary rail — Profile is master + autofill; Builder is tailored versions. */
 export const PRIMARY_NAV: {
   href: string
   icon: LucideIcon
@@ -13,7 +13,7 @@ export const PRIMARY_NAV: {
     href: '/dashboard',
     icon: Home,
     label: 'Dashboard',
-    shortLabel: 'Dashboard',
+    shortLabel: 'Home',
     match: (p) => p === '/dashboard',
   },
   {
@@ -26,13 +26,19 @@ export const PRIMARY_NAV: {
       p.startsWith('/dashboard/jobs'),
   },
   {
+    href: '/dashboard/profile',
+    icon: User,
+    label: 'Profile',
+    shortLabel: 'Profile',
+    match: (p) => p.startsWith('/dashboard/profile'),
+  },
+  {
     href: '/dashboard/builder',
     icon: FileText,
     label: 'Resume Builder',
     shortLabel: 'Builder',
     match: (p) =>
       p.startsWith('/dashboard/builder') ||
-      p.startsWith('/dashboard/resume') ||
-      p.startsWith('/dashboard/profile'),
+      p.startsWith('/dashboard/resume'),
   },
 ]

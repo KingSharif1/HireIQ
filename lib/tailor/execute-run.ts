@@ -1,4 +1,5 @@
-import { GAP_ANALYSIS_PROMPT, extractJSON } from '@/lib/ai/prompts'
+import { GAP_ANALYSIS_PROMPT } from '@/lib/ai/prompts'
+import { parseModelJson } from '@/lib/ai/parse-json'
 import { generateAiText } from '@/lib/ai/complete'
 import { resolveAiRuntime } from '@/lib/ai/runtime'
 import { withAiOnce } from '@/lib/ai/once'
@@ -7,6 +8,7 @@ import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { getMasterResumeContext } from '@/lib/profile/master'
 import { formatGitHubContextForAi } from '@/lib/profile/github-context'
 import type { GitHubProfileData } from '@/lib/github/types'
+import { jsonForPrompt } from '@/lib/ai/tailor-engine'
 import { runTailorPipeline } from '@/lib/ai/tailor-pipeline'
 import type { GenerateFn } from '@/lib/ai/tailor-types'
 import { gapAnalysisFromAts, withAtsFallbackQuestions } from '@/lib/tailor/ats-gap-hints'
@@ -17,13 +19,17 @@ import { insertNotifications } from '@/lib/supabase/queries'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { claimGapPhase, claimGeneratePhase, getTailorRun, patchTailorRun } from '@/lib/tailor/runs'
 import { TAILOR_RUN_CLAUDE } from '@/lib/tailor/run-types'
+import { userFacingTailorError } from '@/lib/tailor/user-error'
 import type { GapAnalysis } from '@/types'
 
-async function failRun(runId: string, log: ReturnType<typeof createProcessLog>, message: string) {
-  log.fail('Stopped', message)
+async function failRun(runId: string, log: ReturnType<typeof createProcessLog>, err: unknown) {
+  const technical = err instanceof Error ? err.message : String(err)
+  console.error('[tailor]', technical, err)
+  const facing = userFacingTailorError(technical)
+  log.fail(facing.title, facing.message)
   await patchTailorRun(createAdminClient(), runId, {
     status: 'failed',
-    error: message,
+    error: facing.message,
     process_log: log.entries,
     finished_at: new Date().toISOString(),
   })
@@ -40,7 +46,7 @@ export async function executeGapPhase(runId: string, userId: string): Promise<vo
   if (!run) return
 
   const log = createProcessLog()
-  log.step('Loaded session', 'Resume + job from database (no Claude yet)')
+  log.step('Loaded your profile', 'Pulled your resume and this job from the database')
 
   const [master, jobRes, profileRes] = await Promise.all([
     getMasterResumeContext(admin, userId, null),
@@ -64,7 +70,7 @@ export async function executeGapPhase(runId: string, userId: string): Promise<vo
   const githubContext = formatGitHubContextForAi(githubData ?? null)
   log.step(
     'Context ready',
-    `full resume · ${jobData.title || 'role'} @ ${jobData.company || 'company'} · ATS ${score.total}% · ${score.missing_skills.length} skill gaps`,
+    `${jobData.title || 'Role'} at ${jobData.company || 'this company'}`,
   )
 
   const atsGap = gapAnalysisFromAts(score)
@@ -72,7 +78,7 @@ export async function executeGapPhase(runId: string, userId: string): Promise<vo
     atsGap.real_gaps.length > 0 || score.missing_skills.length > 0 || score.missing_keywords.length > 0
 
   if (!shouldAskClaude) {
-    log.step('No material gaps', 'ATS found nothing to ask — skipping Claude gap call. One rewrite next.')
+    log.step('No extra questions', 'Your profile already covers the main requirements — writing a version next.')
     await patchTailorRun(admin, runId, {
       status: 'generating',
       gap_analysis: atsGap,
@@ -97,12 +103,12 @@ export async function executeGapPhase(runId: string, userId: string): Promise<vo
   ].join('\n')
 
   const prompt = GAP_ANALYSIS_PROMPT
-    .replace('{structuredResume}', JSON.stringify(resume, null, 2))
+    .replace('{structuredResume}', jsonForPrompt(resume))
     .replace('{githubContext}', githubContext)
-    .replace('{jobRequirements}', JSON.stringify(jobData, null, 2))
+    .replace('{jobRequirements}', jsonForPrompt(jobData))
     .replace('{gaps}', gaps || 'No major gaps identified from ATS pre-scan')
 
-  log.step('Claude gap analysis', 'Call 1 of 2 — comparing profile to this job', 'pending')
+  log.step('Reviewing this job', 'Comparing your experience to what they’re asking for', 'pending')
   let gapAnalysis: GapAnalysis
   try {
     const result = await withAiOnce(`gap_questions:${userId}:${run.job_id}`, () =>
@@ -111,31 +117,44 @@ export async function executeGapPhase(runId: string, userId: string): Promise<vo
         feature: 'gap_questions',
         tier: 'strong',
         prompt,
-        maxOutputTokens: 2500,
+        maxOutputTokens: 4000,
       }),
     )
-    gapAnalysis = withAtsFallbackQuestions(
-      normalizeGapAnalysis(JSON.parse(extractJSON(result.text))),
-      score,
-    )
+    let parsed: GapAnalysis
+    try {
+      parsed = normalizeGapAnalysis(parseModelJson(result.text))
+    } catch (parseErr) {
+      console.error('[tailor] gap JSON unusable, falling back to ATS questions', parseErr)
+      parsed = atsGap
+      const last = log.entries[log.entries.length - 1]
+      if (last?.status === 'pending') {
+        last.status = 'warn'
+        last.label = 'Review complete'
+        last.detail = 'Used the job requirements when the detailed review came back messy'
+      }
+    }
+    gapAnalysis = withAtsFallbackQuestions(parsed, score)
     const last = log.entries[log.entries.length - 1]
-    if (last) {
+    if (last && last.status === 'pending') {
       last.status = 'ok'
-      last.label = 'Claude gap analysis done'
-      last.detail = `${gapAnalysis.questions_for_user.length} question(s) · ${gapAnalysis.real_gaps.length} gaps`
+      last.label = 'Review complete'
+      last.detail =
+        gapAnalysis.questions_for_user.length > 0
+          ? 'A couple of questions to make this stronger'
+          : 'Ready to write your version'
     }
     await patchTailorRun(admin, runId, {
       claude_calls: TAILOR_RUN_CLAUDE.gap,
       process_log: log.entries,
     })
   } catch (err) {
-    await failRun(runId, log, err instanceof Error ? err.message : 'Gap analysis failed')
+    await failRun(runId, log, err)
     return
   }
 
   const questions = gapAnalysis.questions_for_user
   if (questions.length === 0) {
-    log.step('No questions', 'No ATS gaps and Claude had nothing to ask — starting the one rewrite')
+    log.step('No extra questions', 'Starting the tailored version')
     await patchTailorRun(admin, runId, {
       status: 'generating',
       gap_analysis: gapAnalysis,
@@ -173,7 +192,7 @@ export async function executeGeneratePhase(
 
   const log = createProcessLog()
   for (const entry of run.process_log) log.entries.push(entry)
-  log.step('Starting rewrite', 'Call 2 of 2 — one Claude tailor, no retry')
+  log.step('Writing your version', 'Keeping your voice, aimed at this job')
 
   let ai
   try {
@@ -208,7 +227,7 @@ export async function executeGeneratePhase(
   }
 
   const generateFn: GenerateFn = async ({ model, prompt, maxOutputTokens }) => {
-    log.step('Claude rewrite', `model ${model}`, 'pending')
+    log.step('Writing your version', 'Matching this job in your words', 'pending')
     await patchTailorRun(admin, runId, { process_log: log.entries })
     const result = await generateAiText({
       runtime: ai,
@@ -221,8 +240,8 @@ export async function executeGeneratePhase(
     const last = log.entries[log.entries.length - 1]
     if (last?.status === 'pending') {
       last.status = 'ok'
-      last.label = 'Claude rewrite done'
-      last.detail = `${result.text.length.toLocaleString()} chars`
+      last.label = 'Draft ready'
+      last.detail = 'Scoring match next'
     }
     return result.text
   }
@@ -310,6 +329,6 @@ export async function executeGeneratePhase(
       finished_at: new Date().toISOString(),
     })
   } catch (err) {
-    await failRun(runId, log, err instanceof Error ? err.message : 'Tailor failed')
+    await failRun(runId, log, err)
   }
 }

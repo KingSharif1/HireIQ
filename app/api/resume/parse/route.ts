@@ -6,7 +6,9 @@ import { resolveAiRuntime } from '@/lib/ai/runtime'
 import { generateAiText } from '@/lib/ai/complete'
 import { withAiOnce } from '@/lib/ai/once'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
-import { buildProfileSeedFromParse, profileRowUpdatesFromSeed } from '@/lib/profile/master'
+import { buildProfileSeedFromParse, hasProfileContent, profileRowUpdatesFromSeed } from '@/lib/profile/master'
+import { resolveProfileData } from '@/lib/profile/data'
+import { hasParseAdditions, parseAdditions } from '@/lib/profile/parse-additions'
 import type { StructuredResume, Profile } from '@/types'
 
 export const runtime = 'nodejs'
@@ -97,41 +99,84 @@ export async function POST(request: Request) {
   }
   const atsFormatScore = calculateATSScore(structuredData, fakeEmptyJob).breakdown.format
 
-  // Insert to DB
-  const { data: resumeRow, error: dbErr } = await supabase
+  const { data: existingResumes } = await supabase
     .from('resumes')
-    .insert({
-      user_id: user.id,
-      title,
-      original_file_url: fileUrl,
-      original_file_type: fileType,
-      raw_text: rawText.slice(0, 50000),
-      structured_data: structuredData,
-      ats_format_score: atsFormatScore,
-    })
-    .select()
-    .single()
+    .select('id, is_primary')
+    .eq('user_id', user.id)
+    .order('is_primary', { ascending: false })
+    .order('created_at', { ascending: false })
 
-  if (dbErr) return NextResponse.json({ error: 'Failed to save resume' }, { status: 500 })
+  const existing = existingResumes?.[0]
+  const payload = {
+    title,
+    original_file_url: fileUrl,
+    original_file_type: fileType,
+    raw_text: rawText.slice(0, 50000),
+    structured_data: structuredData,
+    ats_format_score: atsFormatScore,
+    is_primary: true,
+    updated_at: new Date().toISOString(),
+  }
 
-  // Seed master profile from parsed resume (profile is source of truth).
+  let resumeRow: { id: string } | null = null
+  let replaced = false
+
+  if (existing) {
+    const { data, error: dbErr } = await supabase
+      .from('resumes')
+      .update(payload)
+      .eq('id', existing.id)
+      .eq('user_id', user.id)
+      .select('id')
+      .single()
+    if (dbErr || !data) return NextResponse.json({ error: 'Failed to save resume' }, { status: 500 })
+    resumeRow = data
+    replaced = true
+    await supabase
+      .from('resumes')
+      .update({ is_primary: false })
+      .eq('user_id', user.id)
+      .neq('id', existing.id)
+  } else {
+    const { data, error: dbErr } = await supabase
+      .from('resumes')
+      .insert({
+        user_id: user.id,
+        ...payload,
+      })
+      .select('id')
+      .single()
+    if (dbErr || !data) return NextResponse.json({ error: 'Failed to save resume' }, { status: 500 })
+    resumeRow = data
+  }
+
   const { data: profileRow } = await supabase
     .from('profiles')
     .select('first_name, last_name, email, profile_data')
     .eq('id', user.id)
     .single<Pick<Profile, 'first_name' | 'last_name' | 'email' | 'profile_data'>>()
 
-  const seed = buildProfileSeedFromParse(structuredData, profileRow)
-  await supabase
-    .from('profiles')
-    .update(profileRowUpdatesFromSeed(seed, profileRow))
-    .eq('id', user.id)
+  const storedProfile = resolveProfileData(profileRow, null)
+  const additions = parseAdditions(structuredData, storedProfile)
+  let profileSeeded = false
+
+  if (!hasProfileContent(storedProfile)) {
+    const seed = buildProfileSeedFromParse(structuredData, profileRow)
+    await supabase
+      .from('profiles')
+      .update(profileRowUpdatesFromSeed(seed, profileRow))
+      .eq('id', user.id)
+    profileSeeded = true
+  }
 
   return NextResponse.json({
     resumeId: resumeRow.id,
     structuredData,
     atsFormatScore,
-    profileSeeded: true,
+    replaced,
+    profileSeeded,
+    additions,
+    hasAdditions: !profileSeeded && hasParseAdditions(additions),
     model: ai.models.strong,
     keySource: ai.keySource,
   })

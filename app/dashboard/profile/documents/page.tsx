@@ -2,15 +2,12 @@ import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
-/** Legacy Documents door → unified Profile (documents strip). */
+/** Legacy Documents door → Profile documents section. */
 export default async function ProfileDocumentsPage({
   searchParams,
 }: {
   searchParams: Promise<{ section?: string }>
 }) {
   const { section } = await searchParams
-  const q = new URLSearchParams()
-  if (section) q.set('section', section)
-  else q.set('section', 'resumes')
-  redirect(`/dashboard/builder?view=master&${q.toString()}`)
+  redirect(`/dashboard/profile?section=${encodeURIComponent(section || 'resumes')}`)
 }

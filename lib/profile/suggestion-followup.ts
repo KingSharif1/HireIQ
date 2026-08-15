@@ -57,8 +57,8 @@ export function enrichmentDefaults(suggestion: PendingSuggestion): SuggestionEnr
 
   return {
     entryKind: suggestion.section === 'projects' ? 'project' : 'experience',
-    title: '',
-    company: '',
+    title: suggestion.newExperience?.title ?? '',
+    company: suggestion.newExperience?.company ?? '',
     startDate: '',
     endDate: '',
     current: false,

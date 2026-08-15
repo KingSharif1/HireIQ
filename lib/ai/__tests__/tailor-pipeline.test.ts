@@ -41,6 +41,7 @@ describe('runTailorPipeline', () => {
     const prompt = generate.mock.calls[0][0].prompt as string
     expect(prompt).toContain('ATS GAPS TO CLOSE')
     expect(prompt).toContain('human recruiter')
+    expect(prompt).toContain('Keep THEIR voice')
   })
 
   it('does not call Claude again when the draft is weak', async () => {
@@ -75,5 +76,18 @@ describe('runTailorPipeline', () => {
     expect(result.tailoredResume.experience[0].bullets).toEqual([])
     expect(result.tailoredResume.projects).toEqual([])
     expect(generate).toHaveBeenCalledTimes(1)
+  })
+
+  it('survives trailing commas in model JSON', async () => {
+    const generate = vi.fn().mockResolvedValueOnce(
+      '{"contact":{"name":"Jane"},"summary":"Tailored for Acme backend APIs","experience":[],"education":[],"skills":{"technical":["TypeScript"]},"projects":[],}',
+    )
+    const result = await runTailorPipeline({
+      resume: sampleStructuredResume(),
+      job,
+      answers: {},
+      generate,
+    })
+    expect(result.tailoredResume.summary).toContain('Tailored')
   })
 })

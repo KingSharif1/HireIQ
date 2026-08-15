@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { AiConfigError } from '@/lib/ai/runtime'
 import { AiInFlightError } from '@/lib/ai/once'
 import type { TailorProcessLogEntry } from '@/lib/tailor/process-log'
+import { userFacingTailorError } from '@/lib/tailor/user-error'
 
 /** Log and return a JSON error — surfaces real message in development. */
 export function aiErrorResponse(
@@ -21,21 +22,14 @@ export function aiErrorResponse(
   }
   let message = err instanceof Error ? err.message : fallback
   let status = 500
-  // Anthropic returns terse model errors — make them readable in the UI.
   if (/credit|billing|quota|rate_limit|too many requests/i.test(message)) {
-    message =
-      'Claude credits ran out or the request was rate-limited. Add your own Anthropic key in Settings → AI, or pick a cheaper model (Haiku).'
     status = 402
-  } else if (/model.*deprecated|model_not_found|invalid.*model/i.test(message)) {
-    message =
-      'The selected AI model is no longer available. Pick another model in Settings → AI.'
-  } else if (message.startsWith('model:')) {
-    message = `AI model error (${message.replace('model:', '').trim()}). Pick another model in Settings → AI.`
   }
+  const facing = userFacingTailorError(message)
   const isDev = process.env.NODE_ENV === 'development'
   const showDetail = isDev || status === 402 || Boolean(processLog?.length)
   return NextResponse.json(
-    { error: showDetail ? message : fallback, processLog },
+    { error: showDetail ? facing.message : fallback, processLog },
     { status },
   )
 }

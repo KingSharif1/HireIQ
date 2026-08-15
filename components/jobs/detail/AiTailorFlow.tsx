@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AiFlowLoader } from '@/components/ai/AiFlowLoader'
-import { AiModelHint } from '@/components/ai/AiModelHint'
 import { GapAnalysisSummary } from '@/components/tailor/GapAnalysisSummary'
 import { QuestionFlow } from '@/components/tailor/QuestionFlow'
 import { TailorDiff } from '@/components/tailor/TailorDiff'
@@ -25,6 +24,7 @@ import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { TailorProcessLog } from '@/components/tailor/TailorProcessLog'
 import type { TailorProcessLogEntry } from '@/lib/tailor/process-log'
 import { isBusyTailorStatus } from '@/lib/tailor/run-types'
+import { userFacingTailorError } from '@/lib/tailor/user-error'
 import type {
   ChangeDecision,
   GapAnalysis,
@@ -35,18 +35,13 @@ import type {
 } from '@/types'
 import { cn, scoreColor } from '@/lib/utils'
 
-const CONNECT_STAGES = [
-  { id: 'resume', label: 'Reading your resume' },
-  { id: 'job', label: 'Pulling job requirements' },
-  { id: 'gaps', label: 'Finding gaps (1 Claude call)' },
+const WAIT_HINTS = [
+  'Matching your experience to this job',
+  'Keeping it in your words',
+  'Safe to leave — we’ll keep going',
 ] as const
 
-const GENERATE_STAGES = [
-  { id: 'draft', label: 'Drafting tailored resume', detail: 'Call 2 of 2 — one rewrite, then stop' },
-  { id: 'score', label: 'Scoring match', detail: 'Local ATS score, not another AI call' },
-] as const
-
-type FlowPhase = 'connect' | 'questions' | 'generate' | 'review'
+type FlowPhase = 'connect' | 'questions' | 'generate' | 'review' | 'error'
 
 export type AiTailorCompletePayload = {
   tailoredId: string
@@ -80,8 +75,7 @@ export function AiTailorFlow({
   onComplete,
 }: AiTailorFlowProps) {
   const [phase, setPhase] = useState<FlowPhase>(reviewOnly ? 'review' : 'connect')
-  const [connectIndex, setConnectIndex] = useState(0)
-  const [generateIndex, setGenerateIndex] = useState(0)
+  const [hintIndex, setHintIndex] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [runId, setRunId] = useState<string | null>(null)
   const [runStatus, setRunStatus] = useState<TailorRunDto['status'] | null>(null)
@@ -102,7 +96,7 @@ export function AiTailorFlow({
   const [saving, setSaving] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [processLog, setProcessLog] = useState<TailorProcessLogEntry[]>([])
-  const [logExpanded, setLogExpanded] = useState(true)
+  const [logExpanded, setLogExpanded] = useState(false)
   const startedRef = useRef(false)
   const onCompleteRef = useRef(onComplete)
   onCompleteRef.current = onComplete
@@ -139,8 +133,10 @@ export function AiTailorFlow({
       else if (run.status === 'needs_review') {
         applySnapshot(snapshot)
         setPhase('review')
-      } else if (run.status === 'failed') setPhase('connect')
-      else setPhase('connect')
+      } else if (run.status === 'failed') {
+        setPhase('error')
+        setLogExpanded(true)
+      } else setPhase('connect')
     },
     [applySnapshot],
   )
@@ -148,7 +144,7 @@ export function AiTailorFlow({
   const attachOrStart = useCallback(async () => {
     try {
       const existing = await fetchTailorRun(jobId)
-      if (existing.run) {
+      if (existing.run && existing.run.status !== 'cancelled') {
         applyRun(existing.run, existing.tailored)
         return
       }
@@ -156,6 +152,8 @@ export function AiTailorFlow({
       applyRun(started.run, started.tailored)
     } catch (err) {
       setError(err instanceof APIError ? err.message : 'Could not start tailor')
+      setPhase('error')
+      setLogExpanded(true)
     }
   }, [applyRun, jobId])
 
@@ -178,12 +176,12 @@ export function AiTailorFlow({
   }, [applyRun, runId, runStatus])
 
   useEffect(() => {
+    if (phase !== 'connect' && phase !== 'generate') return
     const id = window.setInterval(() => {
-      setConnectIndex(i => Math.min(i + 1, CONNECT_STAGES.length - 1))
-      setGenerateIndex(i => Math.min(i + 1, GENERATE_STAGES.length - 1))
-    }, 4000)
+      setHintIndex(i => (i + 1) % WAIT_HINTS.length)
+    }, 3500)
     return () => window.clearInterval(id)
-  }, [])
+  }, [phase])
 
   async function submitAnswers() {
     if (!runId) return
@@ -194,6 +192,24 @@ export function AiTailorFlow({
       applyRun(result.run, null)
     } catch (err) {
       setError(err instanceof APIError ? err.message : 'Could not continue tailor')
+      setPhase('error')
+      setLogExpanded(true)
+    }
+  }
+
+  async function retryTailor() {
+    setError(null)
+    setLogExpanded(false)
+    setHintIndex(0)
+    setPhase('connect')
+    setRunStatus('analyzing_gaps')
+    try {
+      const started = await startTailorRun(jobId)
+      applyRun(started.run, started.tailored)
+    } catch (err) {
+      setError(err instanceof APIError ? err.message : 'Could not start tailor')
+      setPhase('error')
+      setLogExpanded(true)
     }
   }
 
@@ -247,6 +263,7 @@ export function AiTailorFlow({
   }
 
   const busy = isBusyTailorStatus(runStatus ?? '')
+  const facing = userFacingTailorError(error)
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background pb-20 md:pb-0 md:left-[68px]">
@@ -254,16 +271,13 @@ export function AiTailorFlow({
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
             <h1 className="truncate text-sm font-semibold text-foreground">
-              {phase === 'review' ? 'Review AI changes' : 'AI resume tailor'}
+              {phase === 'review' ? 'Review this version' : 'Tailor resume'}
             </h1>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">
-              {busy
-                ? 'Safe to leave — this keeps running. Come back to the same progress.'
-                : 'At most 2 Claude calls: gaps, then one rewrite after your answers.'}
-            </p>
-            <div className="mt-0.5">
-              <AiModelHint uses="strong" />
-            </div>
+            {busy ? (
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                Safe to leave — we’ll keep going.
+              </p>
+            ) : null}
           </div>
           <div className="flex items-center gap-2">
             {liveScore ? (
@@ -282,25 +296,34 @@ export function AiTailorFlow({
         </div>
       </header>
 
-      {error ? (
+      {error && phase !== 'error' ? (
         <div className="mx-4 mt-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-          {error}
+          {facing.message}
         </div>
       ) : null}
 
-      <TailorProcessLog
-        entries={processLog}
-        expanded={logExpanded}
-        onToggle={() => setLogExpanded(v => !v)}
-      />
+      {phase === 'error' && processLog.length > 0 ? (
+        <TailorProcessLog
+          entries={processLog}
+          expanded={logExpanded}
+          onToggle={() => setLogExpanded(v => !v)}
+        />
+      ) : null}
 
       <div className="min-h-0 flex-1 overflow-auto">
         {phase === 'connect' ? (
           <AiFlowLoader
-            title="Connecting your profile to this job"
-            subtitle="Full resume + job from the database, then one Claude gap check."
-            stages={[...CONNECT_STAGES]}
-            activeIndex={connectIndex}
+            title="Reviewing this job"
+            subtitle={WAIT_HINTS[hintIndex]}
+          />
+        ) : null}
+
+        {phase === 'error' ? (
+          <AiFlowLoader
+            title={facing.title}
+            error={facing}
+            actionLabel={facing.canRetry ? 'Try again' : undefined}
+            onAction={facing.canRetry ? () => void retryTailor() : undefined}
           />
         ) : null}
 
@@ -316,21 +339,19 @@ export function AiTailorFlow({
               />
             ) : (
               <div className="space-y-3 text-center">
-                <p className="text-sm text-muted-foreground">No extra questions — ready to tailor.</p>
+                <p className="text-sm text-muted-foreground">Looks good — we can write this version now.</p>
                 <Button type="button" onClick={() => void submitAnswers()}>
-                  Tailor my resume
+                  Write this version
                 </Button>
               </div>
             )}
           </div>
         ) : null}
 
-        {phase === 'generate' && !error ? (
+        {phase === 'generate' ? (
           <AiFlowLoader
-            title="Tailoring your resume"
-            subtitle="One Claude rewrite. You can go to Applications — we’ll keep going."
-            stages={[...GENERATE_STAGES]}
-            activeIndex={generateIndex}
+            title="Writing a version in your voice"
+            subtitle={WAIT_HINTS[hintIndex]}
           />
         ) : null}
 

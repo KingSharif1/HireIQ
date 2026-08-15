@@ -1,5 +1,5 @@
 import type { GitHubRepoSnapshot } from './types'
-import { buildRepoHighlight } from './repo-enrichment'
+import { buildRepoHighlight, isResumeWorthyBullet } from './resume-bullet'
 import { isMeaningfulRepo } from './repo-quality'
 import { repoMatchesProject } from './repo-status'
 import type { PendingSuggestion, ProfileData, ResumeProject } from '@/types'
@@ -11,18 +11,8 @@ function buildProjectBullet(repo: GitHubRepoSnapshot): string {
   return buildRepoHighlight(repo)
 }
 
-function buildSuggestionReason(repo: GitHubRepoSnapshot, matched?: ResumeProject): string {
-  const signals: string[] = []
-  if (repo.readmeExcerpt) signals.push('README')
-  if (repo.rootPaths?.length) signals.push('repo structure')
-  if (repo.tools?.length) signals.push('dependencies')
-  if (repo.languages.length) signals.push('languages')
-  const context = signals.length ? ` (from ${signals.join(', ')})` : ''
-
-  if (matched) {
-    return `GitHub repo "${repo.fullName}" matches your project "${matched.name}". We read the repo${context} — add a specific bullet?`
-  }
-  return `Repo "${repo.fullName}" looks like real work${context} but isn't in your profile projects yet.`
+function buildSuggestionReason(repo: GitHubRepoSnapshot): string {
+  return `“${repo.fullName}” isn’t on your profile yet. Add it as a project, or skip it.`
 }
 
 export function githubSuggestionsFromRepos(
@@ -40,39 +30,22 @@ export function githubSuggestionsFromRepos(
     const suggestionId = `gh-${repo.id}`
 
     if (matched) {
-      const alreadyLinked = matched.github?.includes(repo.fullName) || matched.github?.includes(repo.name)
-      const hasRichBullet = matched.bullets.some(b => b.trim().length > 40)
-      if (alreadyLinked && matched.description?.trim() && hasRichBullet) continue
-
-      // Matched projects: only suggest if we have meaningful repo context.
-      if (!isMeaningfulRepo(repo) && !repo.readmeExcerpt && !repo.description?.trim()) continue
-
-      suggestions.push({
-        id: suggestionId,
-        section: 'projects',
-        targetEntryId: matched.id,
-        proposedText: buildProjectBullet(repo),
-        reason: buildSuggestionReason(repo, matched),
-        sourceTailoredResumeId: GITHUB_SOURCE_ID,
-        jobLabel: 'GitHub sync',
-        createdAt: now,
-        source: 'github',
-      })
+      // Already on the profile — linking happens in sync. Highlights are opt-in on the project card.
       continue
     }
 
     if (repo.status === 'archived') continue
     if (!isMeaningfulRepo(repo)) continue
 
-    const description =
-      repo.description?.trim() ||
-      repo.readmeExcerpt?.split(/[.!?]/)[0]?.trim().slice(0, 160) ||
-      repo.name
+    const highlight = buildProjectBullet(repo)
+    if (!isResumeWorthyBullet(highlight) && !repo.description?.trim()) continue
+
+    const description = repo.description?.trim() || highlight
 
     suggestions.push({
       id: suggestionId,
       section: 'projects',
-      proposedText: description,
+      proposedText: highlight,
       reason: buildSuggestionReason(repo),
       sourceTailoredResumeId: GITHUB_SOURCE_ID,
       jobLabel: 'GitHub sync',
@@ -82,8 +55,10 @@ export function githubSuggestionsFromRepos(
         name: repo.name,
         description,
         github: repo.htmlUrl,
-        technologies: [...new Set([...(repo.tools ?? []), ...repo.languages])].slice(0, 8),
-        bullets: [buildProjectBullet(repo)],
+        technologies: [...new Set([...(repo.tools ?? []), ...repo.languages])]
+          .filter(t => !['react-dom', 'eslint', 'prettier'].includes(t.toLowerCase()))
+          .slice(0, 8),
+        bullets: [highlight],
       },
     })
   }

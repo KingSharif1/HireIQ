@@ -17,7 +17,7 @@ export async function GET() {
   if (!isGitHubOAuthConfigured()) {
     const base = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
     return NextResponse.redirect(
-      `${base}/dashboard/builder?view=master&section=projects&github_error=not_configured`,
+      `${base}/dashboard/profile?section=projects&github_error=not_configured`,
     )
   }
 

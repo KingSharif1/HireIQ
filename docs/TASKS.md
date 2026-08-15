@@ -13,6 +13,44 @@ Files changed: [list]
 
 ---
 
+## Task 156 — Tailor UX: calm wait, durable errors, human voice
+Status: DONE  
+Scope: `components/jobs/detail/AiTailorFlow.tsx`, `components/ai/AiFlowLoader.tsx`, `lib/ai/{parse-json,prompts,tailor-pipeline,error-response}.ts`, `lib/tailor/{execute-run,runs,user-error,run-types}.ts`, `app/api/tailor/runs/route.ts`  
+Goal: Failed tailor shows a clear error + retry (not a spinning Claude checklist). Refresh attaches to in-flight runs and still shows failures. Repair/parse model JSON. Copy never says “Claude call”. Rewrite stays in the user’s voice.  
+Result: Loader is a short wait (“Reviewing this job” / “Writing a version in your voice”). Failed runs stay visible with Details + Try again. JSON from the rewrite is repaired when possible; remaining parse errors map to a human message. Prompt now requires their diction, not generic resume-speak.  
+Files changed: `AiTailorFlow.tsx`, `AiFlowLoader.tsx`, `parse-json.ts`, `user-error.ts`, `execute-run.ts`, `runs.ts`, `runs/route.ts`, `prompts.ts`, `tailor-pipeline.ts`, tests, docs  
+
+---
+
+## Task 155 — Profile add UX + job folders + one source resume
+Status: DONE  
+Scope: `components/profile/**`, `components/builder/ResumeLibrary.tsx`, `lib/builder/group-tailored.ts`, `lib/profile/{focus-entry,parse-additions}.ts`, `app/api/resume/parse/route.ts`, `app/api/profile/merge-parse/route.ts`, `app/dashboard/resume/**`  
+Goal: Searchable GitHub repo picker; add a project from GitHub; new entries prepend + scroll into view; Builder folders by job title/company with versions; job name links to tracker (no posting URL); one uploaded resume, replace asks before merging into master; drop broken original-upload / open-profile chrome on resume detail.  
+Result: Native select replaced with searchable picker. Add from GitHub fills a project from last sync. New entries prepend and scroll into view. Harper v1/v2 share one folder; job title links to tracker. Replace updates the single source file and prompts before adding parse diffs to master.  
+Files changed: `GitHubRepoPicker.tsx`, `GitHubAddProject.tsx`, `GitHubRepoField.tsx`, `sections.tsx`, `ResumeLibrary.tsx`, `group-tailored.ts`, `focus-entry.ts`, `parse-additions.ts`, `scan-project.ts`, parse + merge-parse APIs, resume upload/detail pages, tests, docs  
+
+---
+
+## Task 154 — Route Q&A to the right resume entry
+Status: DONE  
+Scope: `lib/profile/route-gap-answer.ts`, `lib/ai/tailor-engine.ts`, `lib/ai/prompts.ts`, `lib/ai/tailor-pipeline.ts`, `app/api/profile/suggestions/suggest/route.ts`, `lib/profile/provenance.ts`, `components/profile/ProvenanceBulletEditor.tsx`  
+Goal: Gap answers become resume-language bullets (from the tailor rewrite, not the chat reply). IRC-style answers open a new job; NEMT-style answers land on that project — never dump onto Harper.  
+Result: Routing matches project/company names; new employers get a follow-up with company prefilled; untargeted accept creates a new role instead of the first job. Empty bullets no longer show “From Harper”. No extra Claude call — uses the tailored rewrite when it fits.  
+Files changed: `lib/profile/route-gap-answer.ts`, `lib/ai/{tailor-engine,prompts,tailor-pipeline}.ts`, `suggest/route.ts`, `provenance.ts`, `ProvenanceBulletEditor.tsx`, `sections.tsx`, types, tests, docs  
+
+---
+
+## Task 153 — Profile nav + section pages + GitHub repo picker
+Status: DONE  
+Scope: `components/shared/primary-nav.ts`, `components/profile/**`, `components/builder/**`, `app/dashboard/{profile,builder}/**`, `lib/github/**`, `lib/notifications.ts`, docs  
+Goal: Profile is its own rail page (master + autofill identity). Left nav shows one section at a time. Project Repository is a GitHub repo picker (link, or optionally scan for highlights). Builder keeps tailored versions grouped by job.  
+Result: Profile at `/dashboard/profile` (one section). Builder is files + tailored grouped by job. Repository dropdown of synced repos; optional highlight scan from last GitHub sync (no extra Claude). Existing projects no longer get README dumps on sync.  
+Files changed: `primary-nav.ts`, `ProfileHome.tsx`, `GitHubRepoField.tsx`, `ResumeLibrary.tsx`, `BuilderHome.tsx`, profile/builder routes, `lib/github/{resume-bullet,scan-project,suggestions}.ts`, `lib/builder/group-tailored.ts`, docs  
+
+---  
+
+---
+
 ## Task 100 — Repo docs + clean layout
 Status: DONE  
 Scope: `docs/`, root `README.md`, `package.json`, path updates  

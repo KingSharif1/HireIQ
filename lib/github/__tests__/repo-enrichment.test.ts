@@ -68,7 +68,24 @@ describe('buildRepoHighlight', () => {
       })
     )
     expect(bullet.toLowerCase()).toContain('hireiq')
-    expect(bullet).toMatch(/next|TypeScript/i)
+    expect(bullet.toLowerCase()).toMatch(/tailor|workspace|auto-apply/)
+    expect(bullet).not.toContain('Tools:')
+    expect(bullet).not.toMatch(/<[a-z]/i)
+  })
+
+  it('does not dump README HTML as a bullet', () => {
+    const bullet = buildRepoHighlight(
+      baseRepo({
+        name: 'kingslive',
+        description: null,
+        readmeExcerpt:
+          '<div align="center"> 👑 KingsLive My personal site — portfolio up front, experiments in the back',
+        tools: ['next', 'react', 'react-dom', 'tailwindcss', 'typescript'],
+      })
+    )
+    expect(bullet).not.toContain('<div')
+    expect(bullet).not.toContain('👑')
+    expect(bullet.toLowerCase()).toMatch(/portfolio|next\.js|personal site/)
   })
 })
 

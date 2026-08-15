@@ -1,6 +1,6 @@
 # HireIQ Architecture
 
-**Last updated:** 2026-08-14  
+**Last updated:** 2026-08-15  
 **Spec:** [SPEC.md](./SPEC.md) v1.0  
 **Production:** https://hireiq.kingsharif.com (Vercel · GitHub `KingSharif1/HireIQ`)
 
@@ -13,20 +13,20 @@ Two pillars only:
 
 Cover letter, outreach, and interview prep exist in the codebase but are **out of Phase 1 scope** per the new spec.
 
-### Primary navigation (Task 146 — one Resume Builder)
+### Primary navigation (Task 153)
 
 | Place | Route | Notes |
 |-------|--------|-------|
 | Dashboard | `/dashboard` | Hub tiles (teal shell) |
 | Applications | `/dashboard/tracker` | Teal tracker — leave alone |
-| Resume Builder | `/dashboard/builder` | **Master resume** (default) + **Files & versions** |
-| Profile | `/dashboard/profile` | Redirect → Builder master (keeps `section` / OAuth error query) |
+| Profile | `/dashboard/profile` | **Master resume + autofill identity** — one section at a time |
+| Resume Builder | `/dashboard/builder` | One source upload + tailored **folders by job** (versions inside) |
 
 Shell: `components/shared/{DashboardShell,Sidebar,MobileNav,primary-nav.ts}`.
 
-Master editor is one scrolling page inside Builder (left nav jumps). Per-job Teal tabs stay on Applications → Documents. Full map: [RESUME-BUILDER.md](./RESUME-BUILDER.md).
+Left nav on Profile shows one section (Personal, Experience, Projects…). Per-job Teal tabs stay on Applications → Documents. Full map: [RESUME-BUILDER.md](./RESUME-BUILDER.md).
 
-Profile: `components/profile/ProfileHome.tsx` embedded in `BuilderHome`. Legacy `/profile/documents`, `/profile/professional`, `/builder/master` redirect. Files tab: `ResumeLibrary`. Job Teal chrome: `JobResumeEditor`.
+Profile: `components/profile/ProfileHome.tsx`. Legacy `/profile/documents`, `/profile/professional`, `/builder/master` redirect here. Files tab: `ResumeLibrary`. Job Teal chrome: `JobResumeEditor`.
 
 ### Chrome extension (Module 6)
 

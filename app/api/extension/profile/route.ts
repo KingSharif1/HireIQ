@@ -150,7 +150,7 @@ export async function GET(request: Request) {
       applyIdentity,
       emailTrackingMode: applyIdentity.mode,
       appUrl: (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, ''),
-      profileUrl: `${(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')}/dashboard/builder?view=master`,
+      profileUrl: `${(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')}/dashboard/profile`,
     },
     { status: 200, headers },
   )

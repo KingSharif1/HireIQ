@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
-import { ArrowUpRight, Briefcase, FileText, Puzzle } from 'lucide-react'
+import { ArrowUpRight, Briefcase, FileText, Puzzle, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ExtensionConnectPanel } from '@/components/home/ExtensionConnectPanel'
 
@@ -10,7 +10,7 @@ const ACTIONS: {
   href: string
   title: string
   description: string
-  icon: typeof FileText
+  icon: typeof FileText | typeof User | typeof Briefcase
   accent: string
 }[] = [
   {
@@ -21,9 +21,16 @@ const ACTIONS: {
     accent: 'from-teal-500/15 to-transparent',
   },
   {
+    href: '/dashboard/profile',
+    title: 'Profile',
+    description: 'Master resume and the info we use to autofill applications.',
+    icon: User,
+    accent: 'from-sky-500/12 to-transparent',
+  },
+  {
     href: '/dashboard/builder',
     title: 'Resume Builder',
-    description: 'Edit your master resume and export tailored versions.',
+    description: 'Uploads and tailored versions, grouped by job.',
     icon: FileText,
     accent: 'from-cyan-500/12 to-transparent',
   },
@@ -56,7 +63,7 @@ export function HomeTiles({ firstName }: HomeTilesProps) {
         </p>
       </motion.header>
 
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-3">
         {ACTIONS.map((action, i) => {
           const Icon = action.icon
           return (

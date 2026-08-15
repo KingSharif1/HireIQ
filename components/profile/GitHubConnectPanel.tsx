@@ -48,7 +48,7 @@ export function GitHubConnectPanel({ initialGithubData, onSynced }: Props) {
     const msg = mapGitHubConnectError(ghError)
     if (msg) {
       setError(msg)
-      router.replace('/dashboard/builder?view=master&section=projects', { scroll: false })
+      router.replace('/dashboard/profile?section=projects', { scroll: false })
     }
   }, [searchParams, router])
 

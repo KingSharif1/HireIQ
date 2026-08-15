@@ -55,15 +55,15 @@ export function isBusyTailorStatus(status: string): boolean {
 export function tailorRunLabel(status: TailorRunStatus | null | undefined): string | null {
   switch (status) {
     case 'analyzing_gaps':
-      return 'Finding gaps…'
+      return 'Reviewing this job…'
     case 'awaiting_answers':
-      return 'Needs your answers'
+      return 'Needs a couple of answers'
     case 'generating':
-      return 'Tailoring…'
+      return 'Writing your version…'
     case 'needs_review':
-      return 'Needs review'
+      return 'Ready to review'
     case 'failed':
-      return 'Tailor failed'
+      return 'Couldn’t finish'
     default:
       return null
   }

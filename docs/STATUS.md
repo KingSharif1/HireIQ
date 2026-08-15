@@ -8,9 +8,9 @@
 
 | | |
 |--|--|
-| **Working on** | Post-merge smoke: Task **152** tailor + Edit/Match on prod |
+| **Working on** | — |
 | **Blocked** | Task 143 Google Auth provider |
-| **Next** | Smoke Apple tailor (expect questions) + mobile Edit · Task **147** |
+| **Next** | Smoke tailor overlay (leave/refresh + error retry) · Task **147** |
 | **Roadmap** | [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md) · [TAILOR-EDIT.md](./TAILOR-EDIT.md) |
 
 ## System snapshot
@@ -22,13 +22,13 @@
 | Legal / branding | 🟡 Landing + `/privacy` + `/terms` live · Search Console + re-verify branding — see `docs/GOOGLE-VERIFICATION.md` |
 | Resume upload (PDF/DOCX) | ✓ |
 | Resume parse (Claude) | 🟡 — needs tiered skills + low-confidence flags + OCR |
-| Profile / Resume Builder | ✓ **Task 146** — one Builder nav; Master scrolling page + Files tab with View/Edit/Download |
+| Profile / Resume Builder | ✓ **Task 155** — GitHub picker + add-from-repo; Builder folders by job; one source resume |
 | Job Documents Edit | ✓ **Task 152** — Edit / Design / Match; live preview; accept-new-only — see [TAILOR-EDIT.md](./TAILOR-EDIT.md) |
 | Job URL fetch | ✓ ~90% | Amazon/Microsoft + tiered pipeline; legacy MS URLs need Playwright |
 | Job analyze | ✓ |
 | ATS score | ✓ — algorithmic |
 | Gap analysis | ✓ — ATS fallback questions when Claude asks none |
-| Tailor | ✓ Durable runs + stronger rewrite (max 2 Claude) — [TAILOR-EDIT.md](./TAILOR-EDIT.md) |
+| Tailor | ✓ Durable runs + calm overlay (Task **156**) — [TAILOR-EDIT.md](./TAILOR-EDIT.md) |
 | Tailor stepper | ⛔ Redirected — Job Matcher + tracker replace primary flow |
 | Application tracker | ✓ — Teal list/board; facts in header; Auto-apply CTA; timeline-first Activity; tracked Email + Reply via HireIQ |
 | Masked apply email (Resend) | ✓ Infra live — `mail.kingsharif.com` receiving; webhook URL prod; needs smoke + `RESEND_FORWARD_FROM` optional |

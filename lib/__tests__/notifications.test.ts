@@ -30,8 +30,8 @@ describe('buildTailorCompleteNotification', () => {
 })
 
 describe('profileSectionLink', () => {
-  it('deep-links into Resume Builder master', () => {
-    expect(profileSectionLink('experience')).toBe('/dashboard/builder?view=master&section=experience')
+  it('deep-links into Profile section', () => {
+    expect(profileSectionLink('experience')).toBe('/dashboard/profile?section=experience')
   })
 })
 

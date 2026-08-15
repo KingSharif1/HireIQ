@@ -46,9 +46,7 @@ describe('githubSuggestionsFromRepos', () => {
       },
     ]
     const suggestions = githubSuggestionsFromRepos([baseRepo()], data)
-    expect(suggestions).toHaveLength(1)
-    expect(suggestions[0].targetEntryId).toBe('p1')
-    expect(suggestions[0].newProject).toBeUndefined()
+    expect(suggestions).toHaveLength(0)
   })
 
   it('skips archived unmatched repos', () => {

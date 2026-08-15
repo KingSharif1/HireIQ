@@ -3,27 +3,31 @@
 export const dynamic = 'force-dynamic'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { ResumeUploader } from '@/components/resume/ResumeUploader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle, Loader2, FileText, ArrowRight, ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import type { StructuredResume } from '@/types'
 import { AiModelHint } from '@/components/ai/AiModelHint'
+import type { ParseAdditions } from '@/lib/profile/parse-additions'
 
 type UploadState = 'idle' | 'uploading' | 'parsing' | 'done' | 'error'
 
 export default function UploadResumePage() {
-  const router = useRouter()
   const [file, setFile] = useState<File | null>(null)
   const [title, setTitle] = useState('')
   const [state, setState] = useState<UploadState>('idle')
   const [error, setError] = useState<string | null>(null)
   const [parsedData, setParsedData] = useState<StructuredResume | null>(null)
   const [resumeId, setResumeId] = useState<string | null>(null)
+  const [replaced, setReplaced] = useState(false)
+  const [hasAdditions, setHasAdditions] = useState(false)
+  const [additions, setAdditions] = useState<ParseAdditions | null>(null)
+  const [merging, setMerging] = useState(false)
+  const [merged, setMerged] = useState(false)
 
   function handleFileSelect(f: File) {
     setFile(f)
@@ -51,10 +55,35 @@ export default function UploadResumePage() {
 
       setParsedData(data.structuredData)
       setResumeId(data.resumeId)
+      setReplaced(Boolean(data.replaced))
+      setHasAdditions(Boolean(data.hasAdditions))
+      setAdditions(data.additions ?? null)
+      setMerged(false)
       setState('done')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setState('error')
+    }
+  }
+
+  async function mergeIntoMaster() {
+    if (!resumeId) return
+    setMerging(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/profile/merge-parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resumeId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not update profile')
+      setMerged(true)
+      setHasAdditions(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update profile')
+    } finally {
+      setMerging(false)
     }
   }
 
@@ -66,10 +95,13 @@ export default function UploadResumePage() {
             <CheckCircle className="w-5 h-5 text-brand-green" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">Resume Parsed!</h1>
-            <p className="text-sm text-muted-foreground">AI extracted {parsedData.experience.length} roles and {
-              (parsedData.skills.technical.length + parsedData.skills.tools.length)
-            } skills</p>
+            <h1 className="text-xl font-bold text-foreground">
+              {replaced ? 'Source resume replaced' : 'Resume parsed'}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              AI extracted {parsedData.experience.length} roles and{' '}
+              {parsedData.skills.technical.length + parsedData.skills.tools.length} skills
+            </p>
           </div>
         </div>
 
@@ -114,13 +146,62 @@ export default function UploadResumePage() {
           </CardContent>
         </Card>
 
+        {replaced && !merged ? (
+          <p className="mb-4 text-sm text-muted-foreground">
+            Your master profile was left as-is. We can add anything new from this file if you want.
+          </p>
+        ) : null}
+
+        {hasAdditions && additions ? (
+          <Card className="mb-6">
+            <CardContent className="space-y-3 p-5">
+              <p className="text-sm font-medium text-foreground">Add new items to your master profile?</p>
+              <ul className="list-inside list-disc text-sm text-muted-foreground">
+                {additions.experience.length > 0 ? (
+                  <li>
+                    {additions.experience.length} new{' '}
+                    {additions.experience.length === 1 ? 'role' : 'roles'}
+                    {additions.experience
+                      .slice(0, 3)
+                      .map(e => ` (${e.title} · ${e.company})`)
+                      .join('')}
+                  </li>
+                ) : null}
+                {additions.projects.length > 0 ? (
+                  <li>
+                    {additions.projects.length} new{' '}
+                    {additions.projects.length === 1 ? 'project' : 'projects'}
+                  </li>
+                ) : null}
+                {additions.skills.length > 0 ? (
+                  <li>{additions.skills.length} new skills</li>
+                ) : null}
+              </ul>
+              {error ? <p className="text-sm text-destructive">{error}</p> : null}
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => void mergeIntoMaster()} disabled={merging}>
+                  {merging ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Add to master
+                </Button>
+                <Button variant="outline" onClick={() => setHasAdditions(false)}>
+                  Keep master as-is
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {merged ? (
+          <p className="mb-4 text-sm text-foreground">Added to your master profile.</p>
+        ) : null}
+
         <div className="flex gap-3">
           <Button variant="outline" asChild>
-            <Link href="/dashboard/resume">View all resumes</Link>
+            <Link href="/dashboard/builder">Back to files</Link>
           </Button>
           <Button asChild className="flex-1">
-            <Link href="/dashboard/tailor">
-              <span>Tailor to a job</span>
+            <Link href="/dashboard/profile">
+              <span>Open profile</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </Button>
@@ -132,12 +213,14 @@ export default function UploadResumePage() {
   return (
     <div className="max-w-xl mx-auto px-4 py-8">
       <div className="flex items-center gap-3 mb-6">
-        <Link href="/dashboard/resume" className="text-muted-foreground hover:text-foreground">
+        <Link href="/dashboard/builder" className="text-muted-foreground hover:text-foreground">
           <ChevronLeft className="w-5 h-5" />
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-foreground">Upload Resume</h1>
-          <p className="text-sm text-muted-foreground">PDF or DOCX · We&apos;ll parse it with AI</p>
+          <h1 className="text-xl font-bold text-foreground">Upload resume</h1>
+          <p className="text-sm text-muted-foreground">
+            One PDF or DOCX at a time. Replacing updates the source file — we&apos;ll ask before changing your master profile.
+          </p>
           <div className="mt-1"><AiModelHint uses="strong" /></div>
         </div>
       </div>
