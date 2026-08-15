@@ -1,6 +1,6 @@
 import { GAP_ANALYSIS_PROMPT } from '@/lib/ai/prompts'
 import { parseModelJson } from '@/lib/ai/parse-json'
-import { generateAiText } from '@/lib/ai/complete'
+import { generateAiText, streamAiTextToCompletion } from '@/lib/ai/complete'
 import { resolveAiRuntime } from '@/lib/ai/runtime'
 import { withAiOnce } from '@/lib/ai/once'
 import { normalizeGapAnalysis } from '@/lib/ai/gap-analysis'
@@ -20,6 +20,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { claimGapPhase, claimGeneratePhase, getTailorRun, patchTailorRun } from '@/lib/tailor/runs'
 import { TAILOR_RUN_CLAUDE } from '@/lib/tailor/run-types'
 import { userFacingTailorError } from '@/lib/tailor/user-error'
+import { streamingResumeProgress } from '@/lib/resume/markdown'
 import type { GapAnalysis } from '@/types'
 
 async function failRun(runId: string, log: ReturnType<typeof createProcessLog>, err: unknown) {
@@ -174,7 +175,7 @@ export async function executeGapPhase(runId: string, userId: string): Promise<vo
   })
 }
 
-/** Claude call 2 of 2: one resume rewrite. Never retried. */
+/** Claude call 2 of 2: one resume rewrite as markdown (streamed; retries once if unusable). */
 export async function executeGeneratePhase(
   runId: string,
   userId: string,
@@ -229,13 +230,22 @@ export async function executeGeneratePhase(
   const generateFn: GenerateFn = async ({ model, prompt, maxOutputTokens }) => {
     log.step('Writing your version', 'Matching this job in your words', 'pending')
     await patchTailorRun(admin, runId, { process_log: log.entries })
-    const result = await generateAiText({
+    const result = await streamAiTextToCompletion({
       runtime: ai,
       feature: 'tailor_resume',
       tier: 'strong',
       prompt,
       maxOutputTokens,
       modelOverride: model,
+      partialEveryMs: 1000,
+      onPartial: async text => {
+        const last = log.entries[log.entries.length - 1]
+        if (!last || last.status !== 'pending') return
+        const detail = streamingResumeProgress(text)
+        if (last.detail === detail) return
+        last.detail = detail
+        await patchTailorRun(admin, runId, { process_log: log.entries })
+      },
     })
     const last = log.entries[log.entries.length - 1]
     if (last?.status === 'pending') {
@@ -323,7 +333,10 @@ export async function executeGeneratePhase(
     await patchTailorRun(admin, runId, {
       status: 'needs_review',
       tailored_resume_id: tailoredRow.id,
-      claude_calls: Math.min(TAILOR_RUN_CLAUDE.total, (run.claude_calls || 0) + TAILOR_RUN_CLAUDE.generate),
+      claude_calls: Math.min(
+        TAILOR_RUN_CLAUDE.total,
+        (run.claude_calls || 0) + Math.max(1, pipelineResult.meta.aiCallsUsed),
+      ),
       process_log: log.entries,
       error: null,
       finished_at: new Date().toISOString(),

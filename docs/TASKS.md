@@ -13,6 +13,15 @@ Files changed: [list]
 
 ---
 
+## Task 158 — Tailor markdown wire + stream progress
+Status: DONE  
+Scope: `lib/resume/markdown.ts`, `lib/ai/*`, `lib/tailor/*`, `AiTailorFlow.tsx`, docs  
+Goal: Reliable lightweight rewrite (MD not JSON) + live progress via streaming.  
+Result: Codec + prompt + pipeline MD I/O; `streamAiTextToCompletion` with throttled process_log; generate UI shows live detail. Storage stays StructuredResume.  
+Files changed: markdown codec, prompts, tailor-pipeline, complete, execute-run, AiTailorFlow, tests, DECISIONS/CHANGELOG/TASKS/STATUS  
+
+---
+
 ## Task 157 — Auto-apply on easy forms + reusable application answers
 Status: DONE  
 Scope: `lib/apply/ease.ts`, job fetch/save, job detail CTA, `lib/profile/apply-answers.ts`, Profile Application form, form_answers APIs  

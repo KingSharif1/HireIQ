@@ -47,10 +47,15 @@ export function userFacingTailorError(raw: string | null | undefined): TailorUse
     }
   }
 
-  if (/JSON|Unexpected token|Expected ','|Expected '"'|position \d+/i.test(text)) {
+  if (
+    /JSON|Unexpected token|Expected ','|Expected '"'|position \d+|Invalid JSON|markdown|missing summary/i.test(
+      text,
+    )
+  ) {
     return {
-      title: 'Couldn’t finish this step',
-      message: 'We hit a snag reviewing this job. Try again — your profile wasn’t changed.',
+      title: 'Couldn’t finish this version',
+      message:
+        'The rewrite came back in a form we couldn’t use. Try again — your profile wasn’t changed.',
       canRetry: true,
     }
   }

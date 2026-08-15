@@ -11,10 +11,10 @@ import {
 } from '@/lib/tailor/run-types'
 
 describe('durable tailor run', () => {
-  it('caps Claude at 2 calls (gap + one rewrite), or 1 when ATS finds no gaps', () => {
-    expect(TAILOR_RUN_CLAUDE.total).toBe(2)
-    expect(claudeCallsForSession(true)).toBe(2)
-    expect(claudeCallsForSession(false)).toBe(1)
+  it('caps Claude at 3 calls (gap + rewrite + retry), or 2 when ATS finds no gaps', () => {
+    expect(TAILOR_RUN_CLAUDE.total).toBe(3)
+    expect(claudeCallsForSession(true)).toBe(3)
+    expect(claudeCallsForSession(false)).toBe(2)
   })
 
   it('attaches to an in-flight or review run instead of starting another', () => {

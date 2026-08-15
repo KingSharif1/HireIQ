@@ -171,5 +171,5 @@ export const TAILOR_MAX_RETRIES = 0
 /** Language overlap gate threshold (Q5). */
 export const TAILOR_OVERLAP_GATE = 70
 
-/** Max AI calls per tailor run (cost guard). One rewrite. No critique loop. */
-export const TAILOR_MAX_AI_CALLS = 1
+/** Max AI calls per tailor generate phase (cost guard). One markdown rewrite + one retry. No critique loop. */
+export const TAILOR_MAX_AI_CALLS = 2

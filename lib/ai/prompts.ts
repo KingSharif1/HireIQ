@@ -207,8 +207,8 @@ That means TWO audiences at once:
 - ATS / keyword parsers: required skills and JD phrases must appear in real bullets and skills — not a keyword dump at the bottom.
 - A human recruiter: professional, specific, and still sounds like THIS person. No robotic stuffing, no fake metrics, no "synergy".
 
-ORIGINAL RESUME (master — do not invent beyond this + Q&A):
-{structuredResume}
+ORIGINAL RESUME (HireIQ markdown — keep <!-- id:... --> markers on roles/projects you keep):
+{resumeMarkdown}
 
 GITHUB PROJECT CONTEXT (synced repos — use for honest project bullets & skills):
 {githubContext}
@@ -239,30 +239,46 @@ RULES:
 8. Length budget: {lengthBudget}. Strong action verbs. Quantify only when the source has numbers.
 9. Full restructure is allowed on this tailored snapshot only (not the master).
 10. Mirror diction from the original bullets. Do not homogenize into generic corporate resume-speak.
-11. Return compact valid JSON only: no markdown, no comments, no trailing commas, escape quotes inside strings.
+11. Return HireIQ markdown ONLY — no JSON, no code fences, no commentary before/after.
 
 TARGET ATS: {atsSystem}
 SENIORITY: {seniority}
 
-tailoring_notes is mandatory and must be useful to a human reviewing the diff. For EVERY material change:
-- section: summary | experience | skills | projects (plus company or project name if relevant)
-- change: quote the NEW sentence or bullet
-- reason: one concrete sentence, e.g. "Rewrote the Acme API bullet to name REST and Node because this JD asks for them — already true from that role."
-Never write "improved wording" or "tailored for the role". If you did not change a section, omit it.
+OUTPUT FORMAT (exact section order):
+# Full Name
+email · phone · location · links
 
-Return ONLY valid JSON — same structure as the original resume plus tailoring_notes:
-{
-  "contact": {},
-  "summary": "",
-  "experience": [],
-  "education": [],
-  "skills": {},
-  "projects": [],
-  "certifications": [],
-  "volunteer": [],
-  "awards": [],
-  "tailoring_notes": [{ "section": "", "change": "", "reason": "" }]
-}`
+## Summary
+...
+
+## Experience
+### Title | Company | MM/YYYY – Present <!-- id:exp_1 -->
+- bullet
+Skills: tool1, tool2
+
+## Projects
+### Name <!-- id:proj_1 -->
+- bullet
+Tech: a, b
+
+## Skills
+**Technical:** ...
+**Tools:** ...
+**Languages:** ...
+**Soft:** ...
+
+## Education
+### Degree · Field · School <!-- id:edu_1 -->
+YYYY – YYYY
+
+## Certifications
+- Name · Issuer · date
+
+## Tailoring notes
+- **summary** — change: quote the NEW sentence — reason: one concrete why
+- **experience (Acme)** — change: quote the NEW bullet — reason: one concrete why
+
+Tailoring notes are mandatory for every material change. Never write "improved wording" or "tailored for the role". Keep existing <!-- id:... --> values when you keep that role/project; new entries may use new ids.`
 
 /** @deprecated Use TAILOR_GENERATE_PROMPT */
 export const RESUME_TAILOR_PROMPT = TAILOR_GENERATE_PROMPT
