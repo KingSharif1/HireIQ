@@ -27,14 +27,21 @@ Do these in order (Google Console — human only):
 2. Set publishing status to **In production** (External)
 3. Until then, only listed **Test users** can complete OAuth (others get blocked / must use Advanced)
 
-### C. Submit **Data access** verification (removes the warning for Gmail)
+### C. Declare `gmail.readonly`, then submit **Data access** verification
 
-1. Open [OAuth Verification Center](https://console.cloud.google.com/auth/overview?project=hireiq-505323) (or **Data Access**)
-2. Confirm scopes include `gmail.readonly` (plus `openid` / `email` / `profile`)
-3. **Prepare for verification** / submit — paste justification + demo video from §6 below
-4. Wait for Google Trust & Safety; reply to their email if they ask questions
+**Stuck state to avoid:** Audience = **In production**, but Data Access → **Your sensitive scopes** = “No rows to display”.  
+HireIQ still requests `gmail.readonly` at login (`lib/auth/google-sign-in.ts`), so Google shows the unverified warning until that scope is **added here** and **verified**.
 
-Until C is approved, users still see **“Google hasn’t verified this app”** → **Advanced** → continue. That is expected for sensitive scopes.
+1. Open [Auth Platform → Data Access](https://console.cloud.google.com/auth/scopes?project=hireiq-505323)
+2. **Add or remove scopes** → filter/search `gmail.readonly` (or paste  
+   `https://www.googleapis.com/auth/gmail.readonly`) → select it → **Update** / **Save**
+3. Confirm it appears under **Your sensitive scopes** (lock icon) — not empty
+4. Also keep non-sensitive: `openid`, `email`, `profile`
+5. Enable **Gmail API** (APIs & Services → Library) if not already
+6. Open [Verification Center](https://console.cloud.google.com/auth/overview?project=hireiq-505323) → **Prepare for verification** / submit Data access — paste justification + demo video from §6 below
+7. Wait for Google Trust & Safety; reply to their email if they ask questions
+
+Until step 6–7 are approved, users still see **“Google hasn’t verified this app”** → **Advanced** → continue. That is expected for sensitive scopes.
 
 ### D. Deployment checklist (prod already mostly wired)
 
@@ -106,7 +113,7 @@ Save → **View issues** → select **I have fixed the issues** → **Proceed**.
 
 ### 3. Data Access / scopes declared
 
-In Auth Platform → **Data Access** (or consent screen → scopes), declare exactly:
+In Auth Platform → **Data Access** → **Add or remove scopes**, declare exactly:
 
 ```
 openid
@@ -114,6 +121,9 @@ email
 profile
 https://www.googleapis.com/auth/gmail.readonly
 ```
+
+After save, **Your sensitive scopes** must list `gmail.readonly` (not “No rows to display”).  
+If that table is empty while the app requests Gmail, the unverified-app screen will keep appearing even when Audience is **In production**.
 
 Enable **Gmail API** under APIs & Services → Library if not already.
 
