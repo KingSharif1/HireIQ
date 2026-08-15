@@ -8,9 +8,9 @@
 
 | | |
 |--|--|
-| **Working on** | Task 160 — GitHub OAuth/sync + parse polish |
-| **Blocked** | Human: set GitHub OAuth callback to `https://hireiq.kingsharif.com/api/github/callback` (not `/api/git`) · Google Data access for `gmail.readonly` |
-| **Next** | Ship Task 160 · reconnect GitHub · re-upload resume smoke |
+| **Working on** | Task 161 — OCR parse + mobile profile nav (ship) |
+| **Blocked** | Human: Google Data access for `gmail.readonly` |
+| **Next** | Deploy Task 161 · re-upload scan · smoke Profile mobile drawer |
 | **Roadmap** | [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md) |
 
 ## System snapshot

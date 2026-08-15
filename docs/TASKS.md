@@ -13,6 +13,15 @@ Files changed: [list]
 
 ---
 
+## Task 161 — Scan OCR parse + 10MB + mobile profile nav
+Status: DONE  
+Scope: `lib/resume/extract-text.ts`, parse route, `complete.ts`, ResumeUploader, ProfileSectionNav, ProfileHome, docs  
+Goal: Scanned/image PDFs parse via Claude PDF vision; 10MB limit; mobile collapsible section drawer.  
+Result: Vision OCR fallback when text layer &lt; 50 chars; upload max 10MB; mobile Profile sections collapse/expand densely.  
+Files changed: extract-text, parse/route, complete, prompts, ResumeUploader, ProfileSectionNav, ProfileHome, tests, docs  
+
+---
+
 ## Task 160 — GitHub OAuth/sync harden + parse polish
 Status: DONE  
 Scope: `normalizeProfileData`, GitHub oauth/callback/sync UI, resume parse prompt, docs/GITHUB.md  
