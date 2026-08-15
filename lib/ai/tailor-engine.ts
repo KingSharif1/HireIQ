@@ -64,7 +64,10 @@ export function seniorityLengthBudget(seniority: string): string {
   if (['senior', 'lead', 'staff', 'principal'].some(level => s.includes(level))) {
     return 'up to 2 pages — senior/lead; keep only strong relevant content'
   }
-  return '1 page — junior/mid; trim weak bullets rather than pad'
+  if (['intern', 'internship', 'early', 'new grad', 'entry', 'junior', 'associate'].some(level => s.includes(level))) {
+    return 'STRICTLY 1 page — early career / intern. Max 1–2 experience roles, max 2–3 projects, categorized skills (not a wall). Drop weak or unrelated projects entirely. Dense bullets; no mid-entry page breaks from padding.'
+  }
+  return '1 page preferred — mid-level; trim weak bullets rather than pad; max 3–4 strongest projects'
 }
 
 export function passesTailorGate(critique: TailorCritiqueReport): boolean {

@@ -17,6 +17,7 @@ import {
   markdownToStructuredResume,
   structuredResumeToMarkdown,
 } from '@/lib/resume/markdown'
+import { polishStructuredForExport } from '@/lib/export/format'
 
 interface PipelineInput {
   resume: StructuredResume
@@ -105,6 +106,8 @@ CRITICAL RETRY: Your previous reply was not valid HireIQ markdown (or was empty)
     )
     current = parseResumeMarkdown(genText)
   }
+  // Deterministic polish: dedupe skills, fix "Degree in Field in Field" — never invents.
+  current = polishStructuredForExport(current)
   const notes = current.tailoring_notes ?? []
   const changes = buildResumeChanges(resume, current, notes)
 

@@ -20,12 +20,15 @@ describe('DEFAULT_RESUME_THEME', () => {
   it('includes standard section order and labels', () => {
     expect(DEFAULT_RESUME_THEME.sectionOrder).toEqual([
       'summary',
-      'experience',
       'skills',
-      'education',
+      'experience',
       'projects',
+      'education',
+      'certifications',
     ])
+    expect(DEFAULT_RESUME_THEME.skillsLayout).toBe('categorized')
     expect(DEFAULT_RESUME_THEME.sectionLabels.experience).toBe('Experience')
+    expect(DEFAULT_RESUME_THEME.sectionLabels.skills).toBe('Technical Skills')
   })
 })
 

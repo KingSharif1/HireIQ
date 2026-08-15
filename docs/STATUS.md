@@ -1,16 +1,16 @@
 # HireIQ Status
 
 **As of:** 2026-08-15  
-**Branch:** `main` · **Production:** https://hireiq.kingsharif.com  
-**Tests:** unit + live URL · extension **v0.9.9** · Task **157** easy-form auto-apply gate
+**Branch:** `cursor/pro-resume-export-tailor-d22e` · **Production:** https://hireiq.kingsharif.com  
+**Tests:** unit + live URL · extension **v0.9.9** · Task **159** pro export + smarter tailor
 
 ## Session handoff
 
 | | |
 |--|--|
-| **Working on** | Task 158 tailor MD + stream (ship) |
+| **Working on** | Task 159 done — awaiting merge/deploy + Apple re-tailor smoke |
 | **Blocked** | Human: Google Data access for `gmail.readonly` |
-| **Next** | Deploy Task 158 · smoke Apple Early Career tailor · Task **147** |
+| **Next** | Merge Task 159 · re-tailor Apple Early Career · smoke master Export PDF |
 | **Roadmap** | [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md) |
 
 ## System snapshot
@@ -23,12 +23,13 @@
 | Resume upload (PDF/DOCX) | ✓ |
 | Resume parse (Claude) | 🟡 — needs tiered skills + low-confidence flags + OCR |
 | Profile / Resume Builder | ✓ **Task 155** — GitHub picker + add-from-repo; Builder folders by job; one source resume |
+| Master export | 🟡 **Task 159** — Profile → Export PDF: sections, order, density |
 | Job Documents Edit | ✓ **Task 152** — Edit / Design / Match; live preview; accept-new-only — see [TAILOR-EDIT.md](./TAILOR-EDIT.md) |
 | Job URL fetch | ✓ ~90% | Amazon/Microsoft + tiered pipeline; legacy MS URLs need Playwright |
 | Job analyze | ✓ |
 | ATS score | ✓ — algorithmic |
 | Gap analysis | ✓ — ATS fallback questions when Claude asks none |
-| Tailor | ✓ Durable runs + **markdown rewrite + streamed progress** (Task **158**) — [TAILOR-EDIT.md](./TAILOR-EDIT.md) |
+| Tailor | 🟡 Durable runs + markdown rewrite + **Task 159** curation (1-page early career, categorized skills) — [TAILOR-EDIT.md](./TAILOR-EDIT.md) |
 | Tailor stepper | ⛔ Redirected — Job Matcher + tracker replace primary flow |
 | Application tracker | ✓ — Teal list/board; facts in header; Auto-apply CTA; timeline-first Activity; tracked Email + Reply via HireIQ |
 | Masked apply email (Resend) | ✓ Infra live — `mail.kingsharif.com` receiving; webhook URL prod; needs smoke + `RESEND_FORWARD_FROM` optional |

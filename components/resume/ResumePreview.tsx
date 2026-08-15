@@ -7,6 +7,11 @@ import { normalizeResumeForDisplay } from '@/lib/format/normalize'
 import { checkResumeHealth, healthScore, type HealthSeverity } from '@/lib/resume/health'
 import { resumeSkillLabels } from '@/lib/profile/skills'
 import {
+  formatEducationLine,
+  polishStructuredForExport,
+  skillCategoryLines,
+} from '@/lib/export/format'
+import {
   DEFAULT_RESUME_THEME,
   mergeResumeTheme,
   themeFontFamilyCss,
@@ -59,7 +64,10 @@ export function ResumePreview({
   onPageCount,
   highlights = null,
 }: ResumePreviewProps) {
-  const data = useMemo(() => normalizeResumeForDisplay(rawData), [rawData])
+  const data = useMemo(
+    () => polishStructuredForExport(normalizeResumeForDisplay(rawData)),
+    [rawData]
+  )
   const resolvedTheme = useMemo(
     () => mergeResumeTheme(DEFAULT_RESUME_THEME, theme ?? null),
     [theme]
@@ -371,9 +379,13 @@ function ResumeBody({
     data.contact?.location,
     data.contact?.linkedin,
     data.contact?.github,
+    data.contact?.portfolio || data.contact?.website,
   ].filter(Boolean).join('  ·  ')
 
-  const allSkills = resumeSkillLabels(data.skills)
+  const skillLines = skillCategoryLines(data.skills)
+  const allSkills = skillLines.flatMap(l => l.items).length
+    ? skillLines.flatMap(l => l.items)
+    : resumeSkillLabels(data.skills)
 
   const sectionLabel = (key: string, fallback: string) =>
     theme.sectionLabels[key] ?? fallback
@@ -407,8 +419,13 @@ function ResumeBody({
 
     skills: () =>
       allSkills.length > 0 ? (
-        <Section key="skills" title={sectionLabel('skills', 'Skills')} theme={theme}>
-          <SkillsContent skills={allSkills} theme={theme} highlighted={Boolean(highlights?.skills)} />
+        <Section key="skills" title={sectionLabel('skills', 'Technical Skills')} theme={theme}>
+          <SkillsContent
+            skills={allSkills}
+            skillLines={skillLines}
+            theme={theme}
+            highlighted={Boolean(highlights?.skills)}
+          />
         </Section>
       ) : null,
 
@@ -439,6 +456,21 @@ function ResumeBody({
               ))}
             </div>
           ))}
+        </Section>
+      ) : null,
+
+    certifications: () =>
+      data.certifications?.length > 0 ? (
+        <Section key="certifications" title={sectionLabel('certifications', 'Certifications')} theme={theme}>
+          <p
+            style={{
+              fontSize: theme.bodyFontSize - 0.5,
+              color: '#333',
+              marginTop: theme.contentSpacing.body,
+            }}
+          >
+            {data.certifications.map(c => c.name).filter(Boolean).join('  |  ')}
+          </p>
         </Section>
       ) : null,
   }
@@ -531,13 +563,41 @@ function Bullet({
 
 function SkillsContent({
   skills,
+  skillLines,
   theme,
   highlighted,
 }: {
   skills: string[]
+  skillLines: ReturnType<typeof skillCategoryLines>
   theme: ResumeTheme
   highlighted?: boolean
 }) {
+  if (theme.skillsLayout === 'categorized' && skillLines.length > 0) {
+    return (
+      <div
+        style={{
+          marginTop: theme.contentSpacing.body,
+          ...highlightStyle(Boolean(highlighted)),
+        }}
+      >
+        {skillLines.map(line => (
+          <p
+            key={line.label}
+            style={{
+              fontSize: theme.bodyFontSize - 0.5,
+              color: '#333',
+              marginTop: 2,
+              lineHeight: theme.lineHeight,
+            }}
+          >
+            <span style={{ fontWeight: 700 }}>{line.label}: </span>
+            {line.items.join(', ')}
+          </p>
+        ))}
+      </div>
+    )
+  }
+
   if (theme.skillsLayout === 'columns') {
     return (
       <div
@@ -679,7 +739,7 @@ function EducationEntry({
 }) {
   const { showBy, layout } = theme.educationSettings
   const dateStr = `${edu.startDate} – ${edu.endDate}`
-  const degreeText = `${edu.degree}${edu.field ? ` in ${edu.field}` : ''}`
+  const degreeText = formatEducationLine(edu)
 
   const primaryText = showBy === 'degree-first' ? degreeText : edu.institution
   const secondaryText = showBy === 'degree-first' ? edu.institution : degreeText

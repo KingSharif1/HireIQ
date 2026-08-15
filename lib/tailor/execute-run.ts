@@ -21,7 +21,34 @@ import { claimGapPhase, claimGeneratePhase, getTailorRun, patchTailorRun } from 
 import { TAILOR_RUN_CLAUDE } from '@/lib/tailor/run-types'
 import { userFacingTailorError } from '@/lib/tailor/user-error'
 import { streamingResumeProgress, structuredResumeToMarkdown } from '@/lib/resume/markdown'
+import {
+  applyDensity,
+  DEFAULT_RESUME_THEME,
+  type ResumeThemeOverride,
+} from '@/lib/export/theme'
 import type { GapAnalysis } from '@/types'
+
+function defaultThemeForSeniority(seniority: string | undefined): ResumeThemeOverride {
+  const s = (seniority || '').toLowerCase()
+  const early = ['intern', 'internship', 'early', 'new grad', 'entry', 'junior', 'associate'].some(
+    level => s.includes(level)
+  )
+  const base = early
+    ? applyDensity({ ...DEFAULT_RESUME_THEME }, 'compact')
+    : { ...DEFAULT_RESUME_THEME }
+  return {
+    skillsLayout: 'categorized',
+    sectionOrder: [...base.sectionOrder],
+    bodyFontSize: base.bodyFontSize,
+    nameFontSize: base.nameFontSize,
+    lineHeight: base.lineHeight,
+    listLineHeight: base.listLineHeight,
+    entrySpacing: base.entrySpacing,
+    contentSpacing: base.contentSpacing,
+    marginX: base.marginX,
+    marginY: base.marginY,
+  }
+}
 
 async function failRun(runId: string, log: ReturnType<typeof createProcessLog>, err: unknown) {
   const technical = err instanceof Error ? err.message : String(err)
@@ -319,6 +346,7 @@ export async function executeGeneratePhase(
         tailored_score: tailoredScore,
         version: (priorVersions ?? 0) + 1,
         gap_answers: gapAnswersRecord,
+        theme_override: defaultThemeForSeniority(job.seniority),
       })
       .select('id, version')
       .single()

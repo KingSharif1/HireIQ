@@ -131,6 +131,7 @@ export function ProfileHome({
               githubData={githubData}
               onSuggestionResolved={handleSuggestionResolved}
               onGitHubSynced={() => router.refresh()}
+              savedTheme={profile?.resume_theme ?? null}
             />
           </div>
         </div>

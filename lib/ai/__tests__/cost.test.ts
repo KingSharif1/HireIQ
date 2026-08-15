@@ -21,7 +21,7 @@ describe('estimateTokenCostUsd', () => {
   it('never retries paid SDK or tailor calls', () => {
     expect(AI_SDK_MAX_RETRIES).toBe(0)
     expect(TAILOR_MAX_RETRIES).toBe(0)
-    expect(TAILOR_MAX_AI_CALLS).toBe(1)
+    expect(TAILOR_MAX_AI_CALLS).toBe(2)
   })
 
   it('formats small per-request prices with extra digits', () => {

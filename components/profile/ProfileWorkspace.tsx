@@ -245,6 +245,7 @@ export function ProfileWorkspace({ userId, initialData, profile, resumes, github
                     githubData={githubData}
                     onSuggestionResolved={handleSuggestionResolved}
                     onGitHubSynced={() => router.refresh()}
+                    savedTheme={theme}
                   />
                 </CollapsibleSection>
               </div>
