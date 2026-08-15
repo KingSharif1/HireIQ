@@ -24,7 +24,7 @@ const job: JobExtractedData = {
 const tailoredResume = sampleStructuredResume({ summary: 'Tailored for Acme backend APIs' })
 
 describe('runTailorPipeline', () => {
-  it('makes exactly one Claude call — never retries or critiques', async () => {
+  it('makes one Claude call when JSON is valid — retries once when it is not', async () => {
     const generate = vi.fn().mockResolvedValueOnce(JSON.stringify(tailoredResume))
 
     const result = await runTailorPipeline({
@@ -42,6 +42,27 @@ describe('runTailorPipeline', () => {
     expect(prompt).toContain('ATS GAPS TO CLOSE')
     expect(prompt).toContain('human recruiter')
     expect(prompt).toContain('Keep THEIR voice')
+  })
+
+  it('retries once when the first rewrite is not valid JSON', async () => {
+    // Genuinely unrepairable (broken structure mid-object) so parse fails and we retry.
+    const generate = vi
+      .fn()
+      .mockResolvedValueOnce('{"experience":[ { "title": "Eng" {')
+      .mockResolvedValueOnce(JSON.stringify(tailoredResume))
+
+    const result = await runTailorPipeline({
+      resume: sampleStructuredResume(),
+      job,
+      answers: {},
+      generate,
+    })
+
+    expect(generate).toHaveBeenCalledTimes(2)
+    expect(result.meta.aiCallsUsed).toBe(2)
+    expect(result.tailoredResume.summary).toContain('Tailored')
+    const retryPrompt = generate.mock.calls[1][0].prompt as string
+    expect(retryPrompt).toContain('CRITICAL RETRY')
   })
 
   it('does not call Claude again when the draft is weak', async () => {

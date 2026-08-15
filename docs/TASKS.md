@@ -13,6 +13,15 @@ Files changed: [list]
 
 ---
 
+## Task 158 — Tailor rewrite JSON repair + one retry
+Status: DONE  
+Scope: `lib/ai/{parse-json,tailor-pipeline,models}.ts`, `lib/tailor/{execute-run,run-types,user-error}.ts`, tests, docs  
+Goal: Stop failing Apple Early Career (and similar) tailor runs on a single unusable rewrite JSON blob.  
+Result: Stronger missing-comma / adjacent-value repair; one generate retry with CRITICAL RETRY prompt; user copy matches “rewrite came back…”. Cap generate at 2 AI calls.  
+Files changed: `parse-json.ts`, `tailor-pipeline.ts`, `models.ts`, `execute-run.ts`, `run-types.ts`, `user-error.ts`, related tests, CHANGELOG  
+
+---
+
 ## Task 157 — Auto-apply on easy forms + reusable application answers
 Status: DONE  
 Scope: `lib/apply/ease.ts`, job fetch/save, job detail CTA, `lib/profile/apply-answers.ts`, Profile Application form, form_answers APIs  

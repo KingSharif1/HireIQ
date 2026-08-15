@@ -1,3 +1,15 @@
+## 2026-08-15 — Tailor: retry bad rewrite JSON
+
+**What:** Apple Early Career (and other huge JDs) sometimes return rewrite JSON with missing commas / broken arrays (`Expected ',' or ']'…`). Repair more of those slips; if parse still fails, retry the rewrite once with a stricter JSON reminder. Clearer error copy: “The rewrite came back in a form we couldn’t use.”
+
+**Files:** `lib/ai/parse-json.ts`, `lib/ai/tailor-pipeline.ts`, `lib/ai/models.ts`, `lib/tailor/{execute-run,run-types,user-error}.ts`, tests
+
+**Why:** One bad model JSON was failing the whole tailor after ~9 minutes with no automatic recovery.
+
+**Next:** Deploy + smoke tailor on Apple Early Career again.
+
+---
+
 ## 2026-08-15 — Task 157: Easy-form auto-apply + application answers
 
 **What:** Auto-apply shows when the posting is a public form (Greenhouse/Lever/Ashby, or a generic page with name/email/resume and no account wall). It stays hidden for Workday, LinkedIn, aggregators, and login/signup portals. Fetching a job URL classifies this and stores it. Profile has an Application form for work-auth, optional EEO, and saved Q&A reused on later applies.

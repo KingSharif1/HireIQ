@@ -1,11 +1,11 @@
 import type { GapAnalysis, GapQuestion } from '@/types'
 import type { TailorProcessLogEntry } from '@/lib/tailor/process-log'
 
-/** Paid Claude calls for one tailor session. Never more. Never overlapping. */
+/** Paid Claude calls for one tailor session. Gap + rewrite (+ optional JSON retry). */
 export const TAILOR_RUN_CLAUDE = {
   gap: 1,
-  generate: 1,
-  total: 2,
+  generate: 2,
+  total: 3,
 } as const
 
 /** Longer than route `maxDuration` (120s) so we only fail after the worker is gone. */

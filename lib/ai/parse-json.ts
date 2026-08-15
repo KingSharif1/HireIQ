@@ -61,6 +61,17 @@ function repairJson(raw: string): string {
     .replace(/^\uFEFF/, '')
     .replace(/[\u201C\u201D]/g, '"')
     .replace(/[\u2018\u2019]/g, "'")
+    // Missing commas between adjacent JSON values (common model slip in long arrays)
+    .replace(/\}\s*\{/g, '},{')
+    .replace(/\]\s*\[/g, '],[')
+    .replace(/("(?:\\.|[^"\\])*")\s*(")/g, '$1,$2')
+    .replace(/(\d+(?:\.\d+)?)\s*(")/g, '$1,$2')
+    .replace(/("(?:\\.|[^"\\])*")\s*\{/g, '$1,{')
+    .replace(/\}\s*(")/g, '},$1')
+    .replace(/(\d+(?:\.\d+)?)\s*\{/g, '$1,{')
+    .replace(/true\s*(")/gi, 'true,$1')
+    .replace(/false\s*(")/gi, 'false,$1')
+    .replace(/null\s*(")/gi, 'null,$1')
     .replace(/,\s*([}\]])/g, '$1')
 }
 

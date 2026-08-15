@@ -174,7 +174,7 @@ export async function executeGapPhase(runId: string, userId: string): Promise<vo
   })
 }
 
-/** Claude call 2 of 2: one resume rewrite. Never retried. */
+/** Claude call 2 of 2: one resume rewrite (retries once if JSON is unusable). */
 export async function executeGeneratePhase(
   runId: string,
   userId: string,
@@ -323,7 +323,10 @@ export async function executeGeneratePhase(
     await patchTailorRun(admin, runId, {
       status: 'needs_review',
       tailored_resume_id: tailoredRow.id,
-      claude_calls: Math.min(TAILOR_RUN_CLAUDE.total, (run.claude_calls || 0) + TAILOR_RUN_CLAUDE.generate),
+      claude_calls: Math.min(
+        TAILOR_RUN_CLAUDE.total,
+        (run.claude_calls || 0) + Math.max(1, pipelineResult.meta.aiCallsUsed),
+      ),
       process_log: log.entries,
       error: null,
       finished_at: new Date().toISOString(),
