@@ -69,6 +69,9 @@ describe('classifyApplyEase', () => {
     expect(classifyApplyEase({ url: 'https://careers.example.com/jobs/1' }).hostedAutoApply).toBe(
       false,
     )
+    expect(classifyApplyEase({ url: 'https://careers.example.com/jobs/1' }).reason).toMatch(
+      /not scanned|scan/i,
+    )
   })
 })
 

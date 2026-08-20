@@ -74,6 +74,7 @@ export async function POST(request: Request) {
       applyEase && (applyEase.ease === 'easy' || applyEase.ease === 'hard' || applyEase.ease === 'unknown')
         ? applyEase
         : classifyApplyEase({ url: applyUrl })
+    const resolvedApplyUrl = ease.detectedApplyUrl || applyUrl || null
     const extractedData: JobExtractedData = {
       ...extractedBase,
       apply_ease: ease.ease,
@@ -89,7 +90,7 @@ export async function POST(request: Request) {
         title: title || extractedData.title || 'Unknown Role',
         description: description.slice(0, 50000),
         location: location || null,
-        apply_url: applyUrl || null,
+        apply_url: resolvedApplyUrl,
         extracted_data: extractedData,
       })
       .select()
