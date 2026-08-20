@@ -8,8 +8,10 @@ import { withAiOnce } from '@/lib/ai/once'
 import { normalizeGapAnalysis } from '@/lib/ai/gap-analysis'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { getMasterResumeContext } from '@/lib/profile/master'
+import { buildTailorPromptContext } from '@/lib/profile/tailor-context'
 import { formatGitHubContextForAi } from '@/lib/profile/github-context'
 import type { GitHubProfileData } from '@/lib/github/types'
+import { jsonForPrompt } from '@/lib/ai/tailor-engine'
 import { createProcessLog } from '@/lib/tailor/process-log'
 import { withAtsFallbackQuestions } from '@/lib/tailor/ats-gap-hints'
 
@@ -28,7 +30,7 @@ export async function POST(request: Request) {
   if (!jobId) return NextResponse.json({ error: 'jobId required', processLog: log.entries }, { status: 400 })
   log.step('Request validated', `jobId ${jobId.slice(0, 8)}…`)
 
-  const [master, jobRes, profileRes] = await Promise.all([
+  const [master, jobRes, profileRes, enhancementsRes] = await Promise.all([
     getMasterResumeContext(supabase, user.id, resumeId),
     supabase
       .from('jobs')
@@ -37,6 +39,12 @@ export async function POST(request: Request) {
       .eq('user_id', user.id)
       .single(),
     supabase.from('profiles').select('github_data').eq('id', user.id).maybeSingle(),
+    supabase
+      .from('resume_enhancements')
+      .select('question, answer')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(15),
   ])
 
   if ('error' in master) {
@@ -86,10 +94,20 @@ export async function POST(request: Request) {
     ...score.missing_keywords.slice(0, 5).map(k => `Missing keyword: ${k}`),
   ].join('\n')
 
+  const priorEnhancements = (enhancementsRes.data ?? []).map(row => ({
+    question: row.question,
+    answer: row.answer,
+  }))
+  const { resumeMarkdown, profileContext } = buildTailorPromptContext({
+    master,
+    priorEnhancements,
+  })
+
   const prompt = GAP_ANALYSIS_PROMPT
-    .replace('{structuredResume}', JSON.stringify(resume, null, 2))
+    .replace('{resumeMarkdown}', resumeMarkdown)
+    .replace('{profileContext}', profileContext)
     .replace('{githubContext}', githubContext)
-    .replace('{jobRequirements}', JSON.stringify(jobData, null, 2))
+    .replace('{jobRequirements}', jsonForPrompt(jobData))
     .replace('{gaps}', gaps || 'No major gaps identified from ATS pre-scan')
 
   let ai

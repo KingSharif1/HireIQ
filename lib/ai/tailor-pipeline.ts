@@ -26,6 +26,8 @@ interface PipelineInput {
   questionLabels?: Record<string, string>
   gapAnalysis?: GapAnalysis | null
   githubContext?: string
+  profileContext?: string
+  resumeMarkdown?: string
   generate: GenerateFn
   models?: { strong: string; fast: string }
   /** Kept for callers; all modes are one Claude rewrite — no critique/retry. */
@@ -61,10 +63,12 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
   const aiCallsUsed = { n: 0 }
 
   const atsGaps = formatAtsGapsForPrompt(calculateATSScore(resume, job))
-  const resumeMarkdown = structuredResumeToMarkdown(resume)
+  const resumeMarkdown = input.resumeMarkdown ?? structuredResumeToMarkdown(resume)
+  const profileContext = input.profileContext ?? 'No supplementary profile notes beyond the master resume markdown.'
 
   const generatePrompt = TAILOR_GENERATE_PROMPT
     .replace('{resumeMarkdown}', resumeMarkdown)
+    .replace('{profileContext}', profileContext)
     .replace('{githubContext}', input.githubContext ?? 'No GitHub repos synced.')
     .replace('{jobAnalysis}', jsonForPrompt(job))
     .replace('{atsGaps}', atsGaps)

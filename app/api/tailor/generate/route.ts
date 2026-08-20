@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { aiErrorResponse } from '@/lib/ai/error-response'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { getMasterResumeContext } from '@/lib/profile/master'
+import { buildTailorPromptContext } from '@/lib/profile/tailor-context'
 import { formatGitHubContextForAi } from '@/lib/profile/github-context'
 import type { GitHubProfileData } from '@/lib/github/types'
 import { runTailorPipeline } from '@/lib/ai/tailor-pipeline'
@@ -107,7 +108,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: master.error, processLog: log.entries }, { status: master.status })
   }
 
-  const [{ data: jobRow }, { data: profileRow }] = await Promise.all([
+  const [{ data: jobRow }, { data: profileRow }, { data: enhancements }] = await Promise.all([
     supabase
       .from('jobs')
       .select('extracted_data, description')
@@ -115,6 +116,12 @@ export async function POST(request: Request) {
       .eq('user_id', user.id)
       .single(),
     supabase.from('profiles').select('github_data').eq('id', user.id).maybeSingle(),
+    supabase
+      .from('resume_enhancements')
+      .select('question, answer')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(15),
   ])
 
   if (!jobRow?.extracted_data) {
@@ -137,9 +144,16 @@ export async function POST(request: Request) {
   )
   const ghRepos = (profileRow?.github_data as GitHubProfileData | null)?.repos?.length ?? 0
   const job = jobRow.extracted_data
+  const { resumeMarkdown, profileContext } = buildTailorPromptContext({
+    master,
+    priorEnhancements: (enhancements ?? []).map(row => ({
+      question: row.question,
+      answer: row.answer,
+    })),
+  })
   log.step(
     'Context loaded',
-    `full master resume (${JSON.stringify(master.structured).length.toLocaleString()} chars) · job ${job.title || 'role'} · GitHub ${ghRepos > 0 ? `${ghRepos} repos` : 'none'}`,
+    `full master resume (${resumeMarkdown.length.toLocaleString()} chars markdown) · job ${job.title || 'role'} · GitHub ${ghRepos > 0 ? `${ghRepos} repos` : 'none'}`,
   )
 
   const resume = master.structured
@@ -182,6 +196,8 @@ export async function POST(request: Request) {
       questionLabels,
       gapAnalysis: effectiveGapAnalysis,
       githubContext,
+      profileContext,
+      resumeMarkdown,
       generate: generateFn,
       models: ai.models,
       fastMode: Boolean(fastMode),
