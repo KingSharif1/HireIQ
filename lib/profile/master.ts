@@ -7,6 +7,8 @@ export interface MasterResumeContext {
   source: 'profile' | 'resume'
   baseResumeId: string
   profileData: ProfileData
+  /** Latest uploaded/parsed resume — merged into prompts when master source is profile. */
+  uploadedResume?: StructuredResume | null
 }
 
 /** True when profile_data has meaningful career content (not just empty defaults). */
@@ -96,6 +98,7 @@ export async function getMasterResumeContext(
     source: fromProfile ? 'profile' : 'resume',
     baseResumeId,
     profileData,
+    uploadedResume: latestResume ?? null,
   }
 }
 

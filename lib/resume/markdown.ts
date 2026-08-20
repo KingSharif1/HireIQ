@@ -105,6 +105,38 @@ export function structuredResumeToMarkdown(resume: StructuredResume): string {
     lines.push('')
   }
 
+  const volunteer = (r.volunteer ?? []) as Array<{
+    organization?: string
+    role?: string
+    bullets?: string[]
+  }>
+  if (volunteer.length) {
+    lines.push('## Volunteering')
+    for (const v of volunteer) {
+      const head = [v.role, v.organization].filter(Boolean).join(' @ ')
+      if (head) lines.push(`### ${head}`)
+      for (const b of v.bullets ?? []) {
+        if (b.trim()) lines.push(`- ${b}`)
+      }
+      lines.push('')
+    }
+  }
+
+  const awards = (r.awards ?? []) as Array<{
+    title?: string
+    issuer?: string
+    date?: string
+    description?: string
+  }>
+  if (awards.length) {
+    lines.push('## Achievements')
+    for (const a of awards) {
+      const head = [a.title, a.issuer, a.date].filter(Boolean).join(' · ')
+      lines.push(head ? `- ${head}${a.description?.trim() ? `: ${a.description.trim()}` : ''}` : `- ${a.description?.trim()}`)
+    }
+    lines.push('')
+  }
+
   if (r.tailoring_notes?.length) {
     lines.push('## Tailoring notes')
     for (const n of r.tailoring_notes) {

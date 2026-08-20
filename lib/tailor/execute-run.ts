@@ -6,6 +6,7 @@ import { withAiOnce } from '@/lib/ai/once'
 import { normalizeGapAnalysis } from '@/lib/ai/gap-analysis'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { getMasterResumeContext } from '@/lib/profile/master'
+import { buildTailorPromptContext } from '@/lib/profile/tailor-context'
 import { formatGitHubContextForAi } from '@/lib/profile/github-context'
 import type { GitHubProfileData } from '@/lib/github/types'
 import { jsonForPrompt } from '@/lib/ai/tailor-engine'
@@ -20,7 +21,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { claimGapPhase, claimGeneratePhase, getTailorRun, patchTailorRun } from '@/lib/tailor/runs'
 import { TAILOR_RUN_CLAUDE } from '@/lib/tailor/run-types'
 import { userFacingTailorError } from '@/lib/tailor/user-error'
-import { streamingResumeProgress, structuredResumeToMarkdown } from '@/lib/resume/markdown'
+import { streamingResumeProgress } from '@/lib/resume/markdown'
 import {
   applyDensity,
   DEFAULT_RESUME_THEME,
@@ -76,10 +77,16 @@ export async function executeGapPhase(runId: string, userId: string): Promise<vo
   const log = createProcessLog()
   log.step('Loaded your profile', 'Pulled your resume and this job from the database')
 
-  const [master, jobRes, profileRes] = await Promise.all([
+  const [master, jobRes, profileRes, enhancementsRes] = await Promise.all([
     getMasterResumeContext(admin, userId, null),
     admin.from('jobs').select('extracted_data').eq('id', run.job_id).eq('user_id', userId).single(),
     admin.from('profiles').select('github_data').eq('id', userId).maybeSingle(),
+    admin
+      .from('resume_enhancements')
+      .select('question, answer')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(15),
   ])
 
   if ('error' in master) {
@@ -96,6 +103,14 @@ export async function executeGapPhase(runId: string, userId: string): Promise<vo
   const score = calculateATSScore(resume, jobData)
   const githubData = profileRes.data?.github_data as GitHubProfileData | null | undefined
   const githubContext = formatGitHubContextForAi(githubData ?? null)
+  const priorEnhancements = (enhancementsRes.data ?? []).map(row => ({
+    question: row.question,
+    answer: row.answer,
+  }))
+  const { resumeMarkdown, profileContext } = buildTailorPromptContext({
+    master,
+    priorEnhancements,
+  })
   log.step(
     'Context ready',
     `${jobData.title || 'Role'} at ${jobData.company || 'this company'}`,
@@ -131,7 +146,8 @@ export async function executeGapPhase(runId: string, userId: string): Promise<vo
   ].join('\n')
 
   const prompt = GAP_ANALYSIS_PROMPT
-    .replace('{resumeMarkdown}', structuredResumeToMarkdown(resume))
+    .replace('{resumeMarkdown}', resumeMarkdown)
+    .replace('{profileContext}', profileContext)
     .replace('{githubContext}', githubContext)
     .replace('{jobRequirements}', jsonForPrompt(jobData))
     .replace('{gaps}', gaps || 'No major gaps identified from ATS pre-scan')
@@ -247,10 +263,16 @@ export async function executeGeneratePhase(
     return
   }
 
-  const [master, jobRes, profileRes] = await Promise.all([
+  const [master, jobRes, profileRes, enhancementsRes] = await Promise.all([
     getMasterResumeContext(admin, userId, null),
     admin.from('jobs').select('extracted_data').eq('id', run.job_id).eq('user_id', userId).single(),
     admin.from('profiles').select('github_data').eq('id', userId).maybeSingle(),
+    admin
+      .from('resume_enhancements')
+      .select('question, answer')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(15),
   ])
   if ('error' in master) {
     await failRun(runId, log, master.error)
@@ -265,6 +287,14 @@ export async function executeGeneratePhase(
   const githubContext = formatGitHubContextForAi(
     profileRes.data?.github_data as GitHubProfileData | null | undefined,
   )
+  const priorEnhancements = (enhancementsRes.data ?? []).map(row => ({
+    question: row.question,
+    answer: row.answer,
+  }))
+  const { resumeMarkdown, profileContext } = buildTailorPromptContext({
+    master,
+    priorEnhancements,
+  })
   const gapAnalysis = run.gap_analysis ?? gapAnalysisFromAts(calculateATSScore(master.structured, job))
   const questionLabels: Record<string, string> = {}
   for (const q of run.questions) {
@@ -309,6 +339,8 @@ export async function executeGeneratePhase(
         questionLabels,
         gapAnalysis,
         githubContext,
+        profileContext,
+        resumeMarkdown,
         generate: generateFn,
         models: ai.models,
       }),

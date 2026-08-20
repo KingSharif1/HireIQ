@@ -125,6 +125,9 @@ export const GAP_ANALYSIS_PROMPT = `You are a rigorous career analyst comparing 
 CANDIDATE PROFILE (HireIQ markdown — treat as complete unless Q&A adds more):
 {resumeMarkdown}
 
+SUPPLEMENTARY PROFILE CONTEXT (everything else we know — achievements, notes, saved answers, prior Q&A; use for evidence and smarter questions):
+{profileContext}
+
 GITHUB PROJECT CONTEXT (synced repos — README, stack, structure; use for Tier 1/2 evidence):
 {githubContext}
 
@@ -145,10 +148,10 @@ TIER 2 — ADJACENT MATCH: Not exact, but honestly close. Before classifying adj
 TIER 3 — REAL GAP: Genuinely missing. Never suggest claiming it. Note why.
 
 QUESTIONS (1–3 — REQUIRED when ATS GAP SIGNALS lists missing skills/keywords):
-- Returning [] is ONLY allowed when every ATS gap is already clearly documented in the profile or GitHub context.
+- Returning [] is ONLY allowed when every ATS gap is already clearly documented in the profile, supplementary context, or GitHub context.
 - Ask about specific tools/experiences that might exist off-resume (a class, internship, side project, or a bullet that never named the tool).
-- Ground each question in THIS candidate (name their real company, project, or stack).
-- NEVER ask what's already in the profile. NEVER ask generic "tell me about yourself".
+- Ground each question in THIS candidate (name their real company, project, or stack from the profile + supplementary context).
+- NEVER ask what's already in the profile or supplementary context. NEVER ask generic "tell me about yourself".
 - If they say no, we will not invent it. If they say yes, we can weave it in for ATS + the recruiter.
 - Each question needs: id, question, category, gap_being_filled, why_it_matters, choices (2-4), example_answer
 
@@ -229,6 +232,9 @@ USE ALL HONEST DATA we give you: master resume, GitHub context, Q&A answers, ach
 
 ORIGINAL RESUME (HireIQ markdown — keep <!-- id:... --> markers on roles/projects you keep):
 {resumeMarkdown}
+
+SUPPLEMENTARY PROFILE CONTEXT (achievements, volunteering, notes, saved application answers, prior gap Q&A — honest evidence only):
+{profileContext}
 
 GITHUB PROJECT CONTEXT (synced repos — use for honest project bullets & skills):
 {githubContext}
