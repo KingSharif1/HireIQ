@@ -19,6 +19,7 @@ import {
   JobSummaryOverview,
 } from '@/components/jobs/detail/JobSummary'
 import { canHostedAutoApply } from '@/lib/apply/ease'
+import { ApplyEaseBadge } from '@/components/jobs/ApplyEaseBadge'
 import { AutoApplyWithHireIQ } from '@/components/jobs/detail/AutoApplyWithHireIQ'
 import { QuestionsPanel } from '@/components/jobs/detail/QuestionsPanel'
 import { TailorRunChip } from '@/components/jobs/detail/TailorRunChip'
@@ -426,6 +427,14 @@ export function JobDetailPage({
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {item.job.extracted_data?.apply_ease ? (
+              <ApplyEaseBadge
+                ease={item.job.extracted_data.apply_ease}
+                reason={item.job.extracted_data.apply_ease_reason}
+                compact
+                className="max-w-sm"
+              />
+            ) : null}
             {applyEmail ? (
               <Button type="button" variant="outline" size="sm" onClick={() => void copyApplyEmail()}>
                 {copiedApplyEmail ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}

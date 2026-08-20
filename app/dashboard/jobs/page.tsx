@@ -13,12 +13,14 @@ import { Loader2, Link2, FileText, AlertTriangle, ArrowRight, ChevronLeft } from
 import Link from 'next/link'
 import { isLinkedInJobUrl, LINKEDIN_PASTE_MESSAGE } from '@/lib/jobs/url-detect'
 import type { JobExtractedData } from '@/types'
+import { ApplyEaseBadge } from '@/components/jobs/ApplyEaseBadge'
 import { AiModelHint } from '@/components/ai/AiModelHint'
 import { AiFlowLoader } from '@/components/ai/AiFlowLoader'
 import { readNdjsonResponse } from '@/lib/ai/ndjson-stream'
 
 const URL_STAGES = [
   { id: 'fetch', label: 'Fetching job posting' },
+  { id: 'scan', label: 'Checking how to apply' },
   { id: 'analyze', label: 'Analyzing requirements with AI' },
   { id: 'save', label: 'Saving to your tracker' },
 ] as const
@@ -71,9 +73,11 @@ export default function JobsPage() {
     }>(analyzeRes, detail => {
       setLoadingDetail(detail)
       if (detail.toLowerCase().includes('saving')) {
-        setLoadingStage(mode === 'url' ? 2 : 1)
-      } else {
-        setLoadingStage(mode === 'url' ? 1 : 0)
+        setLoadingStage(mode === 'url' ? 3 : 1)
+      } else if (detail.toLowerCase().includes('analyzing')) {
+        setLoadingStage(mode === 'url' ? 2 : 0)
+      } else if (mode === 'url' && detail.toLowerCase().includes('fetch')) {
+        setLoadingStage(0)
       }
     })
     setExtractedData(analyzeData.extractedData)
@@ -117,7 +121,7 @@ export default function JobsPage() {
           source: scrapeData.source,
           company: scrapeData.company,
           title: scrapeData.title,
-          applyUrl: url,
+          applyUrl: scrapeData.detectedApplyUrl || url,
           applyEase: scrapeData.applyEase,
         },
         'url',
@@ -193,15 +197,11 @@ export default function JobsPage() {
             {extractedData.summary && (
               <p className="text-sm text-muted-foreground">{extractedData.summary}</p>
             )}
-            {extractedData.apply_ease === 'easy' ? (
-              <p className="text-sm text-foreground">
-                HireIQ can auto-apply here — this looks like a public form.
-              </p>
-            ) : extractedData.apply_ease === 'hard' ? (
-              <p className="text-sm text-muted-foreground">
-                This looks like an account portal. Auto-apply stays hidden; open the employer site.
-              </p>
-            ) : null}
+            <ApplyEaseBadge
+              ease={extractedData.apply_ease}
+              reason={extractedData.apply_ease_reason}
+              className="mb-1"
+            />
 
             {extractedData.required_skills.length > 0 && (
               <div>

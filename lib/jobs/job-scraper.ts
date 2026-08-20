@@ -9,7 +9,7 @@ import {
   LINKEDIN_PASTE_MESSAGE,
 } from '@/lib/jobs/url-detect'
 
-import { classifyApplyEase, type ApplyEaseResult } from '@/lib/apply/ease'
+import { classifyApplyEaseFromJobPage, type ApplyEaseResult } from '@/lib/apply/ease'
 
 export type JobSource =
   | 'greenhouse'
@@ -283,6 +283,7 @@ export async function scrapeJobUrl(url: string): Promise<{
   extractionMethod?: string
   extractionRuleId?: string
   applyEase: ApplyEaseResult
+  detectedApplyUrl?: string
 }> {
   if (isLinkedInJobUrl(url)) {
     throw new LinkedInBlockedError()
@@ -349,9 +350,9 @@ export async function scrapeJobUrl(url: string): Promise<{
           : 'high'
       : confidence
 
-  const applyEase = classifyApplyEase({
-    url,
-    html: 'pageHtml' in result ? result.pageHtml : undefined,
+  const applyEase = classifyApplyEaseFromJobPage({
+    pageUrl: url,
+    pageHtml: 'pageHtml' in result ? result.pageHtml : undefined,
   })
 
   return {
@@ -363,6 +364,7 @@ export async function scrapeJobUrl(url: string): Promise<{
     confidence: warning ? 'medium' : genericConfidence,
     warning,
     applyEase,
+    detectedApplyUrl: applyEase.detectedApplyUrl,
     ...genericMeta,
   }
 }

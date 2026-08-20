@@ -102,6 +102,7 @@ async function tryScrape(url: string): Promise<{
   description: string
   atsSystem: string
   applyEase?: ReturnType<typeof classifyApplyEase>
+  detectedApplyUrl?: string
 } | null> {
   try {
     const scraped = await scrapeJobUrl(url)
@@ -113,6 +114,7 @@ async function tryScrape(url: string): Promise<{
       description: cleaned,
       atsSystem: scraped.atsSystem || scraped.source || 'unknown',
       applyEase: scraped.applyEase,
+      detectedApplyUrl: scraped.detectedApplyUrl,
     }
   } catch (err) {
     if (err instanceof LinkedInBlockedError) return null
@@ -135,6 +137,7 @@ export async function saveJobFromUrl(input: SaveJobFromUrlInput): Promise<SaveJo
   let description = (input.description?.trim() || `Saved from ${applyUrl}`).slice(0, MAX_DESCRIPTION)
   let atsSystem = 'unknown'
   let applyEase = classifyApplyEase({ url: applyUrl })
+  let resolvedApplyUrl = applyUrl
 
   const admin = createAdminClient()
 
@@ -202,6 +205,7 @@ export async function saveJobFromUrl(input: SaveJobFromUrlInput): Promise<SaveJo
       if (scraped.company) company = scraped.company
       atsSystem = scraped.atsSystem
       if (scraped.applyEase) applyEase = scraped.applyEase
+      if (scraped.detectedApplyUrl) resolvedApplyUrl = normalizeApplyUrl(scraped.detectedApplyUrl)
     }
   }
 
@@ -216,13 +220,13 @@ export async function saveJobFromUrl(input: SaveJobFromUrlInput): Promise<SaveJo
       title,
       description,
       location,
-      apply_url: applyUrl,
+      apply_url: resolvedApplyUrl,
       extracted_data: buildExtractedData({
         title,
         company,
         description,
         atsSystem,
-        applyUrl,
+        applyUrl: resolvedApplyUrl,
         applyEase,
       }),
     })
@@ -239,7 +243,7 @@ export async function saveJobFromUrl(input: SaveJobFromUrlInput): Promise<SaveJo
     title,
     company,
     location,
-    applyUrl,
+    applyUrl: resolvedApplyUrl,
     descriptionChars: description.length,
   }
 }
