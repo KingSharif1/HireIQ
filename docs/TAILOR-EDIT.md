@@ -1,13 +1,32 @@
-# Job resume edit & tailor (Task 152)
+# Job resume edit & tailor (Tasks 152, 158, 159, 162)
 
 How HireIQ tailors a resume for one job and how the Documents **Edit** workspace works after this ship.
 
-**Shipped:** PR [#19](https://github.com/KingSharif1/HireIQ/pull/19) · branch `cursor/better-tailor-edit-d22e`  
+**Shipped:** PR [#19](https://github.com/KingSharif1/HireIQ/pull/19) (Task 152 Edit/Match) · Task 158 markdown wire/streaming · Task 159 one-page curation/export · Task **162** in progress
 **Goal:** Maximize interview chance — pass **ATS** and look strong to a **human recruiter**, while still sounding like the candidate.
+
+**Bar (2026-09-17):** the [Red Hawk Claude tailor](https://claude.ai/chat/c41aa0eb-7afd-4008-9143-8e27c3bb57d0) — draft immediately, restructure around the posting’s thesis, map real projects, never invent missing tools.
 
 ---
 
-## Tailor pipeline (durable, max 2 Claude calls)
+## Target pipeline (Task 162 — not fully wired yet)
+
+```
+POST /api/tailor/runs
+  → load full master resume + JD + GitHub from DB
+  → ATS pre-scan (no Claude quiz)
+  → 1 streamed markdown rewrite (thesis + restructure + honest language)
+  → save tailored_resumes + optional leftover chips (max 2)
+  → status: needs_review
+  → optional: user adds a real example → 1 weave (call 2 of 2)
+  → skip chips → leave those tools off, no extra call
+```
+
+**Live on prod today** already has Task 159’s stricter one-page curation, full Profile context, markdown model I/O, and streamed progress. It still uses the quiz-first path (`awaiting_answers` before generate). Helpers for leftover chips and projects-first section order are in `lib/tailor/ats-gap-hints.ts` and `lib/tailor/job-structure.ts`.
+
+---
+
+## Current pipeline (until Task 162 is wired)
 
 ```
 POST /api/tailor/runs

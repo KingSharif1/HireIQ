@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest'
 import {
   formatAtsGapsForPrompt,
   gapAnalysisFromAts,
+  hasMaterialGapAnswers,
+  isSkipGapAnswer,
+  leftoverGapChips,
   questionsFromAtsGaps,
+  SKIP_GAP_ANSWER,
   withAtsFallbackQuestions,
 } from '@/lib/tailor/ats-gap-hints'
 import type { ATSScore, GapAnalysis } from '@/types'
@@ -75,5 +79,35 @@ describe('formatAtsGapsForPrompt', () => {
     const text = formatAtsGapsForPrompt(score())
     expect(text).toContain('AWS')
     expect(text).toContain('honest')
+  })
+})
+
+describe('leftoverGapChips', () => {
+  it('asks at most 2 leftover JD tools after a draft', () => {
+    const chips = leftoverGapChips(score())
+    expect(chips.length).toBeGreaterThan(0)
+    expect(chips.length).toBeLessThanOrEqual(2)
+    expect(chips[0].question).toMatch(/This job asks for/)
+    expect(chips[0].choices).toContain(SKIP_GAP_ANSWER)
+  })
+
+  it('returns none when ATS is clean', () => {
+    expect(leftoverGapChips(score({ missing_skills: [], missing_keywords: [] }))).toHaveLength(0)
+  })
+})
+
+describe('skip vs material gap answers', () => {
+  it('treats empty and skip copy as skip', () => {
+    expect(isSkipGapAnswer('')).toBe(true)
+    expect(isSkipGapAnswer(SKIP_GAP_ANSWER)).toBe(true)
+    expect(isSkipGapAnswer('Skip')).toBe(true)
+    expect(isSkipGapAnswer('Yes — I used n8n on a class project')).toBe(false)
+  })
+
+  it('requires a non-skip answer to weave', () => {
+    const chips = leftoverGapChips(score())
+    expect(hasMaterialGapAnswers({}, chips)).toBe(false)
+    expect(hasMaterialGapAnswers({ [chips[0].id]: SKIP_GAP_ANSWER }, chips)).toBe(false)
+    expect(hasMaterialGapAnswers({ [chips[0].id]: 'Used it in a weekend n8n workflow' }, chips)).toBe(true)
   })
 })

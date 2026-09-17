@@ -1,5 +1,27 @@
 # HireIQ Decisions
 
+## 2026-09-17 — Draft first, ask only about leftover real gaps (Task 162)
+
+**Context:** Task 159 already strengthened one-page curation and export quality. The remaining UX problem is order: HireIQ still asks up to three gap questions before showing a draft. The [Red Hawk Claude tailor](https://claude.ai/chat/c41aa0eb-7afd-4008-9143-8e27c3bb57d0) instead produced a complete projects-led draft from known evidence and left unsupported n8n/Zapier/Make claims out.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| First action | Draft immediately from master resume, full Profile context, GitHub, prior Q&A, and JD |
+| Questions | After the draft only; at most two important unsupported JD gaps |
+| Skip | Leave the tool or claim off; no AI call |
+| Add evidence | Require a real written example, then one user-initiated weave |
+| Honesty | Never infer tool use merely because it appears in the JD |
+| Structure | Projects may lead when the posting explicitly values hobby, portfolio, or built work |
+| Existing product | Keep tracker, Documents Edit, Match, decisions, and durable runs |
+| Model | Do not treat Sonnet 5 as the fix; improve the flow first. It remains selectable in Settings |
+
+**Tradeoff:** The first draft can intentionally retain a real skill gap until the user supplies evidence.
+
+**Revisit if:** Draft-first increases abandoned review sessions or optional chips are mostly ignored.
+
+---
+
 ## 2026-08-15 — Claude PDF vision for scanned resumes (Task 161)
 
 **Context:** `pdf-parse` only reads text layers. Scans/screenshots fail before AI. Apple Live Text is on-device OCR; HireIQ’s best equivalent without a separate OCR stack is Claude’s native PDF/document reading.

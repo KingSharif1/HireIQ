@@ -13,6 +13,29 @@ Files changed: [list]
 
 ---
 
+## Task 162 — Draft-first tailor + optional real-gap chips
+Status: IN PROGRESS
+Scope: `lib/tailor/*`, `lib/ai/prompts.ts`, `lib/ai/tailor-pipeline.ts`, `app/api/tailor/runs/**`, `components/jobs/detail/AiTailorFlow.tsx`, `components/tailor/**`, docs
+Goal: Build on Task 159’s stronger one-page curation and match the [Red Hawk Claude chat](https://claude.ai/chat/c41aa0eb-7afd-4008-9143-8e27c3bb57d0): create a complete first draft from Profile + GitHub + JD immediately. Ask only after the draft, and only about real leftover gaps.
+Lock: **Option A** — show the draft first; then 0–2 optional chips such as “This job asks for n8n — add it if you’ve actually used it.” Skip means leave it off. Never block the first draft on questions.
+
+### Done this session (helpers only — not wired)
+- `leftoverGapChips`, `isSkipGapAnswer`, and `hasMaterialGapAnswers` in `lib/tailor/ats-gap-hints.ts`
+- `jobLeadsWithProjects` and `themeOverrideForJob` in `lib/tailor/job-structure.ts`
+- Unit tests for both helpers
+
+### Continue tomorrow (in this order)
+1. Change `executeGapPhase` to skip the pre-draft Claude gap call and generate immediately from the full context. Preserve old `awaiting_answers` runs.
+2. Build on Task 159’s prompt: explicitly identify the posting’s thesis, map every retained project/role to it, and leave unsupported tools off.
+3. After generation, score the tailored draft and store at most two `leftoverGapChips` on the run. Apply `themeOverrideForJob` when the posting explicitly values hobby/portfolio work.
+4. Show compact optional chips above the review diff. All skipped: clear chips and remain in review without AI. Real written evidence: one user-initiated weave.
+5. Extend the continue route to support review-stage chip answers while preserving the two-call ceiling and no silent retries.
+6. Add route/run tests, then smoke the Red Hawk role: projects first, no invented n8n, optional n8n chip after the draft.
+
+Do not mix Task 147 into this session.
+
+---
+
 ## Task 161 — Scan OCR parse + 10MB + mobile profile nav
 Status: DONE  
 Scope: `lib/resume/extract-text.ts`, parse route, `complete.ts`, ResumeUploader, ProfileSectionNav, ProfileHome, docs  

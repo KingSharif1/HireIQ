@@ -1,17 +1,19 @@
 # HireIQ Status
 
-**As of:** 2026-08-15  
-**Branch:** `cursor/pro-resume-export-tailor-d22e` · **Production:** https://hireiq.kingsharif.com  
-**Tests:** unit + live URL · extension **v0.9.9** · Task **159** pro export + smarter tailor
+**As of:** 2026-09-17
+**Branch:** `main` · **Production:** https://hireiq.kingsharif.com
+**Tests:** full unit suite + TypeScript · extension **v0.9.9** · Task **162** helpers
 
 ## Session handoff
 
 | | |
 |--|--|
-| **Working on** | Task 161 — OCR parse + mobile profile nav (ship) |
+| **Working on** | Task 162 — draft-first tailor + optional real-gap chips |
 | **Blocked** | Human: Google Data access for `gmail.readonly` |
-| **Next** | Deploy Task 161 · re-upload scan · smoke Profile mobile drawer |
-| **Roadmap** | [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md) |
+| **Next** | Wire `executeGapPhase` to generate before asking; see Task 162 checklist |
+| **Roadmap** | [TAILOR-EDIT.md](./TAILOR-EDIT.md) · [AUTO-APPLY.md](./AUTO-APPLY.md) |
+
+Task 159 already improved one-page curation and exports. Task 162 changes the interaction order: draft first from known evidence, then at most two optional real-gap chips. Helpers are committed; the live pipeline still asks before drafting.
 
 ## System snapshot
 
@@ -28,8 +30,8 @@
 | Job URL fetch | ✓ ~90% | Amazon/Microsoft + tiered pipeline; legacy MS URLs need Playwright |
 | Job analyze | ✓ |
 | ATS score | ✓ — algorithmic |
-| Gap analysis | ✓ — ATS fallback questions when Claude asks none |
-| Tailor | 🟡 Durable runs + markdown rewrite + **Task 159** curation (1-page early career, categorized skills) — [TAILOR-EDIT.md](./TAILOR-EDIT.md) |
+| Gap analysis | 🟡 Task **162** helpers ready; pre-draft questions still live |
+| Tailor | 🟡 Task 159 curation ✓ · Task **162** draft-first flow pending — [TAILOR-EDIT.md](./TAILOR-EDIT.md) |
 | Tailor stepper | ⛔ Redirected — Job Matcher + tracker replace primary flow |
 | Application tracker | ✓ — Teal list/board; facts in header; Auto-apply CTA; timeline-first Activity; tracked Email + Reply via HireIQ |
 | Masked apply email (Resend) | ✓ Infra live — `mail.kingsharif.com` receiving; webhook URL prod; needs smoke + `RESEND_FORWARD_FROM` optional |
@@ -67,8 +69,8 @@ Migrations 001–**023** applied remotely — see [supabase/MIGRATIONS.md](./sup
 
 ## Next recommended tasks
 
-1. **Smoke Task 152** on prod (Edit buttons, Match, new Apple tailor with questions)
-2. **Smoke Auto-apply** on a real Greenhouse/Lever/Ashby job (dry run — does not submit)
+1. **Finish Task 162** — draft first, optional leftover chips during review
+2. **Smoke Red Hawk** after Task 162: projects first, no invented n8n
 3. **Task 147** — extension assist CTA when already on ATS
 4. **Task 143** — Enable Google in Supabase ([AUTH.md](./AUTH.md) §3)
 5. Connect Gmail on prod Settings → Sync now

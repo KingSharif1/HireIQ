@@ -1,6 +1,9 @@
 import type { ATSScore, GapAnalysis, GapQuestion } from '@/types'
 
 const MAX_ATS_QUESTIONS = 3
+const MAX_OPTIONAL_CHIPS = 2
+
+export const SKIP_GAP_ANSWER = 'Skip — leave it off'
 
 /** Deterministic gap hints from ATS pre-scan — no Claude call needed. */
 export function gapAnalysisFromAts(score: ATSScore): GapAnalysis {
@@ -64,6 +67,43 @@ export function withAtsFallbackQuestions(analysis: GapAnalysis, score: ATSScore)
   const questions = questionsFromAtsGaps(score)
   if (questions.length === 0) return analysis
   return { ...analysis, questions_for_user: questions }
+}
+
+/**
+ * After a draft exists: 0–2 optional chips for JD tools still missing.
+ * Never blocks the resume. Skip = leave the term off.
+ */
+export function leftoverGapChips(score: ATSScore, limit = MAX_OPTIONAL_CHIPS): GapQuestion[] {
+  return uniqueGaps(score).slice(0, limit).map((item, i) => ({
+    id: `opt-q${i + 1}`,
+    question: `This job asks for ${item} — add it if you’ve actually used it.`,
+    category: 'skills',
+    gap_being_filled: item,
+    why_it_matters: `It is on the posting and not on this version. Only add it with a real example. If you have not used it, skip and we leave it off.`,
+    example_answer: `Yes — I used ${item} on [project or class] to …`,
+    choices: [
+      `Yes — I have used ${item}`,
+      SKIP_GAP_ANSWER,
+    ],
+  }))
+}
+
+export function isSkipGapAnswer(answer: string | undefined): boolean {
+  const t = (answer ?? '').trim().toLowerCase()
+  if (!t) return true
+  return t === SKIP_GAP_ANSWER.toLowerCase() || t.startsWith('skip') || t.includes('leave it off')
+}
+
+/** True when the user added at least one real example we can weave in. */
+export function hasMaterialGapAnswers(
+  answers: Record<string, string>,
+  questions: GapQuestion[],
+): boolean {
+  return questions.some(q => {
+    const value = answers[q.id]
+    if (!value?.trim()) return false
+    return !isSkipGapAnswer(value)
+  })
 }
 
 export function formatAtsGapsForPrompt(score: ATSScore): string {

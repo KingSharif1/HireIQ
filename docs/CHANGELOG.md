@@ -1,3 +1,15 @@
+## 2026-09-17 — Task 162 started: draft-first tailor handoff
+
+**What:** Locked the next tailoring change: generate a complete first version from Profile, GitHub, prior evidence, and the JD before asking anything. After the draft, show at most two optional chips for important JD tools still unsupported. Skip leaves the tool off.
+
+**Files:** `lib/tailor/ats-gap-hints.ts`, `lib/tailor/job-structure.ts`, tests, `TASKS.md`, `STATUS.md`, `DECISIONS.md`, `TAILOR-EDIT.md`
+
+**Why:** Task 159 improved content and one-page curation, but the flow still makes users answer an ATS quiz before seeing a resume. The Red Hawk Claude example drafted first, led with relevant AI projects, and did not invent n8n/Zapier/Make.
+
+**Next:** Wire the helpers into durable runs and review UI, then smoke Red Hawk. Do not start Task 147 in the same session.
+
+---
+
 ## 2026-08-15 — Task 161: Scan OCR + 10MB uploads + mobile profile nav
 
 **What:** When PDF text extraction fails or returns &lt;50 chars, fall back to Claude PDF vision (scan/screenshot OCR). Upload limit 5MB → 10MB. Profile mobile nav is a dense collapsible section drawer.
