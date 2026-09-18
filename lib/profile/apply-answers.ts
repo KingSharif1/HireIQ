@@ -8,6 +8,9 @@ export function emptyApplyAnswers(): ProfileApplyAnswers {
     requiresSponsorship: '',
     willingToRelocate: '',
     inOfficeOk: '',
+    dateOfBirth: '',
+    desiredSalaryMin: '',
+    desiredSalaryMax: '',
     gender: '',
     ethnicity: '',
     veteran: '',
@@ -26,6 +29,9 @@ export function normalizeApplyAnswers(value: unknown): ProfileApplyAnswers {
     requiresSponsorship: (raw.requiresSponsorship as YesNoBlank) || '',
     willingToRelocate: (raw.willingToRelocate as YesNoBlank) || '',
     inOfficeOk: (raw.inOfficeOk as YesNoBlank) || '',
+    dateOfBirth: typeof raw.dateOfBirth === 'string' ? raw.dateOfBirth : '',
+    desiredSalaryMin: typeof raw.desiredSalaryMin === 'string' ? raw.desiredSalaryMin : '',
+    desiredSalaryMax: typeof raw.desiredSalaryMax === 'string' ? raw.desiredSalaryMax : '',
     gender: typeof raw.gender === 'string' ? raw.gender : '',
     ethnicity: typeof raw.ethnicity === 'string' ? raw.ethnicity : '',
     veteran: typeof raw.veteran === 'string' ? raw.veteran : '',
@@ -60,6 +66,9 @@ function filledCount(answers: ProfileApplyAnswers): number {
     answers.requiresSponsorship,
     answers.willingToRelocate,
     answers.inOfficeOk,
+    answers.dateOfBirth,
+    answers.desiredSalaryMin,
+    answers.desiredSalaryMax,
     answers.gender,
     answers.ethnicity,
     answers.veteran,
@@ -89,6 +98,12 @@ export function rememberApplyAnswer(data: ProfileData, entry: ApplicationFormAns
     answers.willingToRelocate = yn === 'prefer_not' ? '' : yn
   } else if (/in-?office|hybrid|five days|5 days|on-?site/.test(q) && yn) {
     answers.inOfficeOk = yn === 'prefer_not' ? '' : yn
+  } else if (/date of birth|\bdob\b/.test(q)) {
+    answers.dateOfBirth = entry.answer.trim()
+  } else if (/(minimum|min).*(salary|compensation)|(salary|compensation).*(minimum|min)/.test(q)) {
+    answers.desiredSalaryMin = entry.answer.trim()
+  } else if (/(maximum|max).*(salary|compensation)|(salary|compensation).*(maximum|max)/.test(q)) {
+    answers.desiredSalaryMax = entry.answer.trim()
   } else if (/\bgender\b|\bsex\b/.test(q)) {
     answers.gender = entry.answer.trim()
   } else if (/\brace\b|\bethnic/.test(q)) {

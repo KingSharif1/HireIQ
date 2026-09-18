@@ -18,6 +18,7 @@ import {
   structuredResumeToMarkdown,
 } from '@/lib/resume/markdown'
 import { polishStructuredForExport } from '@/lib/export/format'
+import { normalizeJobExtractedData } from '@/lib/jobs/normalize-job'
 
 interface PipelineInput {
   resume: StructuredResume
@@ -55,7 +56,8 @@ function parseResumeMarkdown(text: string): StructuredResume {
 
 export async function runTailorPipeline(input: PipelineInput): Promise<TailorPipelineResult> {
   const resume = normalizeStructuredResume(input.resume)
-  const { job, answers, questionLabels, gapAnalysis, generate } = input
+  const job = normalizeJobExtractedData(input.job)
+  const { answers, questionLabels, gapAnalysis, generate } = input
   const models = input.models ?? { strong: AI_MODELS.strong, fast: AI_MODELS.fast }
   const enhancements = formatEnhancements(answers, questionLabels)
   const realGaps = formatRealGapsForPrompt(gapAnalysis?.real_gaps ?? [])

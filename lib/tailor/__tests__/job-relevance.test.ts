@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildJobOptimizedInclusion,
+  formatPreferredProjectsForPrompt,
+  isSparseJob,
+  resolveJobDomainTags,
   scoreProjectForJob,
   selectRelevantProjectIds,
 } from '@/lib/tailor/job-relevance'
@@ -45,6 +48,47 @@ const photoProject: ResumeProject = {
   github: '',
 }
 
+const mappingRobot: ResumeProject = {
+  id: 'p-robot',
+  name: 'Mapping Robot',
+  description: 'Autonomous mapping on Raspberry Pi with LiDAR and ROS 2',
+  bullets: ['Fused LiDAR scans for occupancy grids on embedded hardware'],
+  technologies: ['ROS 2', 'Python', 'Raspberry Pi', 'LiDAR'],
+  url: '',
+  github: '',
+}
+
+const nemtWeb: ResumeProject = {
+  id: 'p-web',
+  name: 'NEMT Billing',
+  description: 'SaaS billing dashboard',
+  bullets: ['Built React admin for trip invoices'],
+  technologies: ['React', 'TypeScript', 'Node.js'],
+  url: '',
+  github: '',
+}
+
+/** Emerson-class thin JD: hardware thesis, few keyword tokens. */
+const emersonThin: JobExtractedData = {
+  title: 'Software Engineer',
+  company: 'Emerson',
+  required_skills: ['C++'],
+  preferred_skills: [],
+  required_experience_years: 0,
+  education_requirement: 'BS',
+  keywords: ['embedded'],
+  responsibilities: ['Develop software for industrial automation products'],
+  ats_system: 'oracle',
+  red_flags: [],
+  company_values: [],
+  compensation: { min: null, max: null, currency: 'USD', period: 'annual' },
+  work_type: 'onsite',
+  seniority: 'junior',
+  summary: 'Software engineer for embedded systems and hardware products.',
+  role_thesis: 'Ship reliable software close to industrial hardware and controls.',
+  domain_tags: ['embedded', 'hardware'],
+}
+
 describe('job-relevance', () => {
   it('scores JD-aligned projects higher', () => {
     expect(scoreProjectForJob(apiProject, job)).toBeGreaterThan(
@@ -78,5 +122,41 @@ describe('job-relevance', () => {
     const inclusion = buildJobOptimizedInclusion(data, job)
     expect(inclusion.projectIds).toEqual(['p1'])
     expect(inclusion.skillIds?.[0]).toBe('typescript')
+  })
+
+  it('elevates hardware projects over web when JD domain is embedded/hardware', () => {
+    expect(scoreProjectForJob(mappingRobot, emersonThin)).toBeGreaterThan(
+      scoreProjectForJob(nemtWeb, emersonThin),
+    )
+    const ids = selectRelevantProjectIds([nemtWeb, mappingRobot, photoProject], emersonThin)
+    expect(ids[0]).toBe('p-robot')
+  })
+
+  it('infers domain tags from sparse JD text when analyze tags missing', () => {
+    const sparse: JobExtractedData = {
+      ...emersonThin,
+      role_thesis: undefined,
+      domain_tags: undefined,
+      required_skills: [],
+      keywords: [],
+      responsibilities: [],
+      summary: 'Work on robotics firmware and LiDAR sensors.',
+    }
+    expect(isSparseJob(sparse)).toBe(true)
+    const tags = resolveJobDomainTags(sparse)
+    expect(tags).toEqual(expect.arrayContaining(['hardware']))
+    expect(scoreProjectForJob(mappingRobot, sparse)).toBeGreaterThan(
+      scoreProjectForJob(nemtWeb, sparse),
+    )
+  })
+
+  it('formats preferred projects block for the tailor prompt', () => {
+    const block = formatPreferredProjectsForPrompt(
+      [nemtWeb, mappingRobot],
+      emersonThin,
+    )
+    expect(block).toMatch(/PREFERRED PROJECTS/)
+    expect(block).toMatch(/Mapping Robot/)
+    expect(block.indexOf('Mapping Robot')).toBeLessThan(block.indexOf('NEMT'))
   })
 })

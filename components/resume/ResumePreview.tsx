@@ -37,6 +37,11 @@ interface ResumePreviewProps {
   theme?: ResumeTheme
   /** Drag to pan when zoomed past the viewport (also enables wider zoom range). */
   enablePan?: boolean
+  /**
+   * Auto-fit axis. `width` keeps the page readable in short panes (export dialog);
+   * `both` also shrinks to fit height.
+   */
+  fitAxis?: 'width' | 'both'
   className?: string
   /** Live measured page count from the letter preview. */
   onPageCount?: (pageCount: number) => void
@@ -60,6 +65,7 @@ export function ResumePreview({
   recommendedPages = 0,
   theme,
   enablePan = false,
+  fitAxis = 'both',
   className,
   onPageCount,
   highlights = null,
@@ -115,15 +121,19 @@ export function ResumePreview({
     const fit = () => {
       const pad = 32
       const byWidth = (el.clientWidth - pad) / PAGE_W
-      const byHeight = enablePan && el.clientHeight > 80 ? (el.clientHeight - pad) / PAGE_H : byWidth
-      setZoom(Math.min(1.15, Math.max(MIN_ZOOM, Math.min(byWidth, byHeight))))
+      const byHeight =
+        fitAxis === 'both' && enablePan && el.clientHeight > 80
+          ? (el.clientHeight - pad) / PAGE_H
+          : byWidth
+      const next = fitAxis === 'width' ? byWidth : Math.min(byWidth, byHeight)
+      setZoom(Math.min(1.35, Math.max(MIN_ZOOM, next)))
     }
     fit()
     if (typeof ResizeObserver === 'undefined') return
     const ro = new ResizeObserver(fit)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [autoFit, enablePan])
+  }, [autoFit, enablePan, fitAxis])
 
   useEffect(() => {
     onPageCount?.(pageCount)

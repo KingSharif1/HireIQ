@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, ChevronDown } from 'lucide-react'
+import { Check, ChevronDown, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import {
@@ -37,6 +37,7 @@ function SectionButton({
   isActive,
   onSelect,
   dense,
+  collapsed,
 }: {
   section: (typeof SECTIONS)[number]
   data: ProfileData
@@ -44,6 +45,7 @@ function SectionButton({
   isActive: boolean
   onSelect: (id: SectionId) => void
   dense?: boolean
+  collapsed?: boolean
 }) {
   const Icon = section.icon
   const count = sectionCount(section.id, data, resumeCount)
@@ -60,28 +62,37 @@ function SectionButton({
     <button
       type="button"
       onClick={() => onSelect(section.id)}
+      title={collapsed ? section.label : undefined}
+      aria-label={collapsed ? section.label : undefined}
+      suppressHydrationWarning
       className={cn(
-        'w-full flex items-center gap-2 rounded-md text-sm transition-colors text-left',
+        'relative w-full flex items-center gap-2 rounded-md text-sm transition-colors text-left',
         dense ? 'px-2 py-1' : 'px-2 py-1.5',
+        collapsed && 'justify-center px-1.5',
         isActive
           ? 'bg-secondary text-foreground font-medium'
           : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
       )}
     >
       <Icon className="w-3.5 h-3.5 flex-shrink-0" />
-      <span className="flex-1 truncate text-[13px]">{section.label}</span>
+      {!collapsed && <span className="flex-1 truncate text-[13px]">{section.label}</span>}
       {pending > 0 ? (
-        <Badge className="px-1.5 py-0 text-[10px] min-w-[1.25rem] justify-center bg-brand-amber/20 text-brand-amber border-brand-amber/30">
+        <Badge
+          className={cn(
+            'px-1.5 py-0 text-[10px] min-w-[1.25rem] justify-center bg-brand-amber/20 text-brand-amber border-brand-amber/30',
+            collapsed && 'absolute right-0 top-0 h-3 min-w-3 px-0 text-[8px]'
+          )}
+        >
           {pending}
         </Badge>
-      ) : count != null && count > 0 ? (
+      ) : !collapsed && count != null && count > 0 ? (
         <Badge
           variant={isActive ? 'default' : 'muted'}
           className="px-1.5 py-0 text-[10px] min-w-[1.25rem] justify-center"
         >
           {count}
         </Badge>
-      ) : complete ? (
+      ) : !collapsed && complete ? (
         <Check className="w-3.5 h-3.5 text-brand-green" />
       ) : null}
     </button>
@@ -95,6 +106,7 @@ function NavGroups({
   onSelect,
   groups,
   dense,
+  collapsed,
 }: {
   data: ProfileData
   resumeCount: number
@@ -102,19 +114,24 @@ function NavGroups({
   onSelect: (id: SectionId) => void
   groups: SectionGroup[]
   dense?: boolean
+  collapsed?: boolean
 }) {
   return (
-    <nav className={cn(dense ? 'space-y-2' : 'space-y-4')}>
-      {groups.map(group => (
+    <nav className={cn(dense ? 'space-y-2' : collapsed ? 'space-y-2' : 'space-y-4')}>
+      {groups.map((group, groupIndex) => (
         <div key={group}>
-          <p
-            className={cn(
-              'px-2 font-semibold tracking-wider text-muted-foreground uppercase',
-              dense ? 'text-[9px] mb-0.5' : 'text-[10px] mb-1'
-            )}
-          >
-            {group}
-          </p>
+          {collapsed ? (
+            groupIndex > 0 ? <div className="mx-1 mb-1 border-t border-border" /> : null
+          ) : (
+            <p
+              className={cn(
+                'px-2 font-semibold tracking-wider text-muted-foreground uppercase',
+                dense ? 'text-[9px] mb-0.5' : 'text-[10px] mb-1'
+              )}
+            >
+              {group}
+            </p>
+          )}
           <div className="space-y-0.5">
             {SECTIONS.filter(s => s.group === group).map(section => (
               <SectionButton
@@ -125,6 +142,7 @@ function NavGroups({
                 isActive={active === section.id}
                 onSelect={onSelect}
                 dense={dense}
+                collapsed={collapsed}
               />
             ))}
           </div>
@@ -146,6 +164,7 @@ export function ProfileSectionNav({
   showIdentity = true,
 }: ProfileSectionNavProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
   const fullName =
     [data.personal.firstName, data.personal.lastName].filter(Boolean).join(' ') || 'Your Profile'
   const completeness = profileCompleteness(data, resumeCount)
@@ -159,7 +178,7 @@ export function ProfileSectionNav({
   return (
     <>
       {/* Mobile: compact collapsible section drawer */}
-      <div className="lg:hidden border-b border-border bg-background">
+      <div className="md:hidden border-b border-border bg-background">
         <button
           type="button"
           onClick={() => setMobileOpen(o => !o)}
@@ -209,9 +228,29 @@ export function ProfileSectionNav({
       </div>
 
       {/* Desktop sidebar */}
-      <aside className="hidden lg:block lg:w-52 flex-shrink-0 border-r border-border">
-        <div className={cn(stickyClassName, 'space-y-3 p-3')}>
-          {showIdentity ? (
+      <aside
+        className={cn(
+          'hidden md:block flex-shrink-0 border-r border-border transition-[width] duration-200',
+          collapsed ? 'md:w-14' : 'md:w-52'
+        )}
+      >
+        <div className={cn(stickyClassName, collapsed ? 'space-y-2 p-2' : 'space-y-3 p-3')}>
+          <div className={cn('flex', collapsed ? 'justify-center' : 'justify-end')}>
+            <button
+              type="button"
+              onClick={() => setCollapsed(value => !value)}
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              aria-label={collapsed ? 'Expand profile menu' : 'Collapse profile menu'}
+              title={collapsed ? 'Expand menu' : 'Collapse menu'}
+            >
+              {collapsed ? (
+                <PanelLeftOpen className="h-4 w-4" />
+              ) : (
+                <PanelLeftClose className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+          {showIdentity && !collapsed ? (
             <div className="px-2 py-1">
               <p className="text-sm font-semibold text-foreground truncate">{fullName}</p>
               <p className="text-xs text-muted-foreground truncate">
@@ -230,7 +269,7 @@ export function ProfileSectionNav({
                 <p className="mt-1.5 text-[10px] text-muted-foreground leading-snug">{hint}</p>
               ) : null}
             </div>
-          ) : hint ? (
+          ) : hint && !collapsed ? (
             <p className="px-2 text-[10px] text-muted-foreground leading-snug">{hint}</p>
           ) : null}
 
@@ -240,6 +279,7 @@ export function ProfileSectionNav({
             active={active}
             onSelect={onSelect}
             groups={groups}
+            collapsed={collapsed}
           />
         </div>
       </aside>

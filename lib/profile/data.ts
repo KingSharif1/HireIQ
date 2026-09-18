@@ -4,6 +4,7 @@ import type {
   Profile,
 } from '@/types'
 import { emptyApplyAnswers, normalizeApplyAnswers } from '@/lib/profile/apply-answers'
+import { mergeDocumentVault } from '@/lib/profile/documents'
 
 /** A fully-empty ProfileData object. */
 export function emptyProfileData(): ProfileData {
@@ -32,6 +33,7 @@ export function emptyProfileData(): ProfileData {
     applyAnswers: emptyApplyAnswers(),
     provenance: {},
     pendingSuggestions: [],
+    dismissedSuggestionIds: [],
   }
 }
 
@@ -54,7 +56,10 @@ export function resolveProfileData(
     skills: { ...base.skills, ...(stored?.skills ?? {}) },
     provenance: stored?.provenance ?? {},
     pendingSuggestions: stored?.pendingSuggestions ?? [],
+    dismissedSuggestionIds: stored?.dismissedSuggestionIds ?? [],
     applyAnswers: normalizeApplyAnswers(stored?.applyAnswers),
+    additionalDocuments: mergeDocumentVault(stored?.additionalDocuments, stored?.attachments),
+    attachments: [],
   }
 
   // Personal info falls back to the profile row.

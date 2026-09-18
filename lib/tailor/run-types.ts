@@ -1,11 +1,12 @@
 import type { GapAnalysis, GapQuestion } from '@/types'
 import type { TailorProcessLogEntry } from '@/lib/tailor/process-log'
 
-/** Paid Claude calls for one tailor session. Gap + markdown rewrite (+ optional retry). */
+/** Paid Claude calls for one tailor session. Draft-first: rewrite (+ optional weave). No pre-draft gap call. */
 export const TAILOR_RUN_CLAUDE = {
-  gap: 1,
-  generate: 2,
-  total: 3,
+  gap: 0,
+  generate: 1,
+  weave: 2,
+  total: 2,
 } as const
 
 /** Longer than route `maxDuration` (120s) so we only fail after the worker is gone. */
@@ -88,8 +89,8 @@ export function shouldKickGapWorker(run: {
 }
 
 /** How many Claude calls this session is allowed to make. */
-export function claudeCallsForSession(hasMaterialGaps: boolean): number {
-  return hasMaterialGaps ? TAILOR_RUN_CLAUDE.total : TAILOR_RUN_CLAUDE.generate
+export function claudeCallsForSession(hasMaterialChips: boolean): number {
+  return hasMaterialChips ? TAILOR_RUN_CLAUDE.total : TAILOR_RUN_CLAUDE.generate
 }
 
 export function isStaleBusyRun(

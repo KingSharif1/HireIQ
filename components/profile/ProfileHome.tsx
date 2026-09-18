@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Check, Loader2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -11,12 +11,12 @@ import { ProfileSectionPanel, type ResumeRow } from '@/components/profile/Profil
 import {
   SECTION_GROUPS,
   SECTIONS,
-  isKnownSection,
+  canonicalSectionId,
   type SectionId,
 } from '@/lib/profile/sections'
 import { profilePath } from '@/lib/profile/paths'
 import type { Profile, ProfileData } from '@/types'
-import type { GitHubProfileData } from '@/lib/github/types'
+import type { GitHubProfileData, RepoIntelligenceRecord } from '@/lib/github/types'
 
 interface ProfileHomeProps {
   userId: string
@@ -24,13 +24,15 @@ interface ProfileHomeProps {
   profile: Profile | null
   resumes: ResumeRow[]
   githubData: GitHubProfileData | null
+  repoIntelligence: Record<number, RepoIntelligenceRecord>
+  /** Server-resolved section so SSR matches the URL (avoids hydration mismatch). */
+  initialSection?: SectionId
 }
 
 const DEFAULT_SECTION: SectionId = 'personal'
 
 function resolveInitialSection(param: string | null): SectionId {
-  if (param && isKnownSection(param)) return param
-  return DEFAULT_SECTION
+  return canonicalSectionId(param) ?? DEFAULT_SECTION
 }
 
 /**
@@ -43,6 +45,8 @@ export function ProfileHome({
   profile,
   resumes,
   githubData,
+  repoIntelligence,
+  initialSection = DEFAULT_SECTION,
 }: ProfileHomeProps) {
   const searchParams = useSearchParams()
   const sectionParam = searchParams.get('section')
@@ -54,13 +58,43 @@ export function ProfileHome({
     saving,
     saved,
     error,
+    acceptedFocus,
     handleSave,
     handleSuggestionResolved,
     router,
   } = useProfileSave({ userId, initialData, profile })
 
-  const active = useMemo(() => resolveInitialSection(sectionParam), [sectionParam])
+  const active = useMemo(() => {
+    if (!sectionParam) return initialSection
+    return resolveInitialSection(sectionParam)
+  }, [sectionParam, initialSection])
   const activeDef = SECTIONS.find(s => s.id === active)
+
+  useEffect(() => {
+    const canonical = canonicalSectionId(sectionParam)
+    if (!sectionParam || !canonical || sectionParam === canonical) return
+    const extra: Record<string, string> = {}
+    const githubError = searchParams.get('github_error')
+    const googleError = searchParams.get('google_error')
+    if (githubError) extra.github_error = githubError
+    if (googleError) extra.google_error = googleError
+    router.replace(profilePath(canonical, extra), { scroll: false })
+  }, [sectionParam, searchParams, router])
+
+  useEffect(() => {
+    if (!acceptedFocus) return
+    const timer = setTimeout(() => {
+      const target =
+        (acceptedFocus.bulletId
+          ? document.getElementById(`bullet-${acceptedFocus.bulletId}`)
+          : null) ??
+        (acceptedFocus.entryId
+          ? document.getElementById(`entry-${acceptedFocus.entryId}`)
+          : null)
+      target?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 80)
+    return () => clearTimeout(timer)
+  }, [acceptedFocus])
 
   function selectSection(id: SectionId) {
     const extra: Record<string, string> = {}
@@ -77,8 +111,10 @@ export function ProfileHome({
       <header className="sticky top-0 z-20 border-b border-border bg-white dark:bg-background">
         <div className="flex items-center justify-between gap-3 px-3 py-2.5 md:px-4">
           <div className="min-w-0">
-            <h1 className="truncate text-base font-semibold text-foreground">Profile</h1>
-            <p className="truncate text-xs text-muted-foreground">
+            <h1 className="truncate text-base font-semibold text-foreground" suppressHydrationWarning>
+              Profile
+            </h1>
+            <p className="truncate text-xs text-muted-foreground" suppressHydrationWarning>
               {activeDef?.label ?? 'Personal Info'} — used for tailoring, autofill, and apply
             </p>
           </div>
@@ -104,7 +140,7 @@ export function ProfileHome({
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+      <div className="flex min-h-0 flex-1 flex-col md:flex-row">
         <ProfileSectionNav
           data={data}
           resumeCount={resumes.length}
@@ -112,7 +148,7 @@ export function ProfileHome({
           onSelect={selectSection}
           groups={SECTION_GROUPS}
           emailFallback={profile?.email}
-          stickyClassName="lg:sticky lg:top-[57px]"
+          stickyClassName="md:sticky md:top-[57px]"
           hint="Open one section at a time."
         />
 
@@ -129,7 +165,9 @@ export function ProfileHome({
               update={update}
               resumes={resumes}
               githubData={githubData}
+              repoIntelligence={repoIntelligence}
               onSuggestionResolved={handleSuggestionResolved}
+              acceptedFocus={acceptedFocus}
               onGitHubSynced={() => router.refresh()}
               savedTheme={profile?.resume_theme ?? null}
             />

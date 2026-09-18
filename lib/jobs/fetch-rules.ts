@@ -49,6 +49,14 @@ export const HOST_FETCH_RULES: HostFetchRule[] = [
       'Microsoft careers (Eightfold PCSX) serves job JSON via apply.careers.microsoft.com/api/pcsx/position_details?position_id=… (added 2026-08-13).',
     addedAt: '2026-08-13',
   },
+  {
+    id: 'oracle-cx-playwright',
+    hostPattern: /(^|\.)oraclecloud\.com$/i,
+    type: 'html-selectors',
+    notes:
+      'Oracle HCM Candidate Experience (CX) is a heavy SPA; static fetch often yields title+blurb only. Prefer Playwright / thicker extract when under ~1200 chars (Task 168).',
+    addedAt: '2026-09-18',
+  },
 ]
 
 export function matchHostRule(url: string): HostFetchRule | null {

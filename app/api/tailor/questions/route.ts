@@ -10,6 +10,7 @@ import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { getMasterResumeContext } from '@/lib/profile/master'
 import { buildTailorPromptContext } from '@/lib/profile/tailor-context'
 import { formatGitHubContextForAi } from '@/lib/profile/github-context'
+import { loadLatestReadyIntelligence } from '@/lib/github/intelligence-store'
 import type { GitHubProfileData } from '@/lib/github/types'
 import { jsonForPrompt } from '@/lib/ai/tailor-engine'
 import { createProcessLog } from '@/lib/tailor/process-log'
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
   if (!jobId) return NextResponse.json({ error: 'jobId required', processLog: log.entries }, { status: 400 })
   log.step('Request validated', `jobId ${jobId.slice(0, 8)}…`)
 
-  const [master, jobRes, profileRes, enhancementsRes] = await Promise.all([
+  const [master, jobRes, profileRes, enhancementsRes, repoIntelligence] = await Promise.all([
     getMasterResumeContext(supabase, user.id, resumeId),
     supabase
       .from('jobs')
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(15),
+    loadLatestReadyIntelligence(supabase, user.id),
   ])
 
   if ('error' in master) {
@@ -75,7 +77,11 @@ export async function POST(request: Request) {
   )
 
   const githubData = profileRes.data?.github_data as GitHubProfileData | null | undefined
-  const githubContext = formatGitHubContextForAi(githubData ?? null)
+  const githubContext = formatGitHubContextForAi(githubData ?? null, {
+    profileData: master.profileData,
+    job: jobData,
+    intelligenceByRepoId: repoIntelligence,
+  })
   const ghRepos = githubData?.repos?.length ?? 0
   if (ghRepos > 0) {
     log.step('Loaded GitHub context', `${ghRepos} synced repos included in analysis`)

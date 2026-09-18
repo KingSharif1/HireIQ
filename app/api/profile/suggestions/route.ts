@@ -9,6 +9,7 @@ import { pendingClearedForTailorRun } from '@/lib/notifications'
 import { markNotificationsRead } from '@/lib/supabase/queries'
 import { validateEnrichment, type SuggestionEnrichment } from '@/lib/profile/suggestion-followup'
 import { suggestionNeedsFollowUp } from '@/lib/profile/suggestion-followup'
+import { acceptedSuggestionFocus } from '@/lib/profile/suggestion-focus'
 import type { Profile, ProfileData } from '@/types'
 
 export async function POST(request: Request) {
@@ -59,6 +60,8 @@ export async function POST(request: Request) {
     action === 'accept'
       ? acceptSuggestion(current, suggestionId, enrichment)
       : declineSuggestion(current, suggestionId)
+  const acceptedFocus =
+    action === 'accept' ? acceptedSuggestionFocus(current, updated, suggestion) : null
 
   const { error } = await supabase
     .from('profiles')
@@ -77,5 +80,6 @@ export async function POST(request: Request) {
   return NextResponse.json({
     profileData: updated,
     pendingCount: (updated.pendingSuggestions ?? []).length,
+    acceptedFocus,
   })
 }

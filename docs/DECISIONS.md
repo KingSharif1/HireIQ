@@ -1,5 +1,149 @@
 # HireIQ Decisions
 
+## 2026-09-18 — GitHub = CS evidence library; link carefully, enrich boldly
+
+**Context:** First user is CS; GitHub holds most real work. Goal is not aggressive auto-linking — it’s a durable **evidence library** so tailor/profile can fill forgotten skills/tools/projects without the user reconstructing memory by hand.
+
+**Locks (product):**
+1. **High-confidence same-thing → auto-link** (exact GitHub URL already on card, or strong name/URL match that isn’t a profile-README ambiguity). Write `project.github`; do not invent a second card.
+2. **Uncertain → ask** — e.g. repo `kinglive` / profile README vs resume project “Portfolio” (personal site). Never silent-link soft semantic matches.
+3. **Already linked / URL present on connect** → compare repo signal (tools, what it does) to the card; propose **updates** (tools + bullets) as pending suggestions. User accepts → master updates; deny → stop.
+4. **Enrichment = Option A** — never silent-write tools or bullets onto the master. Every new tool tag and every new bullet from sync/analyze lands as a **pending suggestion** the user Accepts one-by-one (same Accept/Deny UX as other profile suggestions). Deny forever for that suggestion id / fact.
+5. **Deny is permanent for that fact/repo suggestion** — re-sync / re-analyze must not re-offer the same declined GitHub suggestion id (or equivalent suppress list). Today decline only removes from pending — **gap to close**.
+6. **Archived repos** — never suggest as new projects; keep out of active discovery.
+7. **Deep analyze** stays explicit / job-relevant (Task 164); light sync briefs still feed tailor context. Missing resume skills that exist in analyzed repos surface as suggestions or tailor chips — not silent master mutation.
+8. Evidence may live as **context** (repo intelligence / GitHub brief) without appearing on the master resume until accepted.
+
+**Why:** CS applicants under-report GitHub work. HireIQ’s job is recall + evidence, with human accept for anything that hits the resume.
+
+**Tradeoff:** Soft matches require a tap; high-confidence links only set the URL. Enrichment is always suggestion-gated (Option A) so we never overwrite voice. More Accept taps than auto-merge tools.
+
+**Revisit if:** Users complain silent name-match links are wrong; then raise the auto-link bar to URL-only. Or Accept fatigue → revisit auto-merge for tech tags only.
+
+---
+
+## 2026-09-17 — Claude is the tailor quality bar; close via selection not more calls
+
+**Context:** Emerson Software Engineer bake-off — HireIQ ~50% draft vs Claude DOCX. Claude elevated Mapping Robot / hardware and omitted coursework C++; HireIQ kept a web/Agile story and thin Oracle JD.
+
+**Options:** (A) Add multi-agent / critique loops like Claude Code skills · (B) Keep 2-call ceiling; fix JD thickness + domain project ranking + skill proficiency honesty · (C) Ignore and ship draft-first as-is
+
+**Choice:** **B** — product stays ≤2 Claude calls. Quality work is Task **168** / [TAILOR-QUALITY.md](./TAILOR-QUALITY.md). Steal ideas from OSS (weighted reqs, embeddings for project pick) without cloning CLI skills.
+
+**Tradeoff:** No free Haiku critique until we trade weave or raise budget. Thin Oracle scrapes still need a paste-JD escape hatch (P2).
+
+**Revisit if:** Emerson re-run still loses after P0–P1; or users accept one extra cheap critique call.
+
+---
+
+## 2026-09-17 — Job detail honesty + Sonnet 5 strong (Task 167)
+
+**Context:** Job detail Overview/Description/Q&A/Email/Auto-apply felt unclear: glued ATS text as bullets, form answers duplicated on Activity, no email path labels, Auto-apply looked live without a worker, and tailor defaults were still Sonnet 4.6.
+
+**Options:** (A) Cosmetic copy only · (B) Full IA + description gate + worker honesty + Sonnet 5 defaults · (C) Also wire Cloud Run in this task
+
+**Choice:** **B** — ship UX/clarity + model defaults; Cloud Run deploy stays ops.
+
+**Tradeoff:** Auto-apply is visibly “setup needed” until env is set (honest, but not a working apply yet). Form answers still do not auto-promote into resumes (explicit copy).
+
+**Revisit if:** Worker is deployed (flip CTA to primary fill-then-pause); draft-first tailor (162) needs prompt work beyond the model default.
+
+---
+
+## 2026-09-17 — Suggestion quality: dedupe + who/when + retarget (Task 166)
+
+**Context:** Pending suggestions could re-offer facts already on the master, and tailor write-backs could keep a wrong `targetEntryId` while the text named Harper (or another role).
+
+**Locks:**
+- Content/near-dup filter before pending merge and on accept (no-op clear)
+- Misrouted experience/project suggestions retarget to the mentioned existing entry
+- Attribution copy: AI · GitHub · You (+ date on edits); pending cards show source + created date
+
+**Tradeoff:** Near-dup uses word similarity (≥0.88) — may skip lightly reworded suggestions; prefer fewer false adds.
+
+**Revisit if:** Users report good rewrites being dropped as duplicates.
+
+---
+
+## 2026-09-17 — Master Profile hub is locked (Tasks 163–165)
+
+**Context:** Documents, export, and GitHub add-project UX were iterated until they match how the master resume should work day to day.
+
+**Locks:** Documented in [PROFILE-MASTER.md](./PROFILE-MASTER.md). Summary:
+- DOCUMENTS rail = Resumes + Additional Documents only
+- Export = card action → dialog with live zoomable page; does not write master
+- Original PDF = authenticated file route + blob preview
+- Extra docs = link and/or PDF/DOCX under `{userId}/docs/`
+- GitHub = one panel; ask before duplicate; profile README → portfolio link
+- Long fields auto-grow
+
+**Tradeoff:** Extra docs share the resumes bucket. Profile README cards already on a user’s list are not auto-deleted (user can remove + re-link).
+
+**Revisit if:** User asks to change master-resume UX. Otherwise next work is Task **166** (suggestions), not more Profile chrome.
+
+---
+
+## 2026-09-17 — GitHub intelligence is explicit, bounded, and commit-cached (Task 164)
+
+**Context:** README/root-path snapshots were too shallow for accurate project matching, while reading every file in every repository during each tailor would be slow, costly, and unsafe.
+
+**Locks:**
+- Sync keeps a lightweight index for discovery; linking a repository does not trigger AI.
+- Deep analysis is user-triggered for linked or job-relevant repositories and selects bounded docs, manifests, config, source, API, database, test, and deployment files.
+- Evidence is cached in `repo_intelligence` by default-branch commit SHA and reused until the repository changes.
+- Tools and highlights require analyzed-file evidence. HireIQ describes repository capabilities, not unverifiable personal ownership or impact.
+- Source snapshots are transient. Secrets, binaries, generated/vendor output, lockfiles, and oversized files are excluded or redacted.
+- The existing GitHub Trees/blob APIs remain the runtime dependency; Gitingest/Repomix are worker references, not Next.js dependencies.
+
+**Tradeoff:** Analysis is not automatic for every repository, but the expensive path is controlled, reusable, and materially safer.
+
+**Revisit if:** Large monorepos regularly exceed tree limits, at which point move scanning to a durable worker with archive/Repomix support.
+
+---
+
+## 2026-09-17 — Documents live on Resumes + Additional Documents only (Task 165)
+
+**Context:** Profile DOCUMENTS had four rail items: Resumes, Export PDF, Additional Documents, Attachments. Export and Attachments duplicated Resumes / extra-docs. User wants a Sprout-style original-PDF view on Resumes, export only there, and extra files as labeled docs that can point at a project or other section.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Rail | DOCUMENTS = **Resumes** + **Additional Documents** only |
+| Old URLs | `?section=exportResume` → Resumes; `?section=attachments` → Additional Documents |
+| Resume cards | Stay: select / view original / replace / delete. **Export PDF** lives on the card |
+| Original view | Authenticated `GET /api/resume/:id/file` (user download, then service-role fallback). Preview uses a blob URL so a 404 is not a black iframe. DOCX opens as a file |
+| Export | Dialog from the resume card. Desktop: live `ResumePreview` of selected sections. Mobile: sheet with optional preview. Does not mutate master |
+| Attachments data | Merge `profile_data.attachments` into `additionalDocuments` on read; persist empty `attachments` on next save |
+| Extra docs | Label + optional URL + note + optional linked section/entries. **PDF/DOCX upload** to `{userId}/docs/` in the `resumes` bucket |
+| Out of scope | Suggestion dedupe / who-changed-what (Task 166); GitHub intel (Task 164) |
+
+**Tradeoff:** Extra-doc files share the resumes bucket under a `/docs/` prefix rather than a new bucket.
+
+**Revisit if:** Original PDFs still 404 after admin fallback (path parse vs missing object), or extra-doc uploads hit storage RLS.
+
+---
+
+## 2026-09-17 — Profile is the simple master evidence hub (Task 163)
+
+**Context:** The Profile already showed one section at a time, but its side navigation disappeared below 1024px and master suggestions were grouped above whole sections. The user wants a Sprout-style hub that supplies most tailoring context without becoming a complicated resume builder.
+
+**Locks:**
+| Area | Choice |
+|------|--------|
+| Navigation | One section at a time; side menu from tablet width; collapsible to an icon rail; compact drawer on phones |
+| Application answers | Work authorization, salary range, date of birth, and optional demographic dropdowns remain visible inside Personal Info; never printed on resumes or sent to tailoring |
+| Existing-entry updates | Show inside the exact experience/project being updated |
+| New-entry updates | Show at the top of the destination section |
+| Accept | Persist to Profile, open/scroll to the destination, then briefly highlight the new entry or bullet |
+| Decline | Remove the proposal without changing Profile |
+| Tailored copies | Remain separate from Profile/master |
+
+**Tradeoff:** More contextual suggestion rendering logic, but users no longer need to infer where accepted information will land.
+
+**Revisit if:** The icon rail is unclear without always-visible labels or suggestion volume needs a dedicated inbox.
+
+---
+
 ## 2026-09-17 — Draft first, ask only about leftover real gaps (Task 162)
 
 **Context:** Task 159 already strengthened one-page curation and export quality. The remaining UX problem is order: HireIQ still asks up to three gap questions before showing a draft. The [Red Hawk Claude tailor](https://claude.ai/chat/c41aa0eb-7afd-4008-9143-8e27c3bb57d0) instead produced a complete projects-led draft from known evidence and left unsupported n8n/Zapier/Make claims out.
@@ -18,7 +162,7 @@
 
 **Tradeoff:** The first draft can intentionally retain a real skill gap until the user supplies evidence.
 
-**Revisit if:** Draft-first increases abandoned review sessions or optional chips are mostly ignored.
+**Revisit if:** Draft-first increases abandoned review sessions or optional chips are mostly ignored. Live Red Hawk smoke waived by user (2026-09-17) — rely on unit tests + normal tailor usage.
 
 ---
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { scoreTailoredWithDecisions } from '@/lib/scoring/tailored-rescore'
+import { scoreImpactForChange, scoreTailoredWithDecisions } from '@/lib/scoring/tailored-rescore'
 import { sampleStructuredResume } from '@/lib/profile/__tests__/fixtures'
 import type { ResumeDiffChange } from '@/types'
 
@@ -35,5 +35,35 @@ describe('scoreTailoredWithDecisions', () => {
 
     expect(accepted.score.total).toBeGreaterThanOrEqual(declined.score.total)
     expect(Number.isFinite(accepted.matchScore)).toBe(true)
+  })
+})
+
+describe('scoreImpactForChange', () => {
+  it('reports positive delta when a change adds required keywords', () => {
+    const original = sampleStructuredResume()
+    const tailored = structuredClone(original)
+    tailored.summary = 'Rewritten summary with React and TypeScript expertise.'
+
+    const changes: ResumeDiffChange[] = [{
+      section: 'summary',
+      field: 'text',
+      before: original.summary,
+      after: tailored.summary,
+      changeType: 'changed',
+      reason: 'Adds React/TypeScript for the JD',
+    }]
+
+    const impact = scoreImpactForChange({
+      original,
+      tailored,
+      changes,
+      decisions: { 'summary:text:::0': { status: 'pending' } },
+      change: changes[0],
+      changeIndex: 0,
+      jobExtractedData: { required_skills: ['React', 'TypeScript'], keywords: ['React', 'TypeScript'] },
+    })
+
+    expect(impact.delta).toBeGreaterThanOrEqual(0)
+    expect(impact.withTotal).toBeGreaterThanOrEqual(impact.withoutTotal)
   })
 })

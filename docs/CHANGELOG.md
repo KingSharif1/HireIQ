@@ -1,3 +1,241 @@
+# HireIQ Changelog
+
+## 2026-09-18 — Task 171: TailorDiff what/why + expand + score impact
+
+**What:** Review change cards now lead with section, action, and Why; suggested text preview; ± match points for keeping the change. Before/after (and keyword/skill effect) live under **Show before / after**. Edit → Save recalculates that change’s ATS impact and the live match %.
+
+**Files:** `components/tailor/TailorDiff.tsx`, `components/jobs/detail/AiTailorFlow.tsx`, `lib/scoring/tailored-rescore.ts`, `lib/scoring/__tests__/tailored-rescore.test.ts`, TAILOR-EDIT, TASKS, STATUS
+
+**Why:** Users could not tell what a suggestion was or why; accepted rows hid the meaning; edits needed visible score feedback.
+
+**Next:** Live smoke on a needs_review tailor run.
+
+---
+
+## 2026-09-18 — Parallel lanes 168–170 reconciled
+
+**What:** Confirmed all three parallel tasks DONE. `types` additive merge clean (`role_thesis`/`domain_tags` + `dismissedSuggestionIds`). `tsc --noEmit` pass; 391 tests pass. STATUS handoff cleared; duplicate GitHub snapshot row removed.
+
+**Files:** `docs/STATUS.md`, CHANGELOG
+
+**Why:** Coordinator follow-up after review-UI lane completion (168/169 already marked DONE).
+
+**Next:** Live smoke of review overlay + GitHub enrich + Emerson-class tailor.
+
+---
+
+## 2026-09-18 — Task 168: Claude-quality tailor
+
+**What:** Closed Emerson bake-off gaps vs Claude without adding a third Claude call: domain/thesis-aware project ranking + preferred-project prompt block; analyze + types for `role_thesis` / `domain_tags`; prompt rule that coursework/familiar ≠ proficiency when the JD wants professional use; leftover chips drop vague phrases; thicker Oracle/generic JD scrape (16k cap, Playwright retry under ~1200 chars, Oracle CX host rule).
+
+**Files:** `lib/tailor/job-relevance.ts`, `lib/tailor/execute-run.ts`, `lib/tailor/ats-gap-hints.ts`, `lib/ai/prompts.ts`, `lib/jobs/job-scraper.ts`, `lib/jobs/fetch-types.ts`, `lib/jobs/fetch-rules.ts`, `lib/jobs/extractors/html-heuristic.ts`, `lib/jobs/normalize-job.ts`, `types/index.ts`, related tests, `docs/TAILOR-QUALITY.md`, TASKS
+
+**Why:** Thin Oracle JD + bag-of-tokens ranking promoted web projects and coursework C++; Claude won by thesis + hardware lead + honesty.
+
+**Next:** Re-run Emerson bake-off; optional paste-JD UX / Haiku critique remain P2.
+
+---
+
+## 2026-09-18 — Task 169: GitHub enrich via suggestions + deny forever
+
+**What:** Linked-repo sync enrichment is Option A only — missing tools and worthy bullets become pending suggestions (`gh-{repoId}-bullet` / `gh-{repoId}-tool-*`), never silent master writes. Declining persists the id in `profile_data.dismissedSuggestionIds` so re-sync cannot re-offer it. Soft name matches still skip new cards; high-confidence URL auto-link and archived exclusion unchanged.
+
+**Files:** `lib/github/suggestions.ts`, `lib/github/scan-project.ts`, `lib/profile/provenance.ts`, `lib/profile/data.ts`, `types/index.ts`, `lib/github/__tests__/{suggestions,sync-refresh}.test.ts`, `lib/profile/__tests__/provenance.test.ts`, `docs/GITHUB.md`, `docs/PROFILE-MASTER.md`, TASKS, CHANGELOG
+
+**Why:** CS evidence library needs recall without overwriting voice; deny must be permanent for GitHub suggestion ids.
+
+**Next:** Live sync smoke on a linked project; coordinator merges with lanes 168/170.
+
+---
+
+## 2026-09-18 — Task 170: Tailor review UI (preview-majority + independent scroll)
+
+**What:** Desktop review overlay no longer scrolls as one 4700px page. Left pane (score + TailorDiff) scrolls alone; ResumePreview takes ~70% width and stays viewport-height. Hover/focus a change highlights matching preview copy. Post-decision rows collapse to status + Undo (accepted still offers Decline/Edit); Decline is one tap. Icon buttons have `aria-label`.
+
+**Files:** `components/jobs/detail/AiTailorFlow.tsx`, `components/tailor/TailorDiff.tsx`, `docs/TAILOR-EDIT.md`, TASKS, CHANGELOG
+
+**Why:** Users were scrolling forever through suggestions + preview stacked as one document.
+
+**Next:** Manual UI smoke on a needs_review tailor run.
+
+---
+
+## 2026-09-18 — Parallel lanes: 168 + 169 + 170
+
+**What:** Claimed three non-overlapping tasks for simultaneous agents: **168** tailor quality, **169** GitHub enrich+suppress (Option A), **170** tailor review UI split. Shared `types/index.ts` additive-only; docs owned per lane.
+
+**Files:** STATUS, TASKS, CHANGELOG
+
+**Why:** User asked to run all three in parallel; file scopes do not collide if lanes are respected.
+
+**Next:** Agents implement; coordinator merges docs when done.
+
+---
+
+## 2026-09-18 — GitHub enrichment = pending suggestions only (Option A)
+
+**What:** Locked product: linked-repo tools/bullets always land as Accept/Deny suggestions — never silent master writes. Soft matches ask; high-confidence same-thing auto-links URL only. Deny must suppress forever (not shipped yet). Added Task **169**.
+
+**Files:** `docs/DECISIONS.md`, `docs/GITHUB.md`, `docs/PROFILE-MASTER.md`, `docs/TASKS.md`, CHANGELOG
+
+**Why:** CS-first evidence library with human gate on anything that hits the resume.
+
+**Next:** Claim Task 169 (enrich suggestions + suppress list) or Task 168 (tailor quality) / review UI.
+
+---
+
+## 2026-09-17 — Tailor quality: Emerson vs Claude + OSS survey
+
+**What:** Documented HireIQ vs Claude on Emerson Software Engineer (Claude wins on thesis, Mapping Robot lead, no coursework-C++). Captured P0–P2 improvement plan and first survey of related GitHub repos (Resume-Matcher, claude-code-job-tailor, OneResume, etc.). Added Task **168**. Prior “GitHub” work was OAuth/intel only — OSS tailor survey was not done before.
+
+**Files:** `docs/TAILOR-QUALITY.md`, `docs/TAILOR-EDIT.md`, STATUS, TASKS, DECISIONS, CHANGELOG
+
+**Why:** Bake-off showed draft-first is fine; selection/honesty/JD thickness are the quality gap.
+
+**Next:** Claim Task 168 (weighted/domain project pick + skill confidence + thicker Oracle JD).
+
+---
+
+## 2026-09-17 — Strip Greenhouse form chrome from JD + sanitize for tailor
+
+**What:** Full posting no longer keeps MyGreenhouse / First Name / country dial catalogs scraped into the JD. `normalizeJobExtractedData` strips the same chrome from summary/responsibilities so tailor prompts (and ATS scoring) do not ingest form widgets. Display + tailor both benefit; auto-apply still deferred until tailor is proven on a live job.
+
+**Files:** `lib/jobs/description.ts`, `lib/jobs/normalize-job.ts`, `lib/ai/tailor-pipeline.ts`, description tests, CHANGELOG
+
+**Why:** Aechelon Full posting showed a 900px phone-country blob; stored `extracted_data.summary` was also chrome-polluted and is what tailor sends as `{jobAnalysis}`.
+
+**Next:** Live Aechelon tailor smoke on Documents → AI tailor (draft-first already shipped in Task 162).
+
+---
+
+## 2026-09-17 — Task 162: draft-first tailor + optional leftover chips
+
+**What:** Tailor no longer quizzes before a draft. Gap phase stores ATS analysis and generates immediately. After the draft, ≤2 optional chips appear above review; skip clears them with no AI; real answers trigger one weave (2-call ceiling). Prompt requires posting thesis + map retained work; portfolio JDs get projects-first theme. Red Hawk live smoke removed from the roadmap (user waived).
+
+**Files:** `lib/tailor/execute-run.ts`, `runs.ts`, `run-types.ts`, `continue/route.ts`, `AiTailorFlow.tsx`, `lib/ai/prompts.ts`, tailor tests, STATUS/TASKS/TAILOR-EDIT/CHANGELOG/DECISIONS
+
+**Why:** Pre-draft Q&A blocked seeing a resume; chips after the draft match Option A.
+
+**Next:** Wire Cloud Run; Task 147.
+
+---
+
+## 2026-09-17 — Task 167: Job detail UX + Sonnet 5 defaults
+
+**What:** Job description no longer renders glued ATS chrome as responsibility bullets (also drops leftover title/location fragments like `RTK - … Internship` / `Farmer's Branch, Texas`). Full posting also truncates Greenhouse form widgets (MyGreenhouse, name fields, country dial catalogs). Activity tab dropped duplicate form answers. Q&A tab splits **Tailor gaps** vs **Form answers** (explicit: form answers do not update the tailored resume). Email badges name Synced from Gmail / Via HireIQ apply address / Forwarded to HireIQ. Auto-apply CTA shows **setup needed** (no queue) when Cloud Run worker env is unset; when ready, copy stresses fill-then-pause for review. Default strong model is **Sonnet 5**; fast stays Haiku 4.5.
+
+**Files:** `lib/jobs/description.ts`, `lib/jobs/__tests__/description.test.ts`, `lib/ai/models.ts`, `JobDetailPage.tsx`, `ApplicationAnswers.tsx`, `EmailInbox.tsx`, `JobSummary.tsx`, `AutoApplyWithHireIQ.tsx`, `QuestionsPanel.tsx`, `tracker/[jobId]/page.tsx`, STATUS/TASKS/DECISIONS/AUTO-APPLY
+
+**Why:** Live Aechelon posting showed unreadable description bullets; Activity repeated Q&A content; users could not tell email provenance or whether Auto-apply could actually run; tailor quality needed Sonnet 5 as the default strong model.
+
+**Decisions:** Prefer empty Responsibilities over mega-blob bullets (Full posting accordion remains). Form answers stay job-scoped. Worker readiness is server-derived from `APPLY_WORKER_URL` + `APPLY_WORKER_SECRET` (or `APPLY_WORKER_INLINE=1`).
+
+**Next:** Task 162 draft-first tailor; deploy Cloud Run for live Auto-apply.
+
+---
+
+## 2026-09-17 — Task 166: suggestion dedupe + attribution + Harper retarget
+
+**What:** Suggestions are filtered before offer/accept when the fact already exists (exact or near-dup). Misrouted bullets that name another company/project retarget on accept (Harper text → Harper role). Labels show **From AI · …**, **From GitHub · …**, or **You · edited {date}**; pending cards include source + date.
+
+**Files:** `lib/profile/suggestion-dedupe.ts`, `provenance.ts`, `PendingSuggestionsPanel.tsx`, `suggest/route.ts`, `lib/github/sync.ts`, tests, STATUS/TASKS/CHANGELOG
+
+**Why:** Stop duplicate Harper dumps and make who-changed-what obvious without touching the tailor pipeline (Task 162).
+
+**Next:** Task 162 draft-first tailor (shipped).
+
+---
+
+## 2026-09-17 — Parallel agent lanes (162 vs 166)
+
+**What:** Documented non-overlap: Task **162** owns tailor (`lib/tailor/**`, prompts, tailor APIs). Task **166** owns suggestion quality (`lib/profile/suggestion*`, Profile suggestion UI) and stays parked until 162 clears this worktree. Shared docs/`types` need one writer at a time.
+
+**Files:** `docs/STATUS.md`, `docs/TASKS.md`, `docs/CHANGELOG.md`
+
+**Why:** Two agents in one dirty tree already touch Profile + tailor files — avoid merge thrash.
+
+**Next:** Other agent finishes 162; then claim 166 (or use a separate worktree).
+
+---
+
+## 2026-09-17 — Document master Profile hub + handoff to Task 166
+
+**What:** Locked how the master resume works in [PROFILE-MASTER.md](./PROFILE-MASTER.md). Updated STATUS / TASKS / DECISIONS / ARCHITECTURE / TAILOR-EDIT so the next agent starts on **Task 166** (suggestion quality), not more Profile chrome.
+
+**Files:** `docs/PROFILE-MASTER.md`, STATUS, TASKS, DECISIONS, ARCHITECTURE, TAILOR-EDIT, CHANGELOG
+
+**Why:** Documents, export, GitHub add, and textareas are the intended master UX. Parallel agents need one source of truth.
+
+**Next:** Task 166 — dedupe suggestions, attribution, Harper wrong-role routing.
+
+---
+
+## 2026-09-17 — Export preview zoom + combined GitHub hub
+
+**What:** Master export dialog is larger with live zoom/pan controls (`fitAxis="width"`). GitHub Connect + Add from GitHub are one panel. Adding a repo asks before duplicating; profile README repos (e.g. `KingSharif1/KingSharif1`) suggest linking to a portfolio project instead of a new card. GitHub status fetch no longer crashes on HTML error pages. Profile section comes from the server to cut hydration flicker.
+
+**Files:** `MasterExportPanel`, `ResumePreview`, `GitHubConnectPanel`, `scan-project`, `repo-quality`, `suggestions`, `sync`, `ProfileHome`, profile page, Settings, tests, `docs/scripts/ui-profile-docs.mjs`
+
+**Why:** Export preview was too small with no zoom. Two GitHub cards felt disconnected. Username README repos were becoming fake projects.
+
+**Next:** Task 166 suggestion quality.
+
+---
+
+## 2026-09-17 — Task 164: GitHub repository intelligence
+
+**What:** Added explicit, bounded repository analysis through the existing GitHub OAuth connection. HireIQ resolves the default-branch commit, selects high-signal files from the recursive tree, redacts likely secrets, uses the fast AI model for evidence-backed architecture/tools/features/highlights, and caches results by commit SHA. Linked, job-relevant project evidence now enters tailoring context, and Profile can add reviewed highlights with GitHub provenance.
+
+**Files:** `lib/github/{client,deep-scan,analyze-repo,intelligence-store}.ts`, intelligence API, Profile GitHub field and project wiring, AI prompt/model catalog, tailor context/callers, profile provenance, migration 024, tests, GitHub/architecture/status/task/migration docs
+
+**Why:** Tailoring needs enough repository evidence to understand real project capabilities without repeatedly reading every repo, trusting README marketing, or inventing tool usage and personal impact.
+
+**Decisions:** Lightweight sync for discovery; explicit deep scan; bounded transient source; per-commit cache; evidence required for claims. Migration 024 was applied through the HireIQ project Supabase MCP with optimized owner-only RLS.
+
+**Next:** Reconnect GitHub for a live repository smoke test, then Task 166 suggestion dedupe and attribution.
+
+---
+
+## 2026-09-17 — Task 165 polish: original PDF, export dialog, extra-doc files
+
+**What:** Original resume files download with a service-role fallback after ownership check, then preview as a blob (no black iframe on 404). Export PDF sits on the resume card and opens a dialog: desktop live page preview, mobile sheet with optional preview. Additional Documents accept PDF/DOCX uploads into `{userId}/docs/` plus labeled links. Long profile textareas grow with the text.
+
+**Files:** `ResumesSection`, `MasterExportPanel`, `AdditionalDocumentsSection`, `ProvenanceBulletEditor`, `primitives`, `textarea`, `lib/profile/{documents,extra-document-store}.ts`, `lib/storage/download-resume.ts`, `app/api/resume/[id]/file`, `app/api/profile/documents/**`, tests, docs
+
+**Why:** The original-file route 404 left a black pane. Export was a header button that scrolled the page. Extra docs needed real files, not only URLs. Fixed-height bullets hid long text.
+
+**Decisions:** Authenticated file routes stay; extra docs reuse the `resumes` bucket under `/docs/`. Master export still does not mutate profile. Task 166 stays suggestion quality.
+
+**Next:** Task 166 suggestion quality.
+
+---
+
+## 2026-09-17 — Task 165: Profile documents vault
+
+**What:** Profile Documents is Resumes + Additional Documents only. Export PDF and Attachments are gone from the rail. Resumes keeps the card (view / replace / delete), shows the original upload in-pane, and hosts master export. Extra docs are labeled links that can refer to a section and specific projects/roles. Legacy `attachments[]` merge into `additionalDocuments` on read. Original files stream through an authenticated `/api/resume/:id/file` route because the public storage URL returns 400.
+
+**Files:** `ResumesSection`, `AdditionalDocumentsSection`, `ProfileSectionPanel`, `ProfileHome`, `ProfileWorkspace`, `sections.tsx`, `lib/profile/{sections,documents,data,provenance,resume-row,load-workspace}.ts`, `app/api/resume/[id]/file/route.ts`, `types/index.ts`, tests, docs
+
+**Why:** Two extra nav items duplicated Resumes / extra docs. Users need to see the uploaded PDF in place, like Sprout, and keep extra files attached to the work they support.
+
+**Decisions:** Extra docs support labeled links plus PDF/DOCX uploads. Old `?section=exportResume` / `attachments` URLs rewrite. Task 166 is suggestion quality (Harper dupes).
+
+**Next:** Task 166 suggestion quality.
+
+---
+
+## 2026-09-17 — Task 163: Profile master hub + contextual updates
+
+**What:** Profile keeps one section open at a time, but its Sprout-style menu now appears from tablet width and collapses to an icon rail. Application Information remains visible inside Personal Info with work eligibility, salary range, date of birth, demographic dropdowns, and saved answers. Existing experience/project suggestions now render inside the exact entry they update; new-entry suggestions remain at the section top. Accepting opens, scrolls to, and briefly highlights the resulting entry/bullet.
+
+**Files:** `ProfileHome`, `ProfileSectionNav`, `ProfileSectionPanel`, `sections`, `PendingSuggestionsPanel`, `ProvenanceBulletEditor`, `primitives`, `useProfileSave`, `types/index.ts`, `lib/profile/{sections,provenance,suggestion-focus,apply-answers}.ts`, `lib/extension/autofill-context.ts`, suggestions API, profile/extension tests, active docs
+
+**Why:** Profile should be the simple master evidence hub for tailoring and autofill. Users should know where a proposed fact will land before accepting it and immediately see what changed afterward.
+
+**Next:** Build Task 164 repository intelligence using GitHub Trees + selective blobs; keep Gitingest/Repomix as worker references rather than adding a Python runtime to Next.js.
+
+---
+
 ## 2026-09-17 — Task 162 started: draft-first tailor handoff
 
 **What:** Locked the next tailoring change: generate a complete first version from Profile, GitHub, prior evidence, and the JD before asking anything. After the draft, show at most two optional chips for important JD tools still unsupported. Skip leaves the tool off.

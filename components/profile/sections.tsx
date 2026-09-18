@@ -1,14 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
-import { Plus, FileText, Star, ExternalLink, Upload, Trash2 } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { uid } from '@/lib/profile/data'
 import { normalizeApplyAnswers } from '@/lib/profile/apply-answers'
 import type {
@@ -20,8 +16,6 @@ import type {
   ProfileVolunteering,
   ProfileAchievement,
   ProfileURL,
-  ProfileDocument,
-  Resume,
 } from '@/types'
 import {
   Field,
@@ -36,15 +30,19 @@ import {
 import { ProvenanceBulletEditor } from './ProvenanceBulletEditor'
 import { GitHubConnectPanel } from './GitHubConnectPanel'
 import { GitHubRepoField } from './GitHubRepoField'
-import { GitHubAddProject } from './GitHubAddProject'
 import { PendingSuggestionsPanel } from './PendingSuggestionsPanel'
 import { Suspense } from 'react'
 import { bulletsWithIds } from '@/lib/profile/bullets'
-import { recordBulletEdit, entrySourceLabel } from '@/lib/profile/provenance'
+import {
+  addGitHubProjectHighlight,
+  recordBulletEdit,
+  entrySourceLabel,
+} from '@/lib/profile/provenance'
 import { focusNewEntry } from '@/lib/profile/focus-entry'
+import type { AcceptedSuggestionFocus } from '@/lib/profile/suggestion-focus'
+import { cn } from '@/lib/utils'
 
 type Update = (patch: Partial<ProfileData>) => void
-type ResumeRow = Pick<Resume, 'id' | 'title' | 'ats_format_score' | 'is_primary' | 'created_at' | 'original_file_url'>
 
 // ---------------------------------------------------------------------------
 // Personal Info
@@ -58,7 +56,7 @@ export function PersonalSection({ data, update }: { data: ProfileData; update: U
     <div>
       <SectionHeader title="Personal Info" description="The basics that appear at the top of every resume." />
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="First name" required>
             <Input value={p.firstName} onChange={e => set({ firstName: e.target.value })} placeholder="John" />
           </Field>
@@ -69,7 +67,7 @@ export function PersonalSection({ data, update }: { data: ProfileData; update: U
         <Field label="Headline" hint="A short professional title, e.g. “Senior Frontend Engineer”.">
           <Input value={p.headline} onChange={e => set({ headline: e.target.value })} placeholder="Software Engineer" />
         </Field>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Email" required>
             <Input type="email" value={p.email} onChange={e => set({ email: e.target.value })} placeholder="you@email.com" />
           </Field>
@@ -77,13 +75,25 @@ export function PersonalSection({ data, update }: { data: ProfileData; update: U
             <Input value={p.phone} onChange={e => set({ phone: e.target.value })} placeholder="(555) 123-4567" />
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Location">
             <Input value={p.location} onChange={e => set({ location: e.target.value })} placeholder="City, State" />
           </Field>
           <Field label="Pronouns">
             <Input value={p.pronouns} onChange={e => set({ pronouns: e.target.value })} placeholder="they/them" />
           </Field>
+        </div>
+        <div className="rounded-xl border border-border bg-secondary/20">
+          <div className="border-b border-border px-4 py-3">
+            <p className="text-sm font-medium text-foreground">Application information</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Work eligibility, salary preferences, voluntary demographics, and reusable answers.
+              Never printed on your resume.
+            </p>
+          </div>
+          <div className="px-4 py-4">
+            <ApplyAnswersSection data={data} update={update} embedded />
+          </div>
         </div>
       </div>
     </div>
@@ -95,6 +105,51 @@ const YES_NO = [
   { value: 'yes', label: 'Yes' },
   { value: 'no', label: 'No' },
 ]
+
+const GENDER_OPTIONS = [
+  { value: '', label: 'Not set' },
+  { value: 'male', label: 'Male' },
+  { value: 'female', label: 'Female' },
+  { value: 'non_binary', label: 'Non-binary' },
+  { value: 'other', label: 'Other' },
+  { value: 'prefer_not', label: 'Prefer not to answer' },
+]
+
+const ETHNICITY_OPTIONS = [
+  { value: '', label: 'Not set' },
+  { value: 'american_indian_alaska_native', label: 'American Indian or Alaska Native' },
+  { value: 'asian', label: 'Asian' },
+  { value: 'black_african_american', label: 'Black or African American' },
+  { value: 'hispanic_latino', label: 'Hispanic or Latino' },
+  { value: 'middle_eastern_north_african', label: 'Middle Eastern or North African' },
+  { value: 'native_hawaiian_pacific_islander', label: 'Native Hawaiian or Other Pacific Islander' },
+  { value: 'white', label: 'White' },
+  { value: 'two_or_more', label: 'Two or more races' },
+  { value: 'other', label: 'Other' },
+  { value: 'prefer_not', label: 'Prefer not to answer' },
+]
+
+const VETERAN_OPTIONS = [
+  { value: '', label: 'Not set' },
+  { value: 'not_protected_veteran', label: 'I am not a protected veteran' },
+  { value: 'protected_veteran', label: 'I identify as a protected veteran' },
+  { value: 'prefer_not', label: 'Prefer not to answer' },
+]
+
+const DISABILITY_OPTIONS = [
+  { value: '', label: 'Not set' },
+  { value: 'no', label: 'No, I do not have a disability' },
+  { value: 'yes', label: 'Yes, I have a disability or had one previously' },
+  { value: 'prefer_not', label: 'Prefer not to answer' },
+]
+
+function optionsWithCurrent(
+  options: { value: string; label: string }[],
+  current: string
+): { value: string; label: string }[] {
+  if (!current || options.some(option => option.value === current)) return options
+  return [options[0], { value: current, label: current }, ...options.slice(1)]
+}
 
 function ApplySelect({
   label,
@@ -122,17 +177,27 @@ function ApplySelect({
   )
 }
 
-export function ApplyAnswersSection({ data, update }: { data: ProfileData; update: Update }) {
+export function ApplyAnswersSection({
+  data,
+  update,
+  embedded = false,
+}: {
+  data: ProfileData
+  update: Update
+  embedded?: boolean
+}) {
   const answers = normalizeApplyAnswers(data.applyAnswers)
   const set = (patch: Partial<ProfileApplyAnswers>) =>
     update({ applyAnswers: { ...answers, ...patch } })
 
   return (
     <div>
-      <SectionHeader
-        title="Application form"
-        description="Answers HireIQ reuses on Greenhouse-like apply forms. Not printed on your resume."
-      />
+      {!embedded && (
+        <SectionHeader
+          title="Application form"
+          description="Answers HireIQ reuses on Greenhouse-like apply forms. Not printed on your resume."
+        />
+      )}
       <div className="space-y-6">
         <div className="space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -169,6 +234,39 @@ export function ApplyAnswersSection({ data, update }: { data: ProfileData; updat
           </div>
         </div>
 
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Salary expectations
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Optional annual base-salary range. Used only when an application asks.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Minimum salary">
+              <Input
+                type="number"
+                min="0"
+                step="1000"
+                value={answers.desiredSalaryMin}
+                onChange={e => set({ desiredSalaryMin: e.target.value })}
+                placeholder="70000"
+              />
+            </Field>
+            <Field label="Maximum salary">
+              <Input
+                type="number"
+                min="0"
+                step="1000"
+                value={answers.desiredSalaryMax}
+                onChange={e => set({ desiredSalaryMax: e.target.value })}
+                placeholder="115000"
+              />
+            </Field>
+          </div>
+        </div>
+
         <div className="space-y-4 rounded-xl border border-border bg-secondary/20 p-4">
           <div>
             <p className="text-sm font-medium text-foreground">Equal opportunity (optional)</p>
@@ -177,34 +275,37 @@ export function ApplyAnswersSection({ data, update }: { data: ProfileData; updat
             </p>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="Gender">
+            <Field label="Date of birth" hint="Leave blank unless you want HireIQ to reuse it.">
               <Input
-                value={answers.gender}
-                onChange={e => set({ gender: e.target.value })}
-                placeholder="Prefer not to say"
+                type="date"
+                value={answers.dateOfBirth}
+                onChange={e => set({ dateOfBirth: e.target.value })}
               />
             </Field>
-            <Field label="Race / ethnicity">
-              <Input
-                value={answers.ethnicity}
-                onChange={e => set({ ethnicity: e.target.value })}
-                placeholder="Prefer not to say"
-              />
-            </Field>
-            <Field label="Veteran status">
-              <Input
-                value={answers.veteran}
-                onChange={e => set({ veteran: e.target.value })}
-                placeholder="Prefer not to say"
-              />
-            </Field>
-            <Field label="Disability">
-              <Input
-                value={answers.disability}
-                onChange={e => set({ disability: e.target.value })}
-                placeholder="Prefer not to say"
-              />
-            </Field>
+            <ApplySelect
+              label="Gender"
+              value={answers.gender}
+              options={optionsWithCurrent(GENDER_OPTIONS, answers.gender)}
+              onChange={gender => set({ gender })}
+            />
+            <ApplySelect
+              label="Race / ethnicity"
+              value={answers.ethnicity}
+              options={optionsWithCurrent(ETHNICITY_OPTIONS, answers.ethnicity)}
+              onChange={ethnicity => set({ ethnicity })}
+            />
+            <ApplySelect
+              label="Veteran status"
+              value={answers.veteran}
+              options={optionsWithCurrent(VETERAN_OPTIONS, answers.veteran)}
+              onChange={veteran => set({ veteran })}
+            />
+            <ApplySelect
+              label="Disability"
+              value={answers.disability}
+              options={optionsWithCurrent(DISABILITY_OPTIONS, answers.disability)}
+              onChange={disability => set({ disability })}
+            />
           </div>
         </div>
 
@@ -259,21 +360,28 @@ export function SummarySection({
   data,
   update,
   onSuggestionResolved,
+  acceptedFocus,
 }: {
   data: ProfileData
   update: Update
   onSuggestionResolved?: (id: string, action: 'accept' | 'decline') => Promise<void>
+  acceptedFocus?: AcceptedSuggestionFocus | null
 }) {
   const pending = (data.pendingSuggestions ?? []).filter(s => s.section === 'summary')
   return (
     <div>
+      <SectionHeader title="Summary" description="A 2–4 sentence professional overview. This anchors your tailored resumes." />
       {pending.length > 0 && onSuggestionResolved && (
         <div className="mb-4">
-          <PendingSuggestionsPanel suggestions={pending} onResolved={onSuggestionResolved} />
+          <PendingSuggestionsPanel
+            suggestions={pending}
+            onResolved={onSuggestionResolved}
+            placement="field"
+          />
         </div>
       )}
-      <SectionHeader title="Summary" description="A 2–4 sentence professional overview. This anchors your tailored resumes." />
       <Textarea
+        className={acceptedFocus?.section === 'summary' ? 'border-brand-green/60 bg-brand-green/5 ring-2 ring-brand-green/15' : undefined}
         value={data.summary}
         onChange={e => update({ summary: e.target.value })}
         rows={6}
@@ -331,13 +439,20 @@ export function ExperienceSection({
   data,
   update,
   onSuggestionResolved,
+  acceptedFocus,
 }: {
   data: ProfileData
   update: Update
   onSuggestionResolved?: (id: string, action: 'accept' | 'decline') => Promise<void>
+  acceptedFocus?: AcceptedSuggestionFocus | null
 }) {
   const items = data.experience
   const pending = (data.pendingSuggestions ?? []).filter(s => s.section === 'experience')
+  const newPending = pending.filter(
+    suggestion =>
+      !suggestion.targetEntryId ||
+      !items.some(entry => entry.id === suggestion.targetEntryId)
+  )
   const add = () => {
     const { bullets, bulletIds } = bulletsWithIds([''], undefined, 'bul')
     const item = {
@@ -361,30 +476,41 @@ export function ExperienceSection({
 
   return (
     <div>
-      {pending.length > 0 && onSuggestionResolved && (
-        <div className="mb-4">
-          <PendingSuggestionsPanel suggestions={pending} onResolved={onSuggestionResolved} />
-        </div>
-      )}
       <SectionHeader
         title="Experience"
         description="Your work history. Lead each bullet with a strong action verb."
         action={<Button size="sm" onClick={add}><Plus className="w-4 h-4" />Add role</Button>}
       />
+      {newPending.length > 0 && onSuggestionResolved && (
+        <div className="mb-4">
+          <PendingSuggestionsPanel suggestions={newPending} onResolved={onSuggestionResolved} />
+        </div>
+      )}
       {items.length === 0 ? (
         <EmptyState message="No experience added yet." actionLabel="Add role" onAction={add} />
       ) : (
         <div className="space-y-3">
-          {items.map(exp => (
-            <EntryCard
+          {items.map(exp => {
+            const entrySuggestions = pending.filter(s => s.targetEntryId === exp.id)
+            return (
+              <EntryCard
               key={exp.id}
               entryId={exp.id}
               title={exp.title || 'New role'}
               subtitle={[exp.company, exp.location].filter(Boolean).join(' · ')}
               sourceLine={entrySourceLabel(data.provenance, exp.bulletIds, exp.bullets)}
               onRemove={() => remove(exp.id)}
-              defaultOpen={!exp.title}
+              defaultOpen={!exp.title || entrySuggestions.length > 0}
+              emphasized={acceptedFocus?.entryId === exp.id}
+              attention={entrySuggestions.length > 0}
             >
+              {entrySuggestions.length > 0 && onSuggestionResolved && (
+                <PendingSuggestionsPanel
+                  suggestions={entrySuggestions}
+                  onResolved={onSuggestionResolved}
+                  placement="entry"
+                />
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Title"><Input value={exp.title} onChange={e => setItem(exp.id, { title: e.target.value })} placeholder="Software Engineer" /></Field>
                 <Field label="Company"><Input value={exp.company} onChange={e => setItem(exp.id, { company: e.target.value })} placeholder="Acme Inc." /></Field>
@@ -401,6 +527,9 @@ export function ExperienceSection({
                   bullets={exp.bullets}
                   bulletIds={exp.bulletIds ?? bulletsWithIds(exp.bullets, exp.bulletIds).bulletIds}
                   provenance={data.provenance ?? {}}
+                  highlightBulletId={
+                    acceptedFocus?.entryId === exp.id ? acceptedFocus.bulletId : undefined
+                  }
                   onChange={(bullets, bulletIds, edits) => {
                     let provenance = data.provenance ?? {}
                     for (const e of edits) {
@@ -420,8 +549,9 @@ export function ExperienceSection({
                   }}
                 />
               </Field>
-            </EntryCard>
-          ))}
+              </EntryCard>
+            )
+          })}
         </div>
       )}
     </div>
@@ -497,17 +627,26 @@ export function ProjectsSection({
   data,
   update,
   githubData,
+  repoIntelligence,
   onSuggestionResolved,
   onGitHubSynced,
+  acceptedFocus,
 }: {
   data: ProfileData
   update: Update
   githubData?: import('@/lib/github/types').GitHubProfileData | null
+  repoIntelligence?: Record<number, import('@/lib/github/types').RepoIntelligenceRecord>
   onSuggestionResolved?: (id: string, action: 'accept' | 'decline') => Promise<void>
   onGitHubSynced?: () => void
+  acceptedFocus?: AcceptedSuggestionFocus | null
 }) {
   const items = data.projects
   const pending = (data.pendingSuggestions ?? []).filter(s => s.section === 'projects')
+  const newPending = pending.filter(
+    suggestion =>
+      !suggestion.targetEntryId ||
+      !items.some(entry => entry.id === suggestion.targetEntryId)
+  )
   const add = () => {
     const item = {
       id: uid('proj'),
@@ -531,30 +670,35 @@ export function ProjectsSection({
 
   return (
     <div>
-      <Suspense fallback={null}>
-        <GitHubConnectPanel initialGithubData={githubData ?? null} onSynced={onGitHubSynced} />
-      </Suspense>
-      {pending.length > 0 && onSuggestionResolved && (
-        <div className="mb-4">
-          <PendingSuggestionsPanel suggestions={pending} onResolved={onSuggestionResolved} />
-        </div>
-      )}
       <SectionHeader
         title="Projects"
         description="Side projects, open source, or notable work products."
         action={<Button size="sm" onClick={add}><Plus className="w-4 h-4" />Add project</Button>}
       />
-      <GitHubAddProject
-        repos={githubData?.repos ?? []}
-        existing={items}
-        onAdd={addFromGithub}
-      />
+      {newPending.length > 0 && onSuggestionResolved && (
+        <div className="mb-4">
+          <PendingSuggestionsPanel suggestions={newPending} onResolved={onSuggestionResolved} />
+        </div>
+      )}
+      <Suspense fallback={null}>
+        <GitHubConnectPanel
+          initialGithubData={githubData ?? null}
+          existing={items}
+          onSynced={onGitHubSynced}
+          onAddProject={addFromGithub}
+          onLinkProject={(projectId, githubUrl) =>
+            setItem(projectId, { github: githubUrl, source: 'github' })
+          }
+        />
+      </Suspense>
       {items.length === 0 ? (
         <EmptyState message="No projects added yet." actionLabel="Add project" onAction={add} />
       ) : (
         <div className="space-y-3">
-          {items.map(proj => (
-            <EntryCard
+          {items.map(proj => {
+            const entrySuggestions = pending.filter(s => s.targetEntryId === proj.id)
+            return (
+              <EntryCard
               key={proj.id}
               entryId={proj.id}
               title={proj.name || 'New project'}
@@ -572,23 +716,63 @@ export function ProjectsSection({
               }
               sourceHref={proj.github || null}
               onRemove={() => remove(proj.id)}
-              defaultOpen={!proj.name}
+              defaultOpen={!proj.name || entrySuggestions.length > 0}
+              emphasized={acceptedFocus?.entryId === proj.id}
+              attention={entrySuggestions.length > 0}
             >
+              {entrySuggestions.length > 0 && onSuggestionResolved && (
+                <PendingSuggestionsPanel
+                  suggestions={entrySuggestions}
+                  onResolved={onSuggestionResolved}
+                  placement="entry"
+                />
+              )}
               <Field label="Name"><Input value={proj.name} onChange={e => setItem(proj.id, { name: e.target.value })} placeholder="Project name" /></Field>
               <Field label="Live URL"><Input value={proj.url} onChange={e => setItem(proj.id, { url: e.target.value })} placeholder="https://…" /></Field>
               <GitHubRepoField
                 project={proj}
                 repos={githubData?.repos ?? []}
+                intelligenceByRepoId={repoIntelligence ?? {}}
                 onChange={patch => setItem(proj.id, patch)}
+                onAddHighlight={(text, sourceLabel, technologies) =>
+                  update(addGitHubProjectHighlight(data, proj.id, text, sourceLabel, technologies))
+                }
               />
               <Field label="Technologies">
                 <TagInput tags={proj.technologies} onChange={technologies => setItem(proj.id, { technologies })} placeholder="React, Node, Postgres…" />
               </Field>
               <Field label="Highlights">
-                <BulletEditor bullets={proj.bullets} onChange={bullets => setItem(proj.id, { bullets })} />
+                <ProvenanceBulletEditor
+                  bullets={proj.bullets}
+                  bulletIds={
+                    proj.bulletIds ?? bulletsWithIds(proj.bullets, proj.bulletIds, 'pbul').bulletIds
+                  }
+                  provenance={data.provenance ?? {}}
+                  highlightBulletId={
+                    acceptedFocus?.entryId === proj.id ? acceptedFocus.bulletId : undefined
+                  }
+                  onChange={(bullets, bulletIds, edits) => {
+                    let provenance = data.provenance ?? {}
+                    for (const edit of edits) {
+                      provenance = recordBulletEdit(
+                        { ...data, provenance },
+                        edit.bulletId,
+                        edit.before,
+                        edit.after
+                      ).provenance ?? provenance
+                    }
+                    update({
+                      provenance,
+                      projects: items.map(item =>
+                        item.id === proj.id ? { ...item, bullets, bulletIds } : item
+                      ),
+                    })
+                  }}
+                />
               </Field>
-            </EntryCard>
-          ))}
+              </EntryCard>
+            )
+          })}
         </div>
       )}
     </div>
@@ -659,10 +843,12 @@ export function SkillsSection({
   data,
   update,
   onSuggestionResolved,
+  acceptedFocus,
 }: {
   data: ProfileData
   update: Update
   onSuggestionResolved?: (id: string, action: 'accept' | 'decline') => Promise<void>
+  acceptedFocus?: AcceptedSuggestionFocus | null
 }) {
   const s = data.skills
   const pending = (data.pendingSuggestions ?? []).filter(s => s.section === 'skills')
@@ -676,13 +862,22 @@ export function SkillsSection({
 
   return (
     <div>
+      <SectionHeader title="Skills & Certifications" description="Technical skills, tools, languages, and credentials." />
       {pending.length > 0 && onSuggestionResolved && (
         <div className="mb-4">
-          <PendingSuggestionsPanel suggestions={pending} onResolved={onSuggestionResolved} />
+          <PendingSuggestionsPanel
+            suggestions={pending}
+            onResolved={onSuggestionResolved}
+            placement="field"
+          />
         </div>
       )}
-      <SectionHeader title="Skills & Certifications" description="Technical skills, tools, languages, and credentials." />
-      <div className="space-y-5">
+      <div
+        className={cn(
+          'space-y-5 rounded-xl transition-colors duration-500',
+          acceptedFocus?.section === 'skills' && 'bg-brand-green/5 ring-2 ring-brand-green/15'
+        )}
+      >
         <Field label="Technical skills"><TagInput tags={s.technical} onChange={technical => setSkills({ technical })} placeholder="TypeScript, Python…" /></Field>
         <Field label="Tools & platforms"><TagInput tags={s.tools} onChange={tools => setSkills({ tools })} placeholder="AWS, Docker, Figma…" /></Field>
         <Field label="Soft skills"><TagInput tags={s.soft} onChange={soft => setSkills({ soft })} placeholder="Leadership, Communication…" /></Field>
@@ -765,171 +960,5 @@ export function AdditionalSection({ data, update }: { data: ProfileData; update:
       <SectionHeader title="Additional" description="Anything else worth noting — interests, hobbies, or context that is not an application form field." />
       <Textarea value={data.additional} onChange={e => update({ additional: e.target.value })} rows={8} placeholder="Add any extra context here…" />
     </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Documents: Additional Documents & Attachments (link/note lists)
-// ---------------------------------------------------------------------------
-
-function DocumentList({
-  title,
-  description,
-  docs,
-  onChange,
-}: {
-  title: string
-  description: string
-  docs: ProfileDocument[]
-  onChange: (next: ProfileDocument[]) => void
-}) {
-  const add = () => {
-    const item = { id: uid('doc'), name: '', url: '', note: '' }
-    onChange([item, ...docs])
-    focusNewEntry(item.id)
-  }
-  const setItem = (id: string, patch: Partial<ProfileDocument>) =>
-    onChange(docs.map(d => (d.id === id ? { ...d, ...patch } : d)))
-  const remove = (id: string) => onChange(docs.filter(d => d.id !== id))
-
-  return (
-    <div>
-      <SectionHeader title={title} description={description} action={<Button size="sm" onClick={add}><Plus className="w-4 h-4" />Add</Button>} />
-      {docs.length === 0 ? (
-        <EmptyState message="Nothing here yet." actionLabel="Add link" onAction={add} />
-      ) : (
-        <div className="space-y-3">
-          {docs.map(d => (
-            <EntryCard key={d.id} entryId={d.id} title={d.name || 'New document'} subtitle={d.url} onRemove={() => remove(d.id)} defaultOpen={!d.name}>
-              <Field label="Name"><Input value={d.name} onChange={e => setItem(d.id, { name: e.target.value })} placeholder="Transcript, reference letter…" /></Field>
-              <Field label="Link"><Input value={d.url} onChange={e => setItem(d.id, { url: e.target.value })} placeholder="https://…" /></Field>
-              <Field label="Note"><Input value={d.note} onChange={e => setItem(d.id, { note: e.target.value })} placeholder="Optional note" /></Field>
-            </EntryCard>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-export function AdditionalDocumentsSection({ data, update }: { data: ProfileData; update: Update }) {
-  return (
-    <DocumentList
-      title="Additional Documents"
-      description="Transcripts, references, certifications, or portfolios you may want to attach."
-      docs={data.additionalDocuments}
-      onChange={additionalDocuments => update({ additionalDocuments })}
-    />
-  )
-}
-
-export function AttachmentsSection({ data, update }: { data: ProfileData; update: Update }) {
-  return (
-    <DocumentList
-      title="Attachments"
-      description="Other files or links to keep handy for applications."
-      docs={data.attachments}
-      onChange={attachments => update({ attachments })}
-    />
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Resumes (read from DB, managed on dedicated pages)
-// ---------------------------------------------------------------------------
-
-export function ResumesSection({ resumes }: { resumes: ResumeRow[] }) {
-  return (
-    <div>
-      <SectionHeader
-        title="Resumes"
-        description="Uploads that seed your master profile. Manage them right here — view the original, replace, or delete."
-        action={
-          <Button size="sm" asChild>
-            <Link href="/dashboard/resume/upload"><Upload className="w-4 h-4" />Upload</Link>
-          </Button>
-        }
-      />
-      {resumes.length === 0 ? (
-        <EmptyState message="No resumes uploaded yet." actionLabel="Upload resume" onAction={() => { window.location.href = '/dashboard/resume/upload' }} />
-      ) : (
-        <div className="space-y-3">
-          {resumes.map(r => (
-            <ResumeRowCard key={r.id} resume={r} />
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function ResumeRowCard({ resume }: { resume: ResumeRow }) {
-  const router = useRouter()
-  const [deleting, setDeleting] = useState(false)
-  const [confirm, setConfirm] = useState(false)
-
-  async function handleDelete() {
-    if (!confirm) {
-      setConfirm(true)
-      return
-    }
-    setDeleting(true)
-    try {
-      const res = await fetch(`/api/resume/${resume.id}`, { method: 'DELETE' })
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({})) as { error?: string }
-        throw new Error(json.error || 'Delete failed')
-      }
-      router.refresh()
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Could not delete resume')
-      setConfirm(false)
-    } finally {
-      setDeleting(false)
-    }
-  }
-
-  return (
-    <Card className="hover:border-brand-purple/40 transition-colors group">
-      <CardContent className="p-4 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-brand-purple/10 flex items-center justify-center flex-shrink-0">
-          <FileText className="w-5 h-5 text-brand-purple" />
-        </div>
-        <Link href={`/dashboard/resume/${resume.id}`} className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="font-medium text-sm text-foreground truncate">{resume.title}</p>
-            {resume.is_primary && <Star className="w-3.5 h-3.5 text-brand-amber fill-brand-amber" />}
-          </div>
-          {resume.ats_format_score != null && (
-            <p className="text-xs text-muted-foreground">Format score: {resume.ats_format_score}%</p>
-          )}
-        </Link>
-
-        <div className="flex items-center gap-1 flex-shrink-0">
-          {resume.original_file_url && (
-            <Button variant="ghost" size="sm" asChild title="View original upload">
-              <a href={resume.original_file_url} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="w-4 h-4" />
-              </a>
-            </Button>
-          )}
-          <Button variant="ghost" size="sm" asChild title="Replace / upload new">
-            <Link href="/dashboard/resume/upload"><Upload className="w-4 h-4" /></Link>
-          </Button>
-          <Button
-            type="button"
-            variant={confirm ? 'destructive' : 'ghost'}
-            size="sm"
-            disabled={deleting}
-            onClick={() => void handleDelete()}
-            onBlur={() => setConfirm(false)}
-            title="Delete resume"
-          >
-            <Trash2 className="w-4 h-4" />
-            {confirm ? 'Confirm' : ''}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
   )
 }

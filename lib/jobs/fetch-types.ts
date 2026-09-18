@@ -37,5 +37,5 @@ export type HtmlExtractionOutcome = {
 /** Minimum chars to consider an extraction usable without Playwright fallback. */
 export const MIN_USABLE_DESCRIPTION_CHARS = 100
 
-/** Playwright runs only when fast methods stay below this threshold. */
-export const PLAYWRIGHT_FALLBACK_THRESHOLD = 200
+/** Playwright runs when fast methods stay below this — thin SPA blurbs (Oracle CX) need a real render. */
+export const PLAYWRIGHT_FALLBACK_THRESHOLD = 800

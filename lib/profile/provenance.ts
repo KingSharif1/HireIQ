@@ -7,9 +7,15 @@ import type {
 import { uid, emptyProfileData } from './data'
 import { normalizeApplyAnswers } from './apply-answers'
 import { bulletsWithIds, isHeavyEdit } from './bullets'
+import { mergeDocumentVault } from './documents'
 import type { WriteBackSuggestion } from '@/lib/ai/tailor-types'
 import type { SuggestionEnrichment } from '@/lib/profile/suggestion-followup'
 import { validateEnrichment } from '@/lib/profile/suggestion-followup'
+import {
+  filterNovelSuggestions,
+  profileHasSuggestionContent,
+  retargetSuggestionIfMismatch,
+} from '@/lib/profile/suggestion-dedupe'
 
 export function normalizeProfileData(data: ProfileData | null | undefined): ProfileData {
   const base = emptyProfileData()
@@ -22,12 +28,18 @@ export function normalizeProfileData(data: ProfileData | null | undefined): Prof
     applyAnswers: normalizeApplyAnswers(raw.applyAnswers),
     provenance: raw.provenance ?? {},
     pendingSuggestions: raw.pendingSuggestions ?? [],
+    dismissedSuggestionIds: Array.isArray(raw.dismissedSuggestionIds)
+      ? [...new Set(raw.dismissedSuggestionIds.filter(id => typeof id === 'string' && id))]
+      : [],
     urls: Array.isArray(raw.urls) ? raw.urls : [],
     education: Array.isArray(raw.education) ? raw.education : [],
     certifications: Array.isArray(raw.certifications) ? raw.certifications : [],
     achievements: Array.isArray(raw.achievements) ? raw.achievements : [],
-    additionalDocuments: Array.isArray(raw.additionalDocuments) ? raw.additionalDocuments : [],
-    attachments: Array.isArray(raw.attachments) ? raw.attachments : [],
+    additionalDocuments: mergeDocumentVault(
+      Array.isArray(raw.additionalDocuments) ? raw.additionalDocuments : [],
+      Array.isArray(raw.attachments) ? raw.attachments : []
+    ),
+    attachments: [],
     experience: (Array.isArray(raw.experience) ? raw.experience : []).map(ensureExperienceBulletIds),
     projects: (Array.isArray(raw.projects) ? raw.projects : []).map(p => {
       const { bullets, bulletIds } = bulletsWithIds(p.bullets, p.bulletIds, 'pbul')
@@ -63,23 +75,46 @@ export function mergePendingSuggestions(
   return [...byId.values()]
 }
 
+/** Merge then drop facts already on the profile (or duplicate pending text). */
+export function mergeNovelPendingSuggestions(
+  data: ProfileData,
+  existing: PendingSuggestion[],
+  incoming: PendingSuggestion[],
+  options?: { preferIncoming?: boolean }
+): PendingSuggestion[] {
+  const merged = mergePendingSuggestions(existing, incoming, options)
+  const withoutIncomingDupes = filterNovelSuggestions(
+    { ...data, pendingSuggestions: existing },
+    merged.filter(s => !existing.some(e => e.id === s.id))
+  )
+  const keptExisting = existing.filter(s => !profileHasSuggestionContent(data, s))
+  return mergePendingSuggestions(keptExisting, withoutIncomingDupes, { preferIncoming: true })
+}
+
 /** Replace GitHub-sync pending items while keeping tailor/write-back suggestions. */
 export function mergeGitHubPendingSuggestions(
   existing: PendingSuggestion[],
-  incoming: PendingSuggestion[]
+  incoming: PendingSuggestion[],
+  data?: ProfileData
 ): PendingSuggestion[] {
   const kept = existing.filter(s => s.source !== 'github')
-  return mergePendingSuggestions(kept, incoming, { preferIncoming: true })
+  const dismissed = new Set(data?.dismissedSuggestionIds ?? [])
+  const allowed = incoming.filter(s => !dismissed.has(s.id))
+  if (!data) {
+    return mergePendingSuggestions(kept, allowed, { preferIncoming: true })
+  }
+  return mergeNovelPendingSuggestions(data, kept, allowed, { preferIncoming: true })
 }
 
 export function writeBackToPending(
   suggestions: WriteBackSuggestion[],
   tailoredResumeId: string,
   jobLabel: string,
-  targetEntryId?: string
+  targetEntryId?: string,
+  profile?: ProfileData
 ): PendingSuggestion[] {
   const now = new Date().toISOString()
-  return suggestions.map(s => ({
+  const mapped: PendingSuggestion[] = suggestions.map(s => ({
     id: s.id,
     section: s.section,
     targetEntryId: s.targetEntryId ?? targetEntryId,
@@ -91,6 +126,8 @@ export function writeBackToPending(
     newExperience: s.newExperience,
     newProject: s.newProject,
   }))
+  if (!profile) return mapped
+  return filterNovelSuggestions(profile, mapped)
 }
 
 export function acceptSuggestion(
@@ -99,8 +136,18 @@ export function acceptSuggestion(
   enrichment?: SuggestionEnrichment
 ): ProfileData {
   const pending = data.pendingSuggestions ?? []
-  const suggestion = pending.find(s => s.id === suggestionId)
-  if (!suggestion) return data
+  const found = pending.find(s => s.id === suggestionId)
+  if (!found) return data
+
+  const suggestion = retargetSuggestionIfMismatch(data, found)
+
+  // Already on the master — clear the card without appending a duplicate.
+  if (!enrichment && profileHasSuggestionContent(data, suggestion)) {
+    return {
+      ...data,
+      pendingSuggestions: pending.filter(s => s.id !== suggestionId),
+    }
+  }
 
   let next = { ...data }
 
@@ -122,6 +169,8 @@ export function acceptSuggestion(
   } else if (suggestion.section === 'projects') {
     if (suggestion.newProject) {
       next = applyNewProject(next, suggestion)
+    } else if (isGitHubToolSuggestion(suggestion)) {
+      next = applyProjectTechnology(next, suggestion)
     } else {
       next = applyProjectBullet(next, suggestion)
     }
@@ -154,7 +203,7 @@ function applyEnrichment(
     }
     return {
       ...data,
-      projects: [...data.projects, project],
+      projects: [project, ...data.projects],
       provenance,
     }
   }
@@ -173,7 +222,7 @@ function applyEnrichment(
   }
   return {
     ...data,
-    experience: [...data.experience, newExp],
+    experience: [newExp, ...data.experience],
     provenance,
   }
 }
@@ -211,7 +260,7 @@ function applyExperienceBullet(data: ProfileData, suggestion: PendingSuggestion)
     }
     const bulletId = newExp.bulletIds![0]
     const provenance = seedTailorProvenance(data.provenance ?? {}, bulletId, suggestion)
-    return { ...data, experience: [...experience, newExp], provenance }
+    return { ...data, experience: [newExp, ...experience], provenance }
   }
 
   const exp = { ...experience[targetIdx] }
@@ -239,6 +288,22 @@ function applyProjectBullet(data: ProfileData, suggestion: PendingSuggestion): P
 
   const provenance = seedTailorProvenance(data.provenance ?? {}, bulletId, suggestion)
   return { ...data, projects, provenance }
+}
+
+function applyProjectTechnology(data: ProfileData, suggestion: PendingSuggestion): ProfileData {
+  const projects = [...data.projects]
+  const idx = suggestion.targetEntryId
+    ? projects.findIndex(p => p.id === suggestion.targetEntryId)
+    : -1
+  if (idx < 0) return data
+
+  const tech = suggestion.proposedText.trim()
+  if (!tech) return data
+  const proj = { ...projects[idx] }
+  if (proj.technologies.some(t => t.toLowerCase() === tech.toLowerCase())) return data
+  proj.technologies = [...proj.technologies, tech]
+  projects[idx] = proj
+  return { ...data, projects }
 }
 
 function applyNewProject(data: ProfileData, suggestion: PendingSuggestion): ProfileData {
@@ -275,7 +340,7 @@ function applyNewProject(data: ProfileData, suggestion: PendingSuggestion): Prof
 
   return {
     ...data,
-    projects: [...data.projects, project],
+    projects: [project, ...data.projects],
     provenance,
   }
 }
@@ -316,9 +381,63 @@ function seedTailorProvenance(
 }
 
 export function declineSuggestion(data: ProfileData, suggestionId: string): ProfileData {
+  const dismissed = new Set(data.dismissedSuggestionIds ?? [])
+  dismissed.add(suggestionId)
   return {
     ...data,
     pendingSuggestions: (data.pendingSuggestions ?? []).filter(s => s.id !== suggestionId),
+    dismissedSuggestionIds: [...dismissed],
+  }
+}
+
+/** GitHub tool-tag suggestions use ids like `gh-42-tool-next-js`. */
+export function isGitHubToolSuggestion(suggestion: PendingSuggestion): boolean {
+  return suggestion.source === 'github' && /^gh-\d+-tool-/.test(suggestion.id)
+}
+
+/** Add an evidence-backed GitHub highlight while preserving its repository origin. */
+export function addGitHubProjectHighlight(
+  data: ProfileData,
+  projectId: string,
+  text: string,
+  sourceLabel: string,
+  technologies: string[] = []
+): ProfileData {
+  const normalized = normalizeProfileData(data)
+  const project = normalized.projects.find(item => item.id === projectId)
+  const bullet = text.trim()
+  if (!project || !bullet || project.bullets.some(item => item.trim() === bullet)) return normalized
+
+  const bulletId = uid('pbul')
+  const now = new Date().toISOString()
+  return {
+    ...normalized,
+    projects: normalized.projects.map(item =>
+      item.id === projectId
+        ? {
+            ...item,
+            bullets: [...item.bullets, bullet],
+            bulletIds: [...(item.bulletIds ?? []), bulletId],
+            technologies: [
+              ...item.technologies,
+              ...technologies.filter(
+                technology =>
+                  !item.technologies.some(
+                    current => current.toLowerCase() === technology.toLowerCase()
+                  )
+              ),
+            ],
+          }
+        : item
+    ),
+    provenance: {
+      ...(normalized.provenance ?? {}),
+      [bulletId]: {
+        origin: 'github',
+        jobLabel: sourceLabel,
+        history: [{ type: 'accepted', date: now, jobLabel: sourceLabel }],
+      },
+    },
   }
 }
 
@@ -351,17 +470,25 @@ export function recordBulletEdit(
 }
 
 export function getProvenanceLabel(entry: ProvenanceEntry | undefined): string | null {
-  if (!entry || entry.origin === 'base') return null
+  if (!entry) return null
   if (entry.origin === 'github') {
     return entry.jobLabel ? `From GitHub · ${entry.jobLabel}` : 'From GitHub'
   }
-  const added = entry.history.find(h => h.type === 'added_from_tailor' || h.type === 'accepted')
-  if (added?.jobLabel) return `From ${added.jobLabel}`
-  if (entry.jobLabel) return `From ${entry.jobLabel}`
-  return 'From gap answer'
+  if (entry.origin === 'tailor') {
+    const added = entry.history.find(h => h.type === 'added_from_tailor' || h.type === 'accepted')
+    if (added?.jobLabel) return `From AI · ${added.jobLabel}`
+    if (entry.jobLabel) return `From AI · ${entry.jobLabel}`
+    return 'From AI · gap answer'
+  }
+  const edited = [...entry.history].reverse().find(h => h.type === 'edited')
+  if (edited) {
+    const when = new Date(edited.date).toLocaleDateString()
+    return `You · edited ${when}`
+  }
+  return null
 }
 
-/** First tailor/GitHub source label across bullet ids (for entry cards). */
+/** First tailor/GitHub/you source label across bullet ids (for entry cards). */
 export function entrySourceLabel(
   provenance: Record<string, ProvenanceEntry> | undefined,
   bulletIds: string[] | undefined,
@@ -379,8 +506,11 @@ export function entrySourceLabel(
 export function formatProvenanceTimeline(entry: ProvenanceEntry): string[] {
   return entry.history.map(h => {
     const when = new Date(h.date).toLocaleDateString()
-    if (h.type === 'added_from_tailor') return `${when}: Added from tailor${h.jobLabel ? ` (${h.jobLabel})` : ''}`
-    if (h.type === 'accepted') return `${when}: Accepted into profile`
-    return `${when}: Edited`
+    if (h.type === 'added_from_tailor') {
+      const who = entry.origin === 'github' ? 'GitHub' : 'AI'
+      return `${when}: Added from ${who}${h.jobLabel ? ` (${h.jobLabel})` : ''}`
+    }
+    if (h.type === 'accepted') return `${when}: You accepted into profile`
+    return `${when}: You edited`
   })
 }

@@ -1,5 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { scrapeJobUrl, LinkedInBlockedError } from '../job-scraper'
+import { scrapeJobUrl, LinkedInBlockedError, isOracleCloudJobUrl } from '../job-scraper'
+
+describe('isOracleCloudJobUrl', () => {
+  it('detects Emerson-style Oracle CX hosts', () => {
+    expect(
+      isOracleCloudJobUrl(
+        'https://hdjq.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/job/26010937',
+      ),
+    ).toBe(true)
+    expect(isOracleCloudJobUrl('https://boards.greenhouse.io/acme/jobs/1')).toBe(false)
+  })
+})
 
 describe('scrapeJobUrl — LinkedIn', () => {
   it('throws LinkedInBlockedError without fetching', async () => {
@@ -90,5 +101,56 @@ describe('scrapeJobUrl — Ashby', () => {
     expect(result.company).toBe('harperinsure')
     expect(result.source).toBe('ashby')
     expect(result.text).toContain('Build software at Harper.')
+  })
+})
+
+describe('scrapeJobUrl — Oracle thin → thicker Playwright', () => {
+  const oracleUrl =
+    'https://hdjq.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/job/26010937'
+
+  afterEach(() => {
+    vi.doUnmock('@/lib/jobs/extract-pipeline')
+    vi.doUnmock('@/lib/jobs/extractors/playwright-fetch')
+    vi.resetModules()
+    vi.unstubAllGlobals()
+  })
+
+  it('upgrades thin Oracle extract via Playwright when enabled', async () => {
+    const thickText =
+      'Software Engineer at Emerson. Develop embedded software for industrial hardware, integrate LiDAR and controls, ship firmware with cross-functional teams. '.repeat(
+        15,
+      )
+
+    vi.doMock('@/lib/jobs/extract-pipeline', () => ({
+      extractJobFromHtmlUrl: async () => ({
+        result: {
+          text: 'Software Engineer. Join Emerson.',
+          title: 'Software Engineer',
+          company: 'Emerson',
+          method: 'html-heuristic',
+          confidence: 'low',
+        },
+        attempts: [],
+        pageHtml: '<html></html>',
+      }),
+    }))
+    vi.doMock('@/lib/jobs/extractors/playwright-fetch', () => ({
+      isPlaywrightFetchEnabled: () => true,
+      fetchRenderedHtml: async () => `<html><body>${thickText}</body></html>`,
+      extractFromRenderedHtml: () => ({
+        text: thickText,
+        title: 'Software Engineer',
+        company: 'Emerson',
+        method: 'html-heuristic',
+        confidence: 'medium',
+      }),
+    }))
+
+    const { scrapeJobUrl: scrape } = await import('../job-scraper')
+    const result = await scrape(oracleUrl)
+
+    expect(result.text.length).toBeGreaterThan(800)
+    expect(result.extractionMethod).toBe('playwright')
+    expect(result.text).toMatch(/embedded/i)
   })
 })

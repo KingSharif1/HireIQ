@@ -1,7 +1,7 @@
 # Auto-apply architecture (extension + hosted)
 
-**Updated:** 2026-08-13  
-**Status:** Task **148** code shipped (queue + CTA + progress UI + worker image). **Cloud Run deploy** still required for live hosted applies. Extension path partially shipped (Task **147** next).  
+**Updated:** 2026-09-17  
+**Status:** Task **148** code shipped (queue + CTA + progress UI + worker image). Task **167** adds an honesty gate: if `APPLY_WORKER_URL` + `APPLY_WORKER_SECRET` are unset (and `APPLY_WORKER_INLINE` is not `1`), the job-detail CTA shows **Auto-apply (setup needed)** and explains Cloud Run instead of queueing. **Cloud Run deploy** still required for live hosted applies. Extension path partially shipped (Task **147** next).  
 **Pricing:** [PRICING.md](./PRICING.md) (docs only) · **Deploy:** [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md)
 
 HireIQ supports **two ways to apply**, both on **web** (desktop/laptop browser). Mobile is not the primary surface for auto-apply v1.

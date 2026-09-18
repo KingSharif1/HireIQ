@@ -3,18 +3,27 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ProfileHome } from '@/components/profile/ProfileHome'
 import { loadProfileWorkspaceData } from '@/lib/profile/load-workspace'
+import { canonicalSectionId } from '@/lib/profile/sections'
 
 export const dynamic = 'force-dynamic'
 
 /** Profile = master resume + autofill identity. One section at a time. */
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ section?: string }>
+}) {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { profile, initialData, resumes, githubData } = await loadProfileWorkspaceData(user.id)
+  const params = await searchParams
+  const initialSection = canonicalSectionId(params.section ?? null) ?? 'personal'
+
+  const { profile, initialData, resumes, githubData, repoIntelligence } =
+    await loadProfileWorkspaceData(user.id)
 
   return (
     <Suspense fallback={null}>
@@ -24,6 +33,8 @@ export default async function ProfilePage() {
         profile={profile}
         resumes={resumes}
         githubData={githubData}
+        repoIntelligence={repoIntelligence}
+        initialSection={initialSection}
       />
     </Suspense>
   )

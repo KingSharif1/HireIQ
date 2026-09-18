@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { scanLinkedRepo, projectFromRepo } from '@/lib/github/scan-project'
+import { scanLinkedRepo, projectFromRepo, planRepoAdd } from '@/lib/github/scan-project'
 import type { GitHubRepoSnapshot } from '@/lib/github/types'
 import type { ResumeProject } from '@/types'
 
@@ -49,12 +49,57 @@ describe('scanLinkedRepo', () => {
 
 describe('projectFromRepo', () => {
   it('fills a resume-shaped project from the last GitHub sync', () => {
-    const project = projectFromRepo(repo(), 'proj-new')
-    expect(project.id).toBe('proj-new')
-    expect(project.github).toBe('https://github.com/dev/nemt-billing')
-    expect(project.source).toBe('github')
-    expect(project.name.toLowerCase()).toContain('nemt')
-    expect(project.bullets.length).toBeGreaterThan(0)
-    expect(project.bullets[0]).not.toContain('<div')
+    const created = projectFromRepo(repo(), 'proj-new')
+    expect(created.id).toBe('proj-new')
+    expect(created.github).toBe('https://github.com/dev/nemt-billing')
+    expect(created.source).toBe('github')
+    expect(created.name.toLowerCase()).toContain('nemt')
+    expect(created.bullets.length).toBeGreaterThan(0)
+    expect(created.bullets[0]).not.toContain('<div')
+  })
+})
+
+describe('planRepoAdd', () => {
+  it('asks to link a profile README to a portfolio project', () => {
+    const profileReadme = repo({
+      id: 9,
+      name: 'KingSharif1',
+      fullName: 'KingSharif1/KingSharif1',
+      htmlUrl: 'https://github.com/KingSharif1/KingSharif1',
+      description: null,
+      languages: [],
+      tools: [],
+      rootPaths: ['README.md'],
+    })
+    const portfolio = project({
+      id: 'pf',
+      name: 'Personal Portfolio',
+      github: '',
+      url: 'https://kingsharif.com',
+    })
+    const plan = planRepoAdd(profileReadme, [portfolio], 'KingSharif1')
+    expect(plan.action).toBe('ask-link')
+    if (plan.action === 'ask-link') {
+      expect(plan.project.id).toBe('pf')
+    }
+  })
+
+  it('skips thin profile READMEs when there is no portfolio to link', () => {
+    const profileReadme = repo({
+      id: 9,
+      name: 'KingSharif1',
+      fullName: 'KingSharif1/KingSharif1',
+      htmlUrl: 'https://github.com/KingSharif1/KingSharif1',
+      description: null,
+      languages: [],
+      tools: [],
+      rootPaths: ['README.md'],
+    })
+    const plan = planRepoAdd(profileReadme, [], 'KingSharif1')
+    expect(plan.action).toBe('skip-thin')
+  })
+
+  it('creates a real product repo as a new project', () => {
+    expect(planRepoAdd(repo(), []).action).toBe('create')
   })
 })

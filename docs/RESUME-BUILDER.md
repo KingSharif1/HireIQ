@@ -22,11 +22,14 @@
 ## Key components
 
 ### Master (Profile)
+Canonical UX: [PROFILE-MASTER.md](./PROFILE-MASTER.md) (Tasks 163–165 locked).
 - `components/profile/ProfileHome.tsx` — orchestration
 - `ProfileSectionNav.tsx` + `ProfileSectionPanel.tsx` — section UI
+- `ResumesSection.tsx` + `AdditionalDocumentsSection.tsx` + `MasterExportPanel.tsx` — documents
+- `GitHubConnectPanel.tsx` — connect / sync / add (ask before duplicate)
 - `useProfileSave.ts` — dirty / save / pending suggestions
-- `lib/profile/sections.ts` — section IDs & groups (PROFILE / DOCUMENTS / PROFESSIONAL PROFILE)
-- `PendingSuggestionsPanel.tsx`, `AcceptFollowUpSheet.tsx` — master update flow
+- `lib/profile/sections.ts` — section IDs & groups (PROFILE / DOCUMENTS / PROFESSIONAL)
+- `PendingSuggestionsPanel.tsx`, `AcceptFollowUpSheet.tsx` — master update flow (next: Task 166)
 
 ### Library
 - `components/builder/ResumeLibrary.tsx`

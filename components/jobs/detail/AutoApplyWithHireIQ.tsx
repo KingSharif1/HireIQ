@@ -17,6 +17,8 @@ import { cn } from '@/lib/utils'
 type Props = {
   jobId: string
   hasApplyUrl: boolean
+  /** When false, CTA explains Cloud Run setup instead of queueing a worker. */
+  workerReady?: boolean
 }
 
 const FIELD_LABELS: Record<string, string> = {
@@ -34,22 +36,22 @@ function humanField(id: string): string {
   return FIELD_LABELS[id] || id.replace(/_/g, ' ')
 }
 
-function statusHeadline(status: ApplyRunStatus): string {
-  switch (status) {
+function statusHeadline(run: ApplyRunRow): string {
+  switch (run.status) {
     case 'queued':
       return 'Waiting for worker…'
     case 'running':
-      return 'HireIQ is applying'
+      return 'HireIQ is filling the form'
     case 'applied':
-      return 'Submitted'
+      return run.submit ? 'Submitted' : 'Filled — review on the site'
     case 'needs_user':
-      return 'Needs your review'
+      return 'Ready for your review'
     case 'failed':
       return 'Couldn’t finish'
     case 'cancelled':
       return 'Cancelled'
     default:
-      return status
+      return run.status
   }
 }
 
@@ -79,13 +81,18 @@ function stepTone(state: ApplyProgressStep['state']): string {
 /**
  * Job detail primary CTA + live apply progress (fields filled, step motion).
  */
-export function AutoApplyWithHireIQ({ jobId, hasApplyUrl }: Props) {
+export function AutoApplyWithHireIQ({
+  jobId,
+  hasApplyUrl,
+  workerReady = true,
+}: Props) {
   const reduceMotion = useReducedMotion()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [run, setRun] = useState<ApplyRunRow | null>(null)
   const [dispatchNote, setDispatchNote] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
+  const [setupOnly, setSetupOnly] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const startLockRef = useRef(false)
 
@@ -138,15 +145,28 @@ export function AutoApplyWithHireIQ({ jobId, hasApplyUrl }: Props) {
     }
   }, [run])
 
+  function openSetupPanel() {
+    setSetupOnly(true)
+    setError(null)
+    setDispatchNote(null)
+    setOpen(true)
+  }
+
   async function startApply(force = false) {
+    if (!workerReady) {
+      openSetupPanel()
+      return
+    }
     if (startLockRef.current || busy) return
     if (run && ['queued', 'running'].includes(run.status)) return
     if (run && ['failed', 'applied', 'needs_user'].includes(run.status) && !force) {
       setOpen(true)
+      setSetupOnly(false)
       setError('Stopped after that attempt — we will not retry automatically.')
       return
     }
     startLockRef.current = true
+    setSetupOnly(false)
     setError(null)
     setDispatchNote(null)
     setBusy(true)
@@ -189,15 +209,21 @@ export function AutoApplyWithHireIQ({ jobId, hasApplyUrl }: Props) {
 
   if (!hasApplyUrl) return null
 
-  const showPanel = open && (run != null || error != null || dispatchNote != null)
+  const showPanel =
+    open && (setupOnly || run != null || error != null || dispatchNote != null)
 
   return (
     <div className="relative flex shrink-0 flex-col items-end">
       <Button
         type="button"
         size="sm"
+        variant={workerReady ? 'default' : 'outline'}
         disabled={busy}
-        title="Fills the form from your profile, then pauses for review"
+        title={
+          workerReady
+            ? 'Fills the form from your profile, then pauses for your review — HireIQ does not submit until you confirm.'
+            : 'Hosted auto-apply needs Cloud Run (APPLY_WORKER_URL). Open for setup steps.'
+        }
         onClick={() => void startApply()}
         className="gap-1.5"
       >
@@ -206,7 +232,7 @@ export function AutoApplyWithHireIQ({ jobId, hasApplyUrl }: Props) {
         ) : (
           <Sparkles className="h-3.5 w-3.5" />
         )}
-        Auto-apply with HireIQ
+        {workerReady ? 'Auto-apply with HireIQ' : 'Auto-apply (setup needed)'}
       </Button>
 
       <AnimatePresence initial={false}>
@@ -228,119 +254,107 @@ export function AutoApplyWithHireIQ({ jobId, hasApplyUrl }: Props) {
               <div className="relative flex items-start justify-between gap-2">
                 <div>
                   <p className="text-sm font-semibold tracking-tight text-foreground">
-                    {run ? statusHeadline(run.status) : 'Auto-apply'}
+                    {setupOnly
+                      ? 'Auto-apply setup needed'
+                      : run
+                        ? statusHeadline(run)
+                        : 'Auto-apply'}
                   </p>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    {run?.board ? `${run.board} · ` : null}
-                    {run?.complexity === 3 ? 'complex portal · ' : null}
-                    dry run (no submit yet)
+                    {setupOnly
+                      ? 'Worker offline on this environment'
+                      : (
+                          <>
+                            {run?.board ? `${run.board} · ` : null}
+                            {run?.complexity === 3 ? 'complex portal · ' : null}
+                            Fills the form, then pauses for your review
+                          </>
+                        )}
                   </p>
                 </div>
                 <button
                   type="button"
                   className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                   aria-label="Dismiss progress"
-                  onClick={() => setOpen(false)}
+                  onClick={() => {
+                    setOpen(false)
+                    setSetupOnly(false)
+                  }}
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
 
-              <div className="relative mt-3 h-1.5 overflow-hidden rounded-full bg-secondary">
-                <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-sky-500 to-emerald-500"
-                  initial={false}
-                  animate={{ width: `${Math.max(4, Math.min(100, progress.percent))}%` }}
-                  transition={
-                    reduceMotion
-                      ? { duration: 0 }
-                      : { type: 'spring', stiffness: 120, damping: 24 }
-                  }
-                />
-              </div>
-              <p className="relative mt-1 text-right text-[10px] tabular-nums text-muted-foreground">
-                {Math.round(progress.percent)}%
-              </p>
+              {setupOnly ? (
+                <div className="relative mt-3 space-y-2 text-[11px] leading-relaxed text-muted-foreground">
+                  <p className="text-foreground">
+                    Hosted Auto-apply needs the Cloud Run worker. Until{' '}
+                    <span className="font-mono text-foreground">APPLY_WORKER_URL</span> and{' '}
+                    <span className="font-mono text-foreground">APPLY_WORKER_SECRET</span> are set,
+                    this button will not queue a fill.
+                  </p>
+                  <p>
+                    Meanwhile: open the employer apply page and use the Chrome extension, or follow{' '}
+                    <span className="font-mono text-foreground">docs/CLOUD-RUN-APPLY.md</span>.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="relative mt-3 h-1.5 overflow-hidden rounded-full bg-secondary">
+                    <motion.div
+                      className="h-full rounded-full bg-gradient-to-r from-sky-500 to-emerald-500"
+                      initial={false}
+                      animate={{ width: `${Math.max(4, Math.min(100, progress.percent))}%` }}
+                      transition={
+                        reduceMotion
+                          ? { duration: 0 }
+                          : { type: 'spring', stiffness: 120, damping: 24 }
+                      }
+                    />
+                  </div>
+                  <p className="relative mt-1 text-right text-[10px] tabular-nums text-muted-foreground">
+                    {Math.round(progress.percent)}%
+                  </p>
 
-              <ol className="relative mt-2 space-y-1.5">
-                {progress.steps.map((step, index) => (
-                  <motion.li
-                    key={step.id}
-                    initial={reduceMotion ? false : { opacity: 0, x: 6 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: reduceMotion ? 0 : index * 0.04 }}
-                    className={cn(
-                      'flex items-start gap-2 rounded-lg border px-2 py-1.5 text-[11px] leading-snug transition-colors',
-                      stepTone(step.state)
-                    )}
-                  >
-                    <span className="mt-0.5 shrink-0">
-                      <StepIcon state={step.state} />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="font-medium">{step.label}</span>
-                      {step.detail ? (
-                        <span className="mt-0.5 block text-[10px] opacity-80">{step.detail}</span>
-                      ) : null}
-                    </span>
-                  </motion.li>
-                ))}
-              </ol>
+                  <ol className="relative mt-2 space-y-1.5">
+                    {progress.steps.map((step, index) => (
+                      <motion.li
+                        key={step.id}
+                        initial={reduceMotion ? false : { opacity: 0, x: 6 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: reduceMotion ? 0 : index * 0.04 }}
+                        className={cn(
+                          'flex items-start gap-2 rounded-lg border px-2 py-1.5 text-[11px] leading-snug transition-colors',
+                          stepTone(step.state)
+                        )}
+                      >
+                        <span className="mt-0.5 shrink-0">
+                          <StepIcon state={step.state} />
+                        </span>
+                        <span>{step.label}</span>
+                      </motion.li>
+                    ))}
+                  </ol>
 
-              <AnimatePresence initial={false}>
-                {progress.filled.length > 0 ? (
-                  <motion.div
-                    key="filled"
-                    initial={reduceMotion ? false : { opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="relative mt-3"
-                  >
-                    <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                      Filled
+                  {progress.filled.length > 0 ? (
+                    <p className="relative mt-2 text-[11px] text-muted-foreground">
+                      Filled:{' '}
+                      {progress.filled.map(humanField).join(', ')}
                     </p>
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {progress.filled.map((field, i) => (
-                        <motion.span
-                          key={`${field}-${i}`}
-                          initial={reduceMotion ? false : { opacity: 0, scale: 0.85 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ type: 'spring', stiffness: 420, damping: 24 }}
-                          className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 dark:text-emerald-300"
-                        >
-                          <Check className="h-2.5 w-2.5" strokeWidth={3} />
-                          {humanField(field)}
-                        </motion.span>
-                      ))}
-                    </div>
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
+                  ) : null}
 
-              {error || dispatchNote || run?.error ? (
-                <p
-                  className={cn(
-                    'relative mt-3 text-[11px] leading-snug',
-                    error || run?.status === 'failed'
-                      ? 'text-destructive'
-                      : 'text-muted-foreground'
-                  )}
-                >
-                  {error || dispatchNote || run?.error}
-                </p>
-              ) : null}
-
-              {run && ['failed', 'applied', 'needs_user'].includes(run.status) ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="relative mt-3 w-full text-[11px]"
-                  disabled={busy}
-                  onClick={() => void startApply(true)}
-                >
-                  Start a new run (billed again)
-                </Button>
-              ) : null}
+                  {dispatchNote ? (
+                    <p className="relative mt-2 text-[11px] text-amber-800 dark:text-amber-300">
+                      {dispatchNote}
+                    </p>
+                  ) : null}
+                  {error ? (
+                    <p className="relative mt-2 text-[11px] text-destructive" role="alert">
+                      {error}
+                    </p>
+                  ) : null}
+                </>
+              )}
             </div>
           </motion.div>
         ) : null}

@@ -101,7 +101,7 @@ describe('acceptSuggestion with enrichment', () => {
     expect(next.experience[0].title).toBe('Platform Engineer')
     expect(next.experience[0].company).toBe('Harper')
     const bulletId = next.experience[0].bulletIds![0]
-    expect(getProvenanceLabel(next.provenance?.[bulletId])).toBe('From Engineer @ Harper')
+    expect(getProvenanceLabel(next.provenance?.[bulletId])).toBe('From AI · Engineer @ Harper')
   })
 
   it('creates a project when entryKind is project', () => {

@@ -10,6 +10,7 @@ import { AcceptFollowUpSheet } from '@/components/profile/AcceptFollowUpSheet'
 
 interface Props {
   suggestions: PendingSuggestion[]
+  placement?: 'section' | 'entry' | 'field'
   onResolved: (
     suggestionId: string,
     action: 'accept' | 'decline',
@@ -17,7 +18,11 @@ interface Props {
   ) => Promise<void>
 }
 
-export function PendingSuggestionsPanel({ suggestions, onResolved }: Props) {
+export function PendingSuggestionsPanel({
+  suggestions,
+  onResolved,
+  placement = 'section',
+}: Props) {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [followUp, setFollowUp] = useState<PendingSuggestion | null>(null)
 
@@ -49,19 +54,28 @@ export function PendingSuggestionsPanel({ suggestions, onResolved }: Props) {
 
   return (
     <>
-      <div className="space-y-3 rounded-md border border-border bg-secondary/30 p-4">
+      <div className="space-y-3 rounded-lg border border-brand-amber/30 bg-brand-amber/5 p-3">
         <div className="flex items-center gap-2 text-sm font-medium text-foreground">
           <Sparkles className="w-4 h-4 text-muted-foreground" />
-          Pending updates to master ({suggestions.length})
+          {placement === 'section'
+            ? `New ${suggestions.length === 1 ? 'item' : 'items'} for this section (${suggestions.length})`
+            : `Suggested ${suggestions.length === 1 ? 'update' : 'updates'} (${suggestions.length})`}
         </div>
         {suggestions.map(s => (
           <div
             key={s.id}
-            className="rounded-md border border-border bg-white dark:bg-card p-4 space-y-3"
+            className="rounded-md border border-border bg-white p-3 space-y-3 dark:bg-card"
           >
             <p className="text-xs text-muted-foreground">
               {[
-                s.source === 'github' ? 'From GitHub' : s.jobLabel ? `From ${s.jobLabel}` : null,
+                s.source === 'github'
+                  ? 'From GitHub'
+                  : s.jobLabel
+                    ? `From AI · ${s.jobLabel}`
+                    : 'From AI',
+                s.createdAt
+                  ? new Date(s.createdAt).toLocaleDateString()
+                  : null,
                 'Suggested for this section',
               ]
                 .filter(Boolean)

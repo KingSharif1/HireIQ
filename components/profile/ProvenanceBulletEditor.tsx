@@ -1,5 +1,6 @@
 import { uid } from '@/lib/profile/data'
 import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 import { Plus, X, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -15,10 +16,17 @@ interface Props {
   bullets: string[]
   bulletIds: string[]
   provenance: Record<string, ProvenanceEntry>
+  highlightBulletId?: string
   onChange: (bullets: string[], bulletIds: string[], edits: { bulletId: string; before: string; after: string }[]) => void
 }
 
-export function ProvenanceBulletEditor({ bullets, bulletIds, provenance, onChange }: Props) {
+export function ProvenanceBulletEditor({
+  bullets,
+  bulletIds,
+  provenance,
+  highlightBulletId,
+  onChange,
+}: Props) {
   const ids = bulletIds.length === bullets.length ? bulletIds : bullets.map((_, i) => bulletIds[i] ?? `bul-${i}`)
 
   function updateBullet(index: number, text: string) {
@@ -51,16 +59,23 @@ export function ProvenanceBulletEditor({ bullets, bulletIds, provenance, onChang
           const fromExternal = entry?.origin === 'tailor' || entry?.origin === 'github'
 
           return (
-            <div key={ids[i]} className="flex items-start gap-2">
+            <div
+              key={ids[i]}
+              id={`bullet-${ids[i]}`}
+              className={cn(
+                'flex items-start gap-2 rounded-lg transition-colors duration-500',
+                highlightBulletId === ids[i] && 'bg-brand-green/10'
+              )}
+            >
               <span className="text-muted-foreground mt-2.5 text-xs">•</span>
               <div className="flex-1 space-y-1">
-                <textarea
+                <Textarea
                   value={b}
                   onChange={e => updateBullet(i, e.target.value)}
                   rows={2}
                   placeholder="Describe an accomplishment, impact, or responsibility…"
                   className={cn(
-                    'w-full rounded-lg border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none transition-colors',
+                    'min-h-[2.75rem] w-full',
                     fromExternal
                       ? 'border-border bg-secondary/40'
                       : 'border-input bg-input'

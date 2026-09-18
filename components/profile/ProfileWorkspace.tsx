@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { Check, Loader2, AlertCircle, ChevronLeft, Download } from 'lucide-react'
-import { SECTIONS, SECTION_GROUPS, type SectionId } from '@/lib/profile/sections'
+import { SECTION_GROUPS, canonicalSectionId, type SectionId } from '@/lib/profile/sections'
 import type { Profile, ProfileData, ResumeInclusion } from '@/types'
 import type { GitHubProfileData } from '@/lib/github/types'
 import { applyInclusion } from '@/lib/profile/inclusion'
@@ -52,10 +52,7 @@ export function ProfileWorkspace({ userId, initialData, profile, resumes, github
   const tabParam = searchParams.get('tab')
   const jobIdParam = searchParams.get('jobId')
   const sectionFromUrl = useMemo(
-    () =>
-      sectionParam && SECTIONS.some(s => s.id === sectionParam)
-        ? (sectionParam as SectionId)
-        : null,
+    () => canonicalSectionId(sectionParam),
     [sectionParam]
   )
 
@@ -155,7 +152,7 @@ export function ProfileWorkspace({ userId, initialData, profile, resumes, github
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Save'}
             </Button>
             <Button size="sm" className="h-8 gap-1.5" asChild>
-              <Link href="/dashboard/profile">
+              <Link href="/dashboard/profile?section=resumes">
                 <Download className="w-3.5 h-3.5" />
                 Export PDF
               </Link>

@@ -4,6 +4,7 @@ import type { TailorProcessLogEntry } from '@/lib/tailor/process-log'
 import {
   isActiveTailorStatus,
   isStaleBusyRun,
+  TAILOR_RUN_CLAUDE,
   type TailorRunRow,
   type TailorRunStatus,
 } from '@/lib/tailor/run-types'
@@ -187,6 +188,31 @@ export async function claimGeneratePhase(
     .eq('id', runId)
     .eq('generate_reserved', false)
     .in('status', ['analyzing_gaps', 'awaiting_answers', 'generating'])
+    .select('*')
+    .maybeSingle()
+  return data ? asRun(data as Record<string, unknown>) : null
+}
+
+/**
+ * User-initiated post-draft weave (Task 162). CAS from needs_review only.
+ * Caps at TAILOR_RUN_CLAUDE.total — no silent retries.
+ */
+export async function claimWeavePhase(
+  supabase: SupabaseClient,
+  runId: string,
+  answers: Record<string, string>,
+): Promise<TailorRunRow | null> {
+  const { data } = await supabase
+    .from('tailor_runs')
+    .update({
+      status: 'generating',
+      answers,
+      finished_at: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', runId)
+    .eq('status', 'needs_review')
+    .lt('claude_calls', TAILOR_RUN_CLAUDE.total)
     .select('*')
     .maybeSingle()
   return data ? asRun(data as Record<string, unknown>) : null

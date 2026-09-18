@@ -1,33 +1,41 @@
-import { GAP_ANALYSIS_PROMPT } from '@/lib/ai/prompts'
-import { parseModelJson } from '@/lib/ai/parse-json'
 import { streamAiTextToCompletion } from '@/lib/ai/complete'
 import { resolveAiRuntime } from '@/lib/ai/runtime'
 import { withAiOnce } from '@/lib/ai/once'
-import { normalizeGapAnalysis } from '@/lib/ai/gap-analysis'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { getMasterResumeContext } from '@/lib/profile/master'
 import { buildTailorPromptContext } from '@/lib/profile/tailor-context'
 import { formatGitHubContextForAi } from '@/lib/profile/github-context'
+import { loadLatestReadyIntelligence } from '@/lib/github/intelligence-store'
 import type { GitHubProfileData } from '@/lib/github/types'
-import { jsonForPrompt } from '@/lib/ai/tailor-engine'
 import { runTailorPipeline } from '@/lib/ai/tailor-pipeline'
 import type { GenerateFn } from '@/lib/ai/tailor-types'
-import { gapAnalysisFromAts, withAtsFallbackQuestions } from '@/lib/tailor/ats-gap-hints'
+import {
+  gapAnalysisFromAts,
+  leftoverGapChips,
+} from '@/lib/tailor/ats-gap-hints'
+import { formatPreferredProjectsForPrompt } from '@/lib/tailor/job-relevance'
+import { themeOverrideForJob } from '@/lib/tailor/job-structure'
 import { withChangeIds, initialDecisions } from '@/lib/tailor/change-decisions'
 import { createProcessLog } from '@/lib/tailor/process-log'
 import { buildTailorCompleteNotification } from '@/lib/notifications'
 import { insertNotifications } from '@/lib/supabase/queries'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { claimGapPhase, claimGeneratePhase, getTailorRun, patchTailorRun } from '@/lib/tailor/runs'
+import {
+  claimGapPhase,
+  claimGeneratePhase,
+  claimWeavePhase,
+  getTailorRun,
+  patchTailorRun,
+} from '@/lib/tailor/runs'
 import { TAILOR_RUN_CLAUDE } from '@/lib/tailor/run-types'
 import { userFacingTailorError } from '@/lib/tailor/user-error'
 import { streamingResumeProgress } from '@/lib/resume/markdown'
+import type { JobExtractedData } from '@/types'
 import {
   applyDensity,
   DEFAULT_RESUME_THEME,
   type ResumeThemeOverride,
 } from '@/lib/export/theme'
-import type { GapAnalysis } from '@/types'
 
 function defaultThemeForSeniority(seniority: string | undefined): ResumeThemeOverride {
   const s = (seniority || '').toLowerCase()
@@ -51,6 +59,10 @@ function defaultThemeForSeniority(seniority: string | undefined): ResumeThemeOve
   }
 }
 
+function themeForJob(job: JobExtractedData): ResumeThemeOverride {
+  return themeOverrideForJob(job) ?? defaultThemeForSeniority(job.seniority)
+}
+
 async function failRun(runId: string, log: ReturnType<typeof createProcessLog>, err: unknown) {
   const technical = err instanceof Error ? err.message : String(err)
   console.error('[tailor]', technical, err)
@@ -64,7 +76,11 @@ async function failRun(runId: string, log: ReturnType<typeof createProcessLog>, 
   })
 }
 
-/** Claude call 1 of 2: gap questions. Skipped when ATS finds nothing to ask. Never retried. */
+/**
+ * Draft-first (Task 162): no pre-draft Claude gap call.
+ * Loads context, stores ATS gap analysis, then generates immediately.
+ * Legacy `awaiting_answers` runs still continue via the continue route.
+ */
 export async function executeGapPhase(runId: string, userId: string): Promise<void> {
   const admin = createAdminClient()
   const existing = await getTailorRun(admin, userId, runId)
@@ -77,16 +93,9 @@ export async function executeGapPhase(runId: string, userId: string): Promise<vo
   const log = createProcessLog()
   log.step('Loaded your profile', 'Pulled your resume and this job from the database')
 
-  const [master, jobRes, profileRes, enhancementsRes] = await Promise.all([
+  const [master, jobRes] = await Promise.all([
     getMasterResumeContext(admin, userId, null),
     admin.from('jobs').select('extracted_data').eq('id', run.job_id).eq('user_id', userId).single(),
-    admin.from('profiles').select('github_data').eq('id', userId).maybeSingle(),
-    admin
-      .from('resume_enhancements')
-      .select('question, answer')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(15),
   ])
 
   if ('error' in master) {
@@ -101,141 +110,24 @@ export async function executeGapPhase(runId: string, userId: string): Promise<vo
 
   const resume = master.structured
   const score = calculateATSScore(resume, jobData)
-  const githubData = profileRes.data?.github_data as GitHubProfileData | null | undefined
-  const githubContext = formatGitHubContextForAi(githubData ?? null)
-  const priorEnhancements = (enhancementsRes.data ?? []).map(row => ({
-    question: row.question,
-    answer: row.answer,
-  }))
-  const { resumeMarkdown, profileContext } = buildTailorPromptContext({
-    master,
-    priorEnhancements,
-  })
+  const atsGap = gapAnalysisFromAts(score)
+
   log.step(
     'Context ready',
-    `${jobData.title || 'Role'} at ${jobData.company || 'this company'}`,
+    `${jobData.title || 'Role'} at ${jobData.company || 'this company'} — drafting first, optional gaps after`,
   )
+  log.step('No pre-draft quiz', 'Writing a full version from your profile and this job')
 
-  const atsGap = gapAnalysisFromAts(score)
-  const shouldAskClaude =
-    atsGap.real_gaps.length > 0 || score.missing_skills.length > 0 || score.missing_keywords.length > 0
-
-  if (!shouldAskClaude) {
-    log.step('No extra questions', 'Your profile already covers the main requirements — writing a version next.')
-    await patchTailorRun(admin, runId, {
-      status: 'generating',
-      gap_analysis: atsGap,
-      questions: [],
-      process_log: log.entries,
-    })
-    await executeGeneratePhase(runId, userId, {})
-    return
-  }
-
-  let ai
-  try {
-    ai = await resolveAiRuntime(userId)
-  } catch (err) {
-    await failRun(runId, log, err instanceof Error ? err.message : 'AI is not configured')
-    return
-  }
-
-  const gaps = [
-    ...score.missing_skills.slice(0, 5).map(s => `Missing skill: ${s}`),
-    ...score.missing_keywords.slice(0, 5).map(k => `Missing keyword: ${k}`),
-  ].join('\n')
-
-  const prompt = GAP_ANALYSIS_PROMPT
-    .replace('{resumeMarkdown}', resumeMarkdown)
-    .replace('{profileContext}', profileContext)
-    .replace('{githubContext}', githubContext)
-    .replace('{jobRequirements}', jsonForPrompt(jobData))
-    .replace('{gaps}', gaps || 'No major gaps identified from ATS pre-scan')
-
-  log.step('Reviewing this job', 'Comparing your experience to what they’re asking for', 'pending')
-  let gapAnalysis: GapAnalysis
-  try {
-    const result = await withAiOnce(`gap_questions:${userId}:${run.job_id}`, () =>
-      streamAiTextToCompletion({
-        runtime: ai,
-        feature: 'gap_questions',
-        tier: 'strong',
-        prompt,
-        maxOutputTokens: 4000,
-        partialEveryMs: 1000,
-        onPartial: async text => {
-          const last = log.entries[log.entries.length - 1]
-          if (!last || last.status !== 'pending') return
-          const detail = text.includes('questions_for_user')
-            ? 'Choosing questions to ask you'
-            : text.includes('real_gaps')
-              ? 'Finding real gaps'
-              : text.includes('adjacent_matches')
-                ? 'Checking adjacent matches'
-                : text.includes('direct_matches')
-                  ? 'Listing direct matches'
-                  : 'Comparing your experience to what they’re asking for'
-          if (last.detail === detail) return
-          last.detail = detail
-          await patchTailorRun(admin, runId, { process_log: log.entries })
-        },
-      }),
-    )
-    let parsed: GapAnalysis
-    try {
-      parsed = normalizeGapAnalysis(parseModelJson(result.text))
-    } catch (parseErr) {
-      console.error('[tailor] gap JSON unusable, falling back to ATS questions', parseErr)
-      parsed = atsGap
-      const last = log.entries[log.entries.length - 1]
-      if (last?.status === 'pending') {
-        last.status = 'warn'
-        last.label = 'Review complete'
-        last.detail = 'Used the job requirements when the detailed review came back messy'
-      }
-    }
-    gapAnalysis = withAtsFallbackQuestions(parsed, score)
-    const last = log.entries[log.entries.length - 1]
-    if (last && last.status === 'pending') {
-      last.status = 'ok'
-      last.label = 'Review complete'
-      last.detail =
-        gapAnalysis.questions_for_user.length > 0
-          ? 'A couple of questions to make this stronger'
-          : 'Ready to write your version'
-    }
-    await patchTailorRun(admin, runId, {
-      claude_calls: TAILOR_RUN_CLAUDE.gap,
-      process_log: log.entries,
-    })
-  } catch (err) {
-    await failRun(runId, log, err)
-    return
-  }
-
-  const questions = gapAnalysis.questions_for_user
-  if (questions.length === 0) {
-    log.step('No extra questions', 'Starting the tailored version')
-    await patchTailorRun(admin, runId, {
-      status: 'generating',
-      gap_analysis: gapAnalysis,
-      questions: [],
-      process_log: log.entries,
-    })
-    await executeGeneratePhase(runId, userId, {})
-    return
-  }
-
-  log.step('Waiting for you', `${questions.length} question(s) — tailor will not start until you answer`)
   await patchTailorRun(admin, runId, {
-    status: 'awaiting_answers',
-    gap_analysis: gapAnalysis,
-    questions,
+    status: 'generating',
+    gap_analysis: atsGap,
+    questions: [],
     process_log: log.entries,
   })
+  await executeGeneratePhase(runId, userId, {})
 }
 
-/** Claude call 2 of 2: one resume rewrite as markdown (streamed; retries once if unusable). */
+/** One resume rewrite as markdown (streamed). Also used for the optional post-draft weave. */
 export async function executeGeneratePhase(
   runId: string,
   userId: string,
@@ -244,16 +136,26 @@ export async function executeGeneratePhase(
   const admin = createAdminClient()
   const existing = await getTailorRun(admin, userId, runId)
   if (!existing) return
-  if (existing.status === 'needs_review' || existing.status === 'failed' || existing.status === 'cancelled') {
+  if (existing.status === 'failed' || existing.status === 'cancelled') {
     return
   }
 
-  const run = await claimGeneratePhase(admin, runId, answers)
+  const isWeave = existing.status === 'needs_review'
+  if (isWeave && existing.claude_calls >= TAILOR_RUN_CLAUDE.total) {
+    return
+  }
+
+  const run = isWeave
+    ? await claimWeavePhase(admin, runId, answers)
+    : await claimGeneratePhase(admin, runId, answers)
   if (!run) return
 
   const log = createProcessLog()
   for (const entry of run.process_log) log.entries.push(entry)
-  log.step('Writing your version', 'Keeping your voice, aimed at this job')
+  log.step(
+    isWeave ? 'Weaving in your answers' : 'Writing your version',
+    isWeave ? 'Updating the draft with what you shared' : 'Keeping your voice, aimed at this job',
+  )
 
   let ai
   try {
@@ -263,7 +165,7 @@ export async function executeGeneratePhase(
     return
   }
 
-  const [master, jobRes, profileRes, enhancementsRes] = await Promise.all([
+  const [master, jobRes, profileRes, enhancementsRes, repoIntelligence] = await Promise.all([
     getMasterResumeContext(admin, userId, null),
     admin.from('jobs').select('extracted_data').eq('id', run.job_id).eq('user_id', userId).single(),
     admin.from('profiles').select('github_data').eq('id', userId).maybeSingle(),
@@ -273,6 +175,7 @@ export async function executeGeneratePhase(
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(15),
+    loadLatestReadyIntelligence(admin, userId),
   ])
   if ('error' in master) {
     await failRun(runId, log, master.error)
@@ -286,6 +189,11 @@ export async function executeGeneratePhase(
 
   const githubContext = formatGitHubContextForAi(
     profileRes.data?.github_data as GitHubProfileData | null | undefined,
+    {
+      profileData: master.profileData,
+      job,
+      intelligenceByRepoId: repoIntelligence,
+    }
   )
   const priorEnhancements = (enhancementsRes.data ?? []).map(row => ({
     question: row.question,
@@ -295,14 +203,27 @@ export async function executeGeneratePhase(
     master,
     priorEnhancements,
   })
+  const preferredProjects = formatPreferredProjectsForPrompt(
+    master.profileData?.projects ?? master.structured.projects ?? [],
+    job,
+  )
+  const enrichedProfileContext = preferredProjects
+    ? `${profileContext}\n\n${preferredProjects}`
+    : profileContext
   const gapAnalysis = run.gap_analysis ?? gapAnalysisFromAts(calculateATSScore(master.structured, job))
   const questionLabels: Record<string, string> = {}
   for (const q of run.questions) {
     if (q?.id && q?.question) questionLabels[q.id] = q.question
   }
 
+  const mergedAnswers = { ...(run.answers ?? {}), ...answers }
+
   const generateFn: GenerateFn = async ({ model, prompt, maxOutputTokens }) => {
-    log.step('Writing your version', 'Matching this job in your words', 'pending')
+    log.step(
+      isWeave ? 'Weaving in your answers' : 'Writing your version',
+      isWeave ? 'Updating the draft' : 'Matching this job in your words',
+      'pending',
+    )
     await patchTailorRun(admin, runId, { process_log: log.entries })
     const result = await streamAiTextToCompletion({
       runtime: ai,
@@ -324,26 +245,28 @@ export async function executeGeneratePhase(
     const last = log.entries[log.entries.length - 1]
     if (last?.status === 'pending') {
       last.status = 'ok'
-      last.label = 'Draft ready'
+      last.label = isWeave ? 'Update ready' : 'Draft ready'
       last.detail = 'Scoring match next'
     }
     return result.text
   }
 
   try {
-    const pipelineResult = await withAiOnce(`tailor-generate:${userId}:${run.job_id}`, () =>
-      runTailorPipeline({
-        resume: master.structured,
-        job,
-        answers,
-        questionLabels,
-        gapAnalysis,
-        githubContext,
-        profileContext,
-        resumeMarkdown,
-        generate: generateFn,
-        models: ai.models,
-      }),
+    const pipelineResult = await withAiOnce(
+      isWeave ? `tailor-weave:${userId}:${run.job_id}` : `tailor-generate:${userId}:${run.job_id}`,
+      () =>
+        runTailorPipeline({
+          resume: master.structured,
+          job,
+          answers: mergedAnswers,
+          questionLabels,
+          gapAnalysis,
+          githubContext,
+          profileContext: enrichedProfileContext,
+          resumeMarkdown,
+          generate: generateFn,
+          models: ai.models,
+        }),
     )
 
     const { tailoredResume, changes } = pipelineResult
@@ -356,7 +279,7 @@ export async function executeGeneratePhase(
       .eq('job_id', run.job_id)
       .eq('user_id', userId)
 
-    const gapAnswersRecord = Object.entries(answers)
+    const gapAnswersRecord = Object.entries(mergedAnswers)
       .filter(([, answer]) => answer.trim())
       .map(([questionId, answer]) => ({
         questionId,
@@ -378,7 +301,7 @@ export async function executeGeneratePhase(
         tailored_score: tailoredScore,
         version: (priorVersions ?? 0) + 1,
         gap_answers: gapAnswersRecord,
-        theme_override: defaultThemeForSeniority(job.seniority),
+        theme_override: themeForJob(job),
       })
       .select('id, version')
       .single()
@@ -388,9 +311,14 @@ export async function executeGeneratePhase(
       return
     }
 
+    // Post-draft optional chips only after the first draft (not after weave).
+    const chips = isWeave ? [] : leftoverGapChips(calculateATSScore(tailoredResume, job))
+
     log.step(
       'Ready to review',
-      `v${tailoredRow.version} · ${matchScore}% → ${tailoredScore}% · ${changesWithIds.length} changes`,
+      chips.length > 0
+        ? `v${tailoredRow.version} · ${matchScore}% → ${tailoredScore}% · ${chips.length} optional tip${chips.length === 1 ? '' : 's'}`
+        : `v${tailoredRow.version} · ${matchScore}% → ${tailoredScore}% · ${changesWithIds.length} changes`,
     )
 
     await admin
@@ -407,13 +335,17 @@ export async function executeGeneratePhase(
       ),
     ])
 
+    const nextCalls = Math.min(
+      TAILOR_RUN_CLAUDE.total,
+      (run.claude_calls || 0) + Math.max(1, pipelineResult.meta.aiCallsUsed),
+    )
+
     await patchTailorRun(admin, runId, {
       status: 'needs_review',
       tailored_resume_id: tailoredRow.id,
-      claude_calls: Math.min(
-        TAILOR_RUN_CLAUDE.total,
-        (run.claude_calls || 0) + Math.max(1, pipelineResult.meta.aiCallsUsed),
-      ),
+      questions: chips,
+      answers: isWeave ? mergedAnswers : {},
+      claude_calls: nextCalls,
       process_log: log.entries,
       error: null,
       finished_at: new Date().toISOString(),

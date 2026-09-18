@@ -58,7 +58,7 @@ const TABS: { id: DetailTab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'description', label: 'Job description' },
   { id: 'documents', label: 'Documents' },
-  { id: 'questions', label: 'Questions' },
+  { id: 'questions', label: 'Q&A' },
   { id: 'activity', label: 'Activity' },
   { id: 'email', label: 'Email' },
 ]
@@ -72,6 +72,8 @@ interface JobDetailPageProps {
   emailTrackingEnabled?: boolean
   /** HireIQ application address — shown so you can paste it on the employer form. */
   applyEmail?: string | null
+  /** When false, auto-apply CTA explains Cloud Run setup instead of queueing. */
+  applyWorkerReady?: boolean
 }
 
 function resolveInitialTab(param: string | null): DetailTab {
@@ -101,6 +103,7 @@ export function JobDetailPage({
   profileData: initialProfile,
   emailTrackingEnabled = true,
   applyEmail = null,
+  applyWorkerReady = true,
 }: JobDetailPageProps) {
   const searchParams = useSearchParams()
   const visibleTabs = useMemo(
@@ -441,7 +444,13 @@ export function JobDetailPage({
                 {copiedApplyEmail ? 'Copied' : 'Copy apply email'}
               </Button>
             ) : null}
-            {hostedAutoApply ? <AutoApplyWithHireIQ jobId={item.job.id} hasApplyUrl /> : null}
+            {hostedAutoApply ? (
+              <AutoApplyWithHireIQ
+                jobId={item.job.id}
+                hasApplyUrl
+                workerReady={applyWorkerReady}
+              />
+            ) : null}
             <div className="sm:hidden">
               <label htmlFor="mobile-application-status" className="sr-only">
                 Application status
@@ -609,24 +618,15 @@ export function JobDetailPage({
           ) : null}
 
           {tab === 'activity' ? (
-            <div className="space-y-5">
-              <ActivityPanel
-                items={activityItems}
-                notes={notes}
-                onSaveNotes={saveNotes}
-                onAddEvent={addEvent}
-                portalEmail={item.ats_account_email}
-                portalPassword={item.ats_account_password}
-                portalNote={item.ats_account_note}
-              />
-              {formAnswers.length > 0 ? (
-                <ApplicationAnswers
-                  applicationId={item.id}
-                  jobId={item.job_id}
-                  initialAnswers={formAnswers}
-                />
-              ) : null}
-            </div>
+            <ActivityPanel
+              items={activityItems}
+              notes={notes}
+              onSaveNotes={saveNotes}
+              onAddEvent={addEvent}
+              portalEmail={item.ats_account_email}
+              portalPassword={item.ats_account_password}
+              portalNote={item.ats_account_note}
+            />
           ) : null}
 
           {tab === 'email' ? (

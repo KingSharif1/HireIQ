@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     })
   }
 
-  const pending = writeBackToPending(writeBack, tailored.id, jobLabel, undefined)
+  const pending = writeBackToPending(writeBack, tailored.id, jobLabel, undefined, profileData)
 
   const existingIds = new Set((profileData.pendingSuggestions ?? []).map(s => s.id))
   const fresh = pending.filter(s => !existingIds.has(s.id))

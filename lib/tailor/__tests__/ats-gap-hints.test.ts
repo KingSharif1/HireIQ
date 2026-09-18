@@ -3,6 +3,7 @@ import {
   formatAtsGapsForPrompt,
   gapAnalysisFromAts,
   hasMaterialGapAnswers,
+  isConcreteLeftoverChip,
   isSkipGapAnswer,
   leftoverGapChips,
   questionsFromAtsGaps,
@@ -93,6 +94,28 @@ describe('leftoverGapChips', () => {
 
   it('returns none when ATS is clean', () => {
     expect(leftoverGapChips(score({ missing_skills: [], missing_keywords: [] }))).toHaveLength(0)
+  })
+
+  it('drops vague leftover phrases like Software development', () => {
+    const chips = leftoverGapChips(
+      score({
+        missing_skills: ['Software development', 'C++', 'problem solving'],
+        missing_keywords: ['collaboration', 'ROS 2'],
+      }),
+    )
+    expect(chips.every(c => !/software development|problem solving|collaboration/i.test(c.gap_being_filled))).toBe(
+      true,
+    )
+    expect(chips.some(c => c.gap_being_filled === 'C++' || c.gap_being_filled === 'ROS 2')).toBe(true)
+  })
+})
+
+describe('isConcreteLeftoverChip', () => {
+  it('accepts tools and rejects mega-generic buckets', () => {
+    expect(isConcreteLeftoverChip('C++')).toBe(true)
+    expect(isConcreteLeftoverChip('GraphQL')).toBe(true)
+    expect(isConcreteLeftoverChip('Software development')).toBe(false)
+    expect(isConcreteLeftoverChip('Agile')).toBe(false)
   })
 })
 

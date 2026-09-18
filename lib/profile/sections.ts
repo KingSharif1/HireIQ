@@ -13,9 +13,6 @@ import {
   Zap,
   Award,
   Plus,
-  Paperclip,
-  ClipboardList,
-  Download,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -23,7 +20,6 @@ export type SectionId =
   | 'personal'
   | 'applyAnswers'
   | 'resumes'
-  | 'exportResume'
   | 'additionalDocuments'
   | 'summary'
   | 'urls'
@@ -34,7 +30,6 @@ export type SectionId =
   | 'skills'
   | 'achievements'
   | 'additional'
-  | 'attachments'
 
 export type SectionGroup = 'PROFILE' | 'DOCUMENTS' | 'PROFESSIONAL PROFILE'
 
@@ -49,12 +44,9 @@ export interface SectionDef {
 
 export const SECTIONS: SectionDef[] = [
   { id: 'personal', label: 'Personal Info', group: 'PROFILE', icon: User, kind: 'text' },
-  { id: 'applyAnswers', label: 'Application form', group: 'PROFILE', icon: ClipboardList, kind: 'list' },
 
   { id: 'resumes', label: 'Resumes', group: 'DOCUMENTS', icon: FileText, kind: 'static' },
-  { id: 'exportResume', label: 'Export PDF', group: 'DOCUMENTS', icon: Download, kind: 'static' },
   { id: 'additionalDocuments', label: 'Additional Documents', group: 'DOCUMENTS', icon: Files, kind: 'list' },
-  { id: 'attachments', label: 'Attachments', group: 'DOCUMENTS', icon: Paperclip, kind: 'list' },
 
   { id: 'summary', label: 'Summary', group: 'PROFESSIONAL PROFILE', icon: AlignLeft, kind: 'text' },
   { id: 'urls', label: 'URLs', group: 'PROFESSIONAL PROFILE', icon: Link2, kind: 'list' },
@@ -67,16 +59,21 @@ export const SECTIONS: SectionDef[] = [
   { id: 'additional', label: 'Additional', group: 'PROFESSIONAL PROFILE', icon: Plus, kind: 'text' },
 ]
 
+/** Retired rail items — keep bookmarks working. */
+export const SECTION_ALIASES: Record<string, SectionId> = {
+  exportResume: 'resumes',
+  attachments: 'additionalDocuments',
+}
+
 export const SECTION_GROUPS: SectionGroup[] = ['PROFILE', 'DOCUMENTS', 'PROFESSIONAL PROFILE']
 
 /** Groups shown on Professional Profile (Sprout) — no Documents. */
 export const PROFESSIONAL_GROUPS: SectionGroup[] = ['PROFILE', 'PROFESSIONAL PROFILE']
 
-/** Document vault sections (uploaded resumes + link lists). */
+/** Document vault sections (uploaded resumes + extra labeled docs). */
 export const DOCUMENT_SECTION_IDS: SectionId[] = [
   'resumes',
   'additionalDocuments',
-  'attachments',
 ]
 
 export function isDocumentSection(id: string): id is SectionId {
@@ -85,6 +82,13 @@ export function isDocumentSection(id: string): id is SectionId {
 
 export function isKnownSection(id: string): id is SectionId {
   return SECTIONS.some(s => s.id === id)
+}
+
+export function canonicalSectionId(id: string | null | undefined): SectionId | null {
+  if (!id) return null
+  const aliased = SECTION_ALIASES[id]
+  if (aliased) return aliased
+  return isKnownSection(id) ? id : null
 }
 
 /** DOM id for Master resume section anchors (one-page scroll). */
@@ -119,8 +123,6 @@ export function sectionCount(id: SectionId, data: ProfileData, resumeCount: numb
       )
     case 'achievements':
       return data.achievements.length
-    case 'attachments':
-      return data.attachments.length
     case 'applyAnswers':
       return applyAnswersFilledCount(data)
     default:

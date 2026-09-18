@@ -4,7 +4,19 @@ import { repoStatus } from './repo-status'
 
 const GITHUB_API = 'https://api.github.com'
 
-async function githubFetch<T>(path: string, token: string): Promise<T> {
+export class GitHubApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly rateLimitRemaining: number | null,
+    readonly rateLimitReset: string | null
+  ) {
+    super(message)
+    this.name = 'GitHubApiError'
+  }
+}
+
+export async function githubFetch<T>(path: string, token: string): Promise<T> {
   const res = await fetch(`${GITHUB_API}${path}`, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -12,10 +24,25 @@ async function githubFetch<T>(path: string, token: string): Promise<T> {
       'X-GitHub-Api-Version': '2022-11-28',
     },
     next: { revalidate: 0 },
+    signal: AbortSignal.timeout(20_000),
   })
   if (!res.ok) {
     const body = await res.text().catch(() => '')
-    throw new Error(`GitHub API ${res.status}: ${body.slice(0, 200)}`)
+    const remaining = Number(res.headers.get('x-ratelimit-remaining'))
+    const resetSeconds = Number(res.headers.get('x-ratelimit-reset'))
+    const reset =
+      Number.isFinite(resetSeconds) && resetSeconds > 0
+        ? new Date(resetSeconds * 1000).toISOString()
+        : null
+    const rateLimited = res.status === 403 && remaining === 0
+    throw new GitHubApiError(
+      rateLimited
+        ? `GitHub rate limit reached${reset ? ` until ${reset}` : ''}.`
+        : `GitHub API ${res.status}: ${body.slice(0, 200)}`,
+      res.status,
+      Number.isFinite(remaining) ? remaining : null,
+      reset
+    )
   }
   return res.json() as Promise<T>
 }
@@ -49,12 +76,15 @@ async function fetchRepoLanguages(fullName: string, token: string): Promise<stri
 export async function snapshotRepos(repos: GitHubApiRepo[], token: string): Promise<GitHubRepoSnapshot[]> {
   const owned = repos.filter(r => !r.fork)
   const top = owned.slice(0, 30)
+  const enrichedIds = new Set(top.map(repo => repo.id))
 
   const enrichments = await enrichReposBatch(top, token, 4)
 
   return Promise.all(
-    top.map(async repo => {
-      const languages = await fetchRepoLanguages(repo.full_name, token)
+    owned.map(async repo => {
+      const languages = enrichedIds.has(repo.id)
+        ? await fetchRepoLanguages(repo.full_name, token)
+        : []
       const enriched = enrichments.get(repo.id)
       const tools = enriched?.tools ?? []
       const mergedTools = [...new Set([...tools, ...languages.slice(0, 3)])].slice(0, 10)

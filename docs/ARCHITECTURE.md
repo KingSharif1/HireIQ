@@ -1,6 +1,6 @@
 # HireIQ Architecture
 
-**Last updated:** 2026-08-15  
+**Last updated:** 2026-09-17 (Task 167 job detail UX + Sonnet 5 defaults — [DECISIONS.md](./DECISIONS.md))
 **Spec:** [SPEC.md](./SPEC.md) v1.0  
 **Production:** https://hireiq.kingsharif.com (Vercel · GitHub `KingSharif1/HireIQ`)
 
@@ -24,9 +24,9 @@ Cover letter, outreach, and interview prep exist in the codebase but are **out o
 
 Shell: `components/shared/{DashboardShell,Sidebar,MobileNav,primary-nav.ts}`.
 
-Left nav on Profile shows one section (Personal, Experience, Projects…). Per-job Teal tabs stay on Applications → Documents. Full map: [RESUME-BUILDER.md](./RESUME-BUILDER.md).
+Left nav on Profile shows one section (Personal, Experience, Projects…). Documents on that rail are **Resumes** (original PDF + Export PDF dialog with zoomable live page) and **Additional Documents** (links or PDF/DOCX uploads, optional section/entry referral). Projects use one **GitHub** panel (connect/sync/add-with-ask-before-duplicate). Full behavior: [PROFILE-MASTER.md](./PROFILE-MASTER.md). `?section=exportResume` and `?section=attachments` rewrite to those pages. Per-job Teal tabs stay on Applications → Documents. Full map: [RESUME-BUILDER.md](./RESUME-BUILDER.md).
 
-Profile: `components/profile/ProfileHome.tsx`. Legacy `/profile/documents`, `/profile/professional`, `/builder/master` redirect here. Files tab: `ResumeLibrary`. Job Teal chrome: `JobResumeEditor`.
+Profile: `components/profile/ProfileHome.tsx`. It is the master evidence hub: one section at a time, a collapsible side menu from tablet width, and a compact phone drawer. Personal Info keeps Application Information visible with work eligibility, salary range, date of birth, and optional demographic dropdowns; sensitive answers are autofill-only and never printed or sent to tailoring. Existing-entry suggestions render inside their target card; new-entry suggestions lead the destination section. Legacy `/profile/documents`, `/profile/professional`, `/builder/master` redirect here. Files tab: `ResumeLibrary`. Job Teal chrome: `JobResumeEditor`.
 
 ### Chrome extension (Module 6)
 
@@ -78,6 +78,14 @@ Upload PDF/DOCX
     → Claude (PROMPT 1) → resumes.structured_data JSONB
     → optional sync → profiles.profile_data (sectioned profile UI)
 
+Connect GitHub
+    → OAuth token in github_connections; lightweight repo index in profiles.github_data
+    → Profile project links a repo without scanning
+    → explicit POST /api/github/repos/:repoId/intelligence
+    → GitHub commit + recursive tree → bounded selected blobs → fast AI evidence analysis
+    → repo_intelligence cache keyed by user + repo + commit SHA
+    → linked, job-relevant intelligence enters gap/generation context
+
 Paste JD or job URL
     → lib/jobs/url-detect.ts (Greenhouse / Lever / Ashby / Workday / LinkedIn block / aggregators)
     → app/api/jobs/fetch-url → lib/jobs/job-scraper.ts
@@ -120,7 +128,7 @@ Application tracking
 |-------------|--------|------------------|--------|
 | **1 Profile Engine** | | | |
 | 1.1 Resume parse | Tiered skills + confidence flags | `app/api/resume/parse`, `lib/ai/prompts.ts`, `resumes.structured_data` | 🟡 Partial — no OCR, skills not tiered core/familiar/tools |
-| 1.2 GitHub OAuth | `profiles.github_data` | `lib/github/*`, `app/api/github/*`, Profile Projects UI | ✓ Built — enable provider + migration 008 |
+| 1.2 GitHub OAuth + intelligence | Lightweight index + per-commit evidence | `lib/github/*`, `app/api/github/*`, `repo_intelligence`, Profile Projects UI | ✓ Built — migrations 008 + 024 |
 | 1.3 Profile schema | Normalized tables | `profiles.profile_data` JSONB + `resumes` | 🟡 JSONB-first; normalized tables deferred (see DECISIONS) |
 | **2 Job Ingestion** | | | |
 | 2.1 Fetch JD | Workday, GH, Lever, Ashby, LinkedIn paste | `lib/jobs/url-detect.ts`, `lib/jobs/job-scraper.ts` | 🟡 GH/Lever/Ashby/Workday ✓; LinkedIn → paste; Playwright fallback pending |
@@ -179,7 +187,7 @@ Legend: ✓ done · 🟡 partial · 🔴 not started
 
 ## Database (current)
 
-Migrations in `docs/supabase/migrations/` (001 → 022):
+Migrations in `docs/supabase/migrations/` (001 → 024):
 
 | Table | Role |
 |-------|------|
@@ -190,13 +198,14 @@ Migrations in `docs/supabase/migrations/` (001 → 022):
 | `application_events` | Status/timeline events (010) |
 | `tailored_resumes` | Output + `changes` + `change_decisions` + `theme_override` |
 | `tailor_runs` | Durable AI tailor session (max 2 Claude calls; one active per job) |
+| `repo_intelligence` | Bounded repository evidence cached by owner, repo, and default-branch commit SHA |
 | `resume_enhancements` | Legacy Q&A storage |
 | `notifications` | In-app alerts |
 | `apply_runs` | Hosted auto-apply queue (021) |
 | `ai_usage_events` | Per-request token/cost log (022) |
 | `user_ai_secrets` | Encrypted Anthropic BYOK (022; service_role only) |
 
-**Remote (Supabase project `wsbbgznobxhjefaqbniv`):** Core schema + RLS applied. Migrations 006–022 applied via MCP (022 = BYOK + usage).
+**Remote (Supabase project `wsbbgznobxhjefaqbniv`):** Core schema + RLS applied through migration 024 (repository intelligence).
 
 Spec target still pending: normalized `experiences`/`projects`/`skills`, Gmail columns on `profiles`.
 
@@ -204,6 +213,6 @@ Spec target still pending: normalized `experiences`/`projects`/`skills`, Gmail c
 
 ## Verification
 
-- **Tests:** 96 passing (`npm run test`)
+- **Tests:** 362 passing / 11 skipped (`npm run test`)
 - **Typecheck:** `npx tsc --noEmit`
 - **Auth setup:** [AUTH.md](./AUTH.md)

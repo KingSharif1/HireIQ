@@ -12,6 +12,8 @@
     "test:watch": "vitest",
     "ui:shots": "node docs/scripts/ui-shots.mjs",
     "ui:shots:headed": "node docs/scripts/ui-shots.mjs --headed",
+    "ui:profile-docs": "node docs/scripts/ui-profile-docs.mjs",
+    "ui:profile-docs:headed": "node docs/scripts/ui-profile-docs.mjs --headed",
     "extension:build": "npm run build --prefix extension",
     "extension:dev": "npm run dev --prefix extension",
     "apply:worker": "npx tsx --tsconfig tsconfig.json services/apply-worker/server.ts"

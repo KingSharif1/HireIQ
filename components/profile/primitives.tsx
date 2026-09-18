@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Plus, Trash2, X, ChevronDown, ChevronUp, FileText, FolderGit2 } from 'lucide-react'
@@ -107,6 +108,8 @@ export function EntryCard({
   children,
   defaultOpen = true,
   entryId,
+  emphasized = false,
+  attention = false,
 }: {
   title: string
   subtitle?: string
@@ -119,17 +122,31 @@ export function EntryCard({
   children: React.ReactNode
   defaultOpen?: boolean
   entryId?: string
+  /** Temporarily open and highlight an entry after accepting an update. */
+  emphasized?: boolean
+  /** Keep an entry open while it contains a pending update. */
+  attention?: boolean
 }) {
   const [open, setOpen] = useState(defaultOpen)
+  const visibleOpen = open || emphasized || attention
+
   return (
-    <div id={entryId ? `entry-${entryId}` : undefined} className="rounded-xl border border-border bg-card/50 overflow-hidden">
+    <div
+      id={entryId ? `entry-${entryId}` : undefined}
+      className={cn(
+        'rounded-xl border bg-card/50 overflow-hidden transition-[border-color,box-shadow,background-color] duration-500',
+        emphasized
+          ? 'border-brand-green/60 bg-brand-green/5 ring-2 ring-brand-green/15'
+          : 'border-border'
+      )}
+    >
       <div className="flex items-center gap-2 px-4 py-3">
         <button
           type="button"
           onClick={() => setOpen(o => !o)}
           className="flex-1 flex items-center gap-2 text-left min-w-0"
         >
-          {open ? (
+          {visibleOpen ? (
             <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
           ) : (
             <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -183,7 +200,7 @@ export function EntryCard({
           <Trash2 className="w-4 h-4" />
         </button>
       </div>
-      {open && <div className="px-4 pb-4 pt-1 space-y-3 border-t border-border">{children}</div>}
+      {visibleOpen && <div className="px-4 pb-4 pt-1 space-y-3 border-t border-border">{children}</div>}
     </div>
   )
 }
@@ -201,7 +218,7 @@ export function BulletEditor({
       {bullets.map((b, i) => (
         <div key={i} className="flex items-start gap-2">
           <span className="text-brand-purple mt-2.5 text-xs">•</span>
-          <textarea
+          <Textarea
             value={b}
             onChange={e => {
               const next = [...bullets]
@@ -210,7 +227,7 @@ export function BulletEditor({
             }}
             rows={2}
             placeholder="Describe an accomplishment, impact, or responsibility…"
-            className="flex-1 rounded-lg border border-input bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none transition-colors"
+            className="min-h-[2.75rem] flex-1"
           />
           <button
             type="button"

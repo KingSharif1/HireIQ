@@ -1,4 +1,50 @@
 export type GitHubRepoStatus = 'active' | 'stale' | 'archived'
+export type RepoIntelligenceStatus = 'scanning' | 'ready' | 'failed'
+export type RepoEvidenceConfidence = 'high' | 'medium'
+
+export interface RepoToolEvidence {
+  name: string
+  usage: string
+  evidencePaths: string[]
+}
+
+export interface RepoFeatureEvidence {
+  name: string
+  detail: string
+  evidencePaths: string[]
+}
+
+export interface RepoResumeHighlight {
+  text: string
+  evidencePaths: string[]
+  confidence: RepoEvidenceConfidence
+}
+
+export interface RepoIntelligence {
+  overview: string
+  architecture: string[]
+  tools: RepoToolEvidence[]
+  features: RepoFeatureEvidence[]
+  keyFiles: { path: string; purpose: string }[]
+  resumeHighlights: RepoResumeHighlight[]
+  limitations: string[]
+}
+
+export interface RepoIntelligenceRecord {
+  id: string
+  repoId: number
+  fullName: string
+  defaultBranch: string
+  commitSha: string
+  repoPushedAt: string | null
+  status: RepoIntelligenceStatus
+  intelligence: RepoIntelligence | null
+  treeFileCount: number
+  analyzedFileCount: number
+  treeTruncated: boolean
+  error: string | null
+  updatedAt: string
+}
 
 export interface GitHubRepoSnapshot {
   id: number
@@ -57,4 +103,5 @@ export interface GitHubApiRepo {
   fork: boolean
   private: boolean
   topics?: string[]
+  default_branch?: string
 }

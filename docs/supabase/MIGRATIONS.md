@@ -10,6 +10,29 @@ Apply in numeric order on the remote project (`wsbbgznobxhjefaqbniv`). Use Supab
 | **021** | `021_apply_runs.sql` | **Applied** (2026-08-13 via Supabase MCP) | `apply_runs` queue for Cloud Run / extension auto-apply (Task 148) |
 | **022** | `022_ai_byok_and_usage.sql` | **Applied** | BYOK + `ai_usage_events` (Task 149) |
 | **023** | `023_tailor_runs.sql` | **Applied** (2026-08-14 via Supabase MCP) | Durable AI tailor session — one in-flight run per job, max 2 Claude calls |
+| **024** | `024_repo_intelligence.sql` | **Applied** (2026-09-17 via HireIQ Supabase MCP) | Per-commit GitHub repository intelligence cache with owner-only RLS |
+
+## Apply 024
+
+```sql
+-- docs/supabase/migrations/024_repo_intelligence.sql
+-- Creates repo_intelligence + commit cache indexes + owner-only RLS
+```
+
+Verify:
+
+```sql
+SELECT column_name
+FROM information_schema.columns
+WHERE table_name = 'repo_intelligence'
+ORDER BY ordinal_position;
+```
+
+Rollback (only if needed):
+
+```sql
+DROP TABLE IF EXISTS repo_intelligence;
+```
 
 ## Apply 023
 

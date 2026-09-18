@@ -48,7 +48,7 @@ export default async function TrackerJobDetailPage({
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // `*` includes form_answers (migration 014) for ApplicationAnswers on the Activity tab.
+  // `*` includes form_answers (migration 014) for ApplicationAnswers on the Q&A tab.
   const [{ data: appRow }, { data: profile }] = await Promise.all([
     supabase
       .from('applications')
@@ -150,6 +150,10 @@ export default async function TrackerJobDetailPage({
     (profile?.profile_data as ProfileData | null) ?? emptyProfileData()
   )
 
+  const applyWorkerReady =
+    Boolean(process.env.APPLY_WORKER_URL?.trim() && process.env.APPLY_WORKER_SECRET?.trim()) ||
+    process.env.APPLY_WORKER_INLINE === '1'
+
   return (
     <Suspense fallback={null}>
       <JobDetailPage
@@ -159,6 +163,7 @@ export default async function TrackerJobDetailPage({
         profileData={profileData}
         emailTrackingEnabled={emailTrackingEnabled}
         applyEmail={applyEmail}
+        applyWorkerReady={applyWorkerReady}
       />
     </Suspense>
   )

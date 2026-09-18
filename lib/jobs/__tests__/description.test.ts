@@ -15,7 +15,11 @@ const extracted: JobExtractedData = {
   required_experience_years: 2,
   education_requirement: '',
   keywords: ['Automation', 'automation'],
-  responsibilities: [' Build tools ', 'Build tools', '• Partner with users'],
+  responsibilities: [
+    ' Build practical internal tools for operators ',
+    'Build practical internal tools for operators',
+    '• Partner with users to ship durable workflows',
+  ],
   ats_system: '',
   red_flags: [],
   company_values: [],
@@ -38,7 +42,10 @@ describe('job description view', () => {
   it('deduplicates extracted sections', () => {
     const view = buildJobDescriptionView('Full posting', extracted)
     expect(view.summary).toBe('Build practical internal tools.')
-    expect(view.responsibilities).toEqual(['Build tools', 'Partner with users'])
+    expect(view.responsibilities).toEqual([
+      'Build practical internal tools for operators',
+      'Partner with users to ship durable workflows',
+    ])
     expect(view.requirements).toEqual([
       '2+ years of relevant experience',
       'Required: TypeScript',
@@ -48,7 +55,10 @@ describe('job description view', () => {
   })
 
   it('caps extracted sections to keep the formatted view concise', () => {
-    const values = Array.from({ length: 20 }, (_, index) => `Item ${index + 1}`)
+    const values = Array.from(
+      { length: 20 },
+      (_, index) => `Own end-to-end delivery for workflow item ${index + 1}`
+    )
     const view = buildJobDescriptionView('Full posting', {
       ...extracted,
       required_skills: values,
@@ -93,6 +103,21 @@ describe('job description view', () => {
     expect(view.requirements).toEqual([])
     expect(view.keywords).toEqual([])
     expect(view.fullText.includes('\n\n') || view.fullText.includes('Aechelon')).toBe(true)
+    // Chrome blobs must not become a giant responsibility bullet;
+    // title/location leftovers after un-glue are also rejected.
+    expect(
+      view.responsibilities.every(
+        item =>
+          item.length <= 280 &&
+          !/Back\s*to\s*jobs/i.test(item) &&
+          !/TexasApply/i.test(item) &&
+          !/Farmer's Branch/i.test(item) &&
+          !/^RTK\b/i.test(item)
+      )
+    ).toBe(true)
+    expect(view.responsibilities.some(item => /real-time image generation/i.test(item))).toBe(
+      true
+    )
   })
 
   it('ignores polluted extracted.summary chrome blobs', () => {
@@ -115,5 +140,20 @@ describe('job description view', () => {
       'https://job-boards.greenhouse.io/aechelontechnology/jobs/4904960008?utm_source=linkedin#apply'
     const b = 'https://job-boards.greenhouse.io/aechelontechnology/jobs/4904960008'
     expect(normalizeApplyUrl(a)).toBe(normalizeApplyUrl(b))
+  })
+
+  it('truncates Greenhouse apply-form chrome from full posting text', () => {
+    const polluted =
+      "Aechelon Technology builds simulators.\n\n" +
+      "with MyGreenhouseFirst Name*Last Name*Preferred First NameEmail*PhoneCountryPhone " +
+      "244 results foundNo results foundAfghanistan+93Åland Islands+358Albania+355Algeria+213"
+
+    const view = buildJobDescriptionView(polluted, null)
+    expect(view.fullText).toMatch(/Aechelon Technology builds simulators/)
+    expect(view.fullText).not.toMatch(/MyGreenhouse/i)
+    expect(view.fullText).not.toMatch(/First Name/i)
+    expect(view.fullText).not.toMatch(/Afghanistan/i)
+    expect(view.fullText).not.toMatch(/results found/i)
+    expect(view.summary).not.toMatch(/Afghanistan|MyGreenhouse/i)
   })
 })

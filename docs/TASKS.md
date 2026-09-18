@@ -13,26 +13,115 @@ Files changed: [list]
 
 ---
 
+## Task 171 — TailorDiff clarity (what/why + expand + edit score impact)
+Status: DONE
+Owner: this session
+Scope: `components/tailor/TailorDiff.tsx`, `components/jobs/detail/AiTailorFlow.tsx`, `lib/scoring/tailored-rescore.ts` (+ test), `docs/TAILOR-EDIT.md`, TASKS/CHANGELOG/STATUS
+Avoid: GitHub, execute-run prompts, Profile hub
+Goal: Each change card shows plain what/why; details (before/after) in a dropdown; after edit/accept, show live score delta for that change and how it affects match.
+Result: Cards show section + action + Why + preview + ± match pts; expand for before/after and keyword/skill impact; edit save recalculates via `scoreImpactForChange` + live ATS on decisions.
+Files changed: `TailorDiff.tsx`, `AiTailorFlow.tsx`, `lib/scoring/tailored-rescore.ts`, `tailored-rescore.test.ts`, TAILOR-EDIT, TASKS, CHANGELOG, STATUS
+
+---
+
+## Task 170 — Tailor review UI (preview-majority + independent scroll)
+Status: DONE
+Owner: parallel lane C (review UI)
+Parallel: Safe vs **168** and **169** — owns only tailor review chrome
+Scope: `components/jobs/detail/AiTailorFlow.tsx`, `components/tailor/TailorDiff.tsx`, `components/tailor/MatchScore.tsx` (layout only if needed), wire `ResumePreview` `highlights` via `lib/tailor/change-copy.ts` (read-only reuse), tests if any, `docs/TAILOR-EDIT.md` review section only
+Avoid: `lib/github/**`, `lib/tailor/execute-run.ts`, prompts, job scraper, provenance suppress, Profile UI
+Goal: Desktop review: resume preview ~65–80% width, sticky/viewport height; left score+suggestions scroll independently. Hover/focus a change → highlight on preview. Live preview from decisions. Accepted/declined/edited collapse chrome (Undo + primary remaining actions). Decline = one tap; optional why later or drop. Icon buttons need accessible names.
+Result: Review overlay is viewport-height flex (`min-h-0` + `overflow-hidden`); left ~30% scrolls independently; right ~70% sticky live preview with hover/focus highlights via `highlightsFromChanges`. TailorDiff: one-tap decline, collapsed post-decision chrome (status + Undo; accepted keeps Decline/Edit), `aria-label` on icon buttons. MatchScore untouched.
+Files changed: `components/jobs/detail/AiTailorFlow.tsx`, `components/tailor/TailorDiff.tsx`, `docs/TAILOR-EDIT.md`, `docs/TASKS.md`, `docs/CHANGELOG.md`
+
+---
+
+## Task 169 — GitHub evidence library (enrich via suggestions + deny forever)
+Status: DONE
+Owner: parallel lane B (GitHub)
+Parallel: Safe vs **168** (tailor) and **170** (review UI)
+Scope: `lib/github/{suggestions,sync,scan-project,repo-quality,resume-bullet}.ts`, `lib/profile/provenance.ts` (decline → suppress), `lib/profile/data.ts` normalize if needed, `types/index.ts` **only** additive `dismissedSuggestionIds` (or equivalent) on ProfileData — do not rewrite job/tailor types, Profile pending UI if required for suppress, tests, `docs/GITHUB.md` / PROFILE-MASTER GitHub blurb
+Avoid: `lib/tailor/execute-run.ts`, `lib/ai/prompts.ts`, `AiTailorFlow`, `TailorDiff`, job scraper
+Goal: On sync/analyze of **linked** repos, propose tools + bullets as **pending suggestions only (Option A)** — never silent-write master. Soft matches still ask to link. Declined GitHub suggestions never reappear. Archived stay out of discovery.
+Result: Linked repos emit `gh-{id}-bullet` / `gh-{id}-tool-*` pending suggestions (never silent master writes). `declineSuggestion` persists ids in `dismissedSuggestionIds`; generation + merge filter them. Soft name-match still skips new cards; high-confidence URL auto-link unchanged; archived stay out of discovery. Accept of tool tags lands on project.technologies.
+Files changed: `lib/github/suggestions.ts`, `lib/github/scan-project.ts`, `lib/profile/provenance.ts`, `lib/profile/data.ts`, `types/index.ts`, github/provenance tests, `docs/GITHUB.md`, `docs/PROFILE-MASTER.md`, TASKS, CHANGELOG
+See: DECISIONS 2026-09-18 · [GITHUB.md](./GITHUB.md)
+
+---
+
+## Task 168 — Claude-quality tailor (thesis + project pick + skill honesty)
+Status: DONE
+Owner: parallel lane A (tailor quality)
+Parallel: Safe vs **169** and **170**
+Scope: `lib/tailor/job-relevance.ts`, `lib/tailor/execute-run.ts`, `lib/ai/prompts.ts`, leftover-chip filter in tailor continue/execute, `lib/jobs/job-scraper.ts` (+ Oracle/generic thickness), job analyze path for `role_thesis` / domain tags if additive on `JobExtractedData` in `types/index.ts` **only** those fields, tests, `docs/TAILOR-QUALITY.md`
+Avoid: `lib/github/**`, `lib/profile/provenance.ts`, `AiTailorFlow`, `TailorDiff`, Profile UI
+Goal: Close the Emerson bake-off gap vs Claude — thick JD, domain-aware project ranking, don’t promote coursework skills as proficiency, concrete chips only. Stay ≤2 Claude calls.
+Result: Domain/thesis ranking elevates hardware (Mapping Robot) over web when JD is sparse/embedded; analyze prompt + types add `role_thesis`/`domain_tags`; tailor prompt blocks coursework≠proficiency; leftover chips filter vague terms; Oracle/generic scrape thicker (16k + Playwright retry). Still ≤2 Claude calls (no new model pass).
+Files changed: `lib/tailor/job-relevance.ts`, `lib/tailor/execute-run.ts`, `lib/tailor/ats-gap-hints.ts`, `lib/ai/prompts.ts`, `lib/jobs/job-scraper.ts`, `lib/jobs/fetch-types.ts`, `lib/jobs/fetch-rules.ts`, `lib/jobs/extractors/html-heuristic.ts`, `lib/jobs/normalize-job.ts`, `types/index.ts`, tests, `docs/TAILOR-QUALITY.md`, TASKS, CHANGELOG
+See: [TAILOR-QUALITY.md](./TAILOR-QUALITY.md)
+
+---
+
+## Task 167 — Job detail application UX + model defaults
+Status: DONE
+Owner: this session (job tracker / apply surface)
+Parallel: Safe alongside **162** — no tailor-pipeline or Profile-suggestion files.
+Scope: `lib/jobs/description.ts`, `lib/ai/models.ts`, `components/jobs/JobDetailPage.tsx`, `components/jobs/detail/{ApplicationAnswers,EmailInbox,JobSummary,AutoApplyWithHireIQ,QuestionsPanel}.tsx`, `app/dashboard/tracker/[jobId]/page.tsx`, tests, docs
+Goal: Fix glued ATS description bullets; remove duplicate Application answers on Activity; clarify Q&A vs form answers; email provenance (Gmail sync / masked / forwarded); honest Auto-apply when Cloud Run worker unset; default strong model → Sonnet 5 (Haiku stays fast).
+Result: Description quality gate rejects chrome mega-blobs; Activity no longer repeats form answers; Q&A = Tailor gaps + Form answers; Email badges name sync/masked/forward paths; Auto-apply CTA shows setup-needed when `APPLY_WORKER_*` missing; `AI_MODELS.strong` = `claude-sonnet-5`.
+Files changed: `lib/jobs/description.ts` + test, `lib/ai/models.ts`, `JobDetailPage.tsx`, `ApplicationAnswers.tsx`, `EmailInbox.tsx`, `JobSummary.tsx`, `AutoApplyWithHireIQ.tsx`, `QuestionsPanel.tsx`, `tracker/[jobId]/page.tsx`, STATUS/CHANGELOG/DECISIONS/TASKS/AUTO-APPLY
+
+---
+
+## Task 165 — Profile documents vault (Resumes + Additional Documents)
+Status: DONE
+Owner: documents session. Shared Profile files reconciled with Task 164.
+Scope: `lib/profile/{sections,documents,data,provenance,resume-row,load-workspace,extra-document-store}.ts`, `components/profile/{ResumesSection,AdditionalDocumentsSection,MasterExportPanel,ProvenanceBulletEditor,primitives}.tsx`, `app/api/resume/[id]/file`, `app/api/profile/documents/**`, `types/index.ts`, tests, docs
+Goal: Profile rail has one document home for resumes and one for extra docs. Original PDF in-pane; master export on Resumes only; fold attachments into Additional Documents; later: PDF/DOCX upload for extras.
+Result: Canonical write-up: [PROFILE-MASTER.md](./PROFILE-MASTER.md). Rail = Resumes + Additional Documents. Original via authenticated file route + blob preview. Export PDF on card → large dialog with zoomable live page. Extra docs: links and/or PDF/DOCX in `{userId}/docs/`. Auto-grow textareas. Combined GitHub hub with ask-before-duplicate / profile-README → portfolio link. Playwright: `npm run ui:profile-docs:headed`.
+Files changed: documents/export/GitHub hub polish across profile + `lib/github/{scan-project,repo-quality,suggestions,sync}.ts`, `ResumePreview` fitAxis, `docs/PROFILE-MASTER.md`, STATUS/CHANGELOG/DECISIONS
+
+---
+
+## Task 166 — Suggestion quality (dedupe + attribution + routing)
+Status: DONE
+Owner: this session (Profile suggestions lane)
+Parallel: Ran alongside **162** (tailor) — no shared runtime imports; soft share docs only.
+Scope: `lib/profile/{suggestion-dedupe,provenance,route-gap-answer}`, `components/profile/PendingSuggestionsPanel.tsx`, `app/api/profile/suggestions/suggest`, `lib/github/sync.ts`, tests, docs
+Goal: Before offering or accepting a suggestion, skip bullets/skills/entries that already exist. Show who changed a fact (you vs AI/GitHub) and when. Stop dumping invented or other-job text onto the wrong experience (Harper example).
+Result: Added `suggestion-dedupe` — content/near-dup filter on write-back + GitHub merge; accept no-ops duplicates; retargets misrouted company/project mentions (Harper text → Harper role). Attribution: `From AI · …` / `From GitHub · …` / `You · edited {date}` + clearer timeline. Pending cards show source + date.
+Files changed: `lib/profile/suggestion-dedupe.ts`, `provenance.ts`, `__tests__/suggestion-dedupe.test.ts`, `PendingSuggestionsPanel.tsx`, `suggest/route.ts`, `lib/github/sync.ts`, docs
+
+
+---
+
+## Task 163 — Profile master hub + contextual updates
+Status: DONE
+Scope: `components/profile/**`, `lib/profile/**`, `app/api/profile/suggestions/route.ts`, docs
+Goal: Keep Profile simple and Sprout-like: one section at a time, a tablet/desktop side menu that can collapse, visible application information inside Personal Info, and master suggestions shown at the exact entry they update. Accepted updates briefly highlight in place; new-entry proposals stay at the top of their section.
+Result: Profile side navigation now appears from tablet width and collapses to an accessible icon rail; phones retain the drawer. Application Information is always visible inside Personal Info; work eligibility uses selects, salary range and date of birth are reusable fields, and demographic values use canonical dropdowns. Existing-entry proposals render in their target card; new proposals lead the section. Accept responses identify the resulting entry/bullet so the UI opens, scrolls, and highlights it. New entries prepend.
+Files changed: `ProfileHome.tsx`, `ProfileSectionNav.tsx`, `ProfileSectionPanel.tsx`, `sections.tsx`, `PendingSuggestionsPanel.tsx`, `ProvenanceBulletEditor.tsx`, `primitives.tsx`, `useProfileSave.ts`, `types/index.ts`, `lib/profile/{sections,provenance,suggestion-focus,apply-answers}.ts`, `lib/extension/autofill-context.ts`, suggestion API, profile/extension tests, active docs
+
+---
+
+## Task 164 — GitHub repository intelligence
+Status: DONE
+Scope: `lib/github/**`, GitHub sync/scan APIs, Profile Projects UI, additive migration, tailor context, tests, docs
+Goal: Replace shallow README/root-path snapshots with persistent project intelligence keyed by repository commit SHA. Use the existing GitHub OAuth token with the recursive Trees API plus selective manifest/docs/config/source blobs; summarize architecture, tools, features, key files, and resume-safe evidence. Deep-scan linked or job-relevant repositories, not every repository on every tailor. Gitingest/Repomix are references or worker fallbacks, not a Python dependency in Next.js.
+Result: Bounded Trees/blob collection, fast-model analysis, per-commit cache (migration 024), Profile analyze UI, tailor context. Profile hub polish: one GitHub panel; `planRepoAdd` asks before duplicating; profile README repos suggest portfolio link. Live OAuth reconnect smoke still a user follow-up. Canonical Profile UX: [PROFILE-MASTER.md](./PROFILE-MASTER.md).
+Files changed: `lib/github/**`, intelligence API, Profile GitHub UI, migration 024, tests, docs + shared Profile reconciliation with 165
+
+---
+
 ## Task 162 — Draft-first tailor + optional real-gap chips
-Status: IN PROGRESS
-Scope: `lib/tailor/*`, `lib/ai/prompts.ts`, `lib/ai/tailor-pipeline.ts`, `app/api/tailor/runs/**`, `components/jobs/detail/AiTailorFlow.tsx`, `components/tailor/**`, docs
-Goal: Build on Task 159’s stronger one-page curation and match the [Red Hawk Claude chat](https://claude.ai/chat/c41aa0eb-7afd-4008-9143-8e27c3bb57d0): create a complete first draft from Profile + GitHub + JD immediately. Ask only after the draft, and only about real leftover gaps.
-Lock: **Option A** — show the draft first; then 0–2 optional chips such as “This job asks for n8n — add it if you’ve actually used it.” Skip means leave it off. Never block the first draft on questions.
+Status: DONE
+Owner: this session (tailor lane)
+Scope: `lib/tailor/*`, `lib/ai/prompts.ts`, `app/api/tailor/runs/**`, `components/jobs/detail/AiTailorFlow.tsx`, docs
+Goal: Create a complete first draft from Profile + GitHub + JD immediately. Ask only after the draft, and only about real leftover gaps (0–2 optional chips). Skip = leave it off.
+Lock: **Option A** — draft first; never block the first draft on questions.
+Result: `executeGapPhase` skips Claude quiz → generate immediately. After draft, ≤2 leftover chips on the run; review UI shows optional tips; skip clears without AI; material answers → one weave via `claimWeavePhase` (2-call ceiling). Prompt adds thesis + projects-first when JD values portfolio. Theme uses `themeOverrideForJob`. Legacy `awaiting_answers` still continues. Red Hawk live smoke waived by user.
+Files changed: `execute-run.ts`, `runs.ts`, `run-types.ts`, `continue/route.ts`, `AiTailorFlow.tsx`, `prompts.ts`, tailor tests, STATUS/TASKS/CHANGELOG/TAILOR-EDIT/DECISIONS
 
-### Done this session (helpers only — not wired)
-- `leftoverGapChips`, `isSkipGapAnswer`, and `hasMaterialGapAnswers` in `lib/tailor/ats-gap-hints.ts`
-- `jobLeadsWithProjects` and `themeOverrideForJob` in `lib/tailor/job-structure.ts`
-- Unit tests for both helpers
-
-### Continue tomorrow (in this order)
-1. Change `executeGapPhase` to skip the pre-draft Claude gap call and generate immediately from the full context. Preserve old `awaiting_answers` runs.
-2. Build on Task 159’s prompt: explicitly identify the posting’s thesis, map every retained project/role to it, and leave unsupported tools off.
-3. After generation, score the tailored draft and store at most two `leftoverGapChips` on the run. Apply `themeOverrideForJob` when the posting explicitly values hobby/portfolio work.
-4. Show compact optional chips above the review diff. All skipped: clear chips and remain in review without AI. Real written evidence: one user-initiated weave.
-5. Extend the continue route to support review-stage chip answers while preserving the two-call ceiling and no silent retries.
-6. Add route/run tests, then smoke the Red Hawk role: projects first, no invented n8n, optional n8n chip after the draft.
-
-Do not mix Task 147 into this session.
 
 ---
 

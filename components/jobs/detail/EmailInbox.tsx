@@ -45,7 +45,21 @@ function formatDateTime(value: string): string {
 }
 
 function sourceLabel(source: string): string {
-  return source === 'gmail' ? 'Gmail' : 'Masked email'
+  switch (source) {
+    case 'gmail':
+      return 'Synced from Gmail'
+    case 'masked':
+      return 'Via HireIQ apply address'
+    case 'forwarded':
+      return 'Forwarded to HireIQ'
+    default:
+      return source.replace(/_/g, ' ').replace(/\b\w/g, c => c.toLocaleUpperCase())
+  }
+}
+
+function threadPrimarySource(thread: InboxThread): string {
+  const latest = thread.messages[thread.messages.length - 1]
+  return latest?.source ?? 'manual'
 }
 
 export function EmailInbox({
@@ -112,7 +126,8 @@ export function EmailInbox({
             Email
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Review messages automatically tracked from Gmail or your masked application email.
+            Messages arrive three ways: synced from Gmail, sent to your HireIQ apply address, or
+            forwarded into HireIQ.
           </p>
           {applyEmail ? (
             <p className="mt-2 text-xs text-muted-foreground">
@@ -167,8 +182,11 @@ export function EmailInbox({
                       <span className="mt-1 line-clamp-2 block text-xs leading-5">
                         {thread.preview || 'No message preview'}
                       </span>
-                      <span className="mt-1.5 block text-[11px]">
-                        {formatDateTime(thread.latestAt)}
+                      <span className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+                        <span className="rounded-full border border-border bg-secondary/80 px-1.5 py-0.5 font-medium text-muted-foreground">
+                          {sourceLabel(threadPrimarySource(thread))}
+                        </span>
+                        <span>{formatDateTime(thread.latestAt)}</span>
                       </span>
                     </button>
                   </li>

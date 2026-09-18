@@ -1,11 +1,46 @@
 import type { ProfileData } from '@/types'
 import { normalizeProfileData } from '@/lib/profile/provenance'
+import { normalizeApplyAnswers } from '@/lib/profile/apply-answers'
 
 const MAX_CONTEXT_CHARS = 6000
 
 export type KnownSensitiveFacts = {
   years_experience?: string
+  country?: string
   work_authorization?: string
+  sponsorship?: string
+  relocation?: string
+  work_setting?: string
+  date_of_birth?: string
+  desired_salary?: string
+  gender?: string
+  race_ethnicity?: string
+  veteran_status?: string
+  disability_status?: string
+}
+
+const CHOICE_LABELS: Record<string, string> = {
+  yes: 'Yes',
+  no: 'No',
+  prefer_not: 'Prefer not to answer',
+  male: 'Male',
+  female: 'Female',
+  non_binary: 'Non-binary',
+  other: 'Other',
+  american_indian_alaska_native: 'American Indian or Alaska Native',
+  asian: 'Asian',
+  black_african_american: 'Black or African American',
+  hispanic_latino: 'Hispanic or Latino',
+  middle_eastern_north_african: 'Middle Eastern or North African',
+  native_hawaiian_pacific_islander: 'Native Hawaiian or Other Pacific Islander',
+  white: 'White',
+  two_or_more: 'Two or more races',
+  not_protected_veteran: 'I am not a protected veteran',
+  protected_veteran: 'I identify as a protected veteran',
+}
+
+function choiceLabel(value: string): string {
+  return CHOICE_LABELS[value] ?? value
 }
 
 function clip(text: string, max: number): string {
@@ -81,8 +116,23 @@ export function extractKnownSensitiveFacts(
     facts.years_experience = String(yearsExperience)
   }
   const data = normalizeProfileData(profileData ?? ({} as ProfileData))
-  const auth = data.applyAnswers?.workAuthorizedUS
+  const answers = normalizeApplyAnswers(data.applyAnswers)
+  const auth = answers.workAuthorizedUS
   if (auth === 'yes') facts.work_authorization = 'Authorized to work in the United States'
   if (auth === 'no') facts.work_authorization = 'Not authorized to work in the United States without sponsorship'
+  if (answers.country) facts.country = answers.country
+  if (answers.requiresSponsorship) facts.sponsorship = choiceLabel(answers.requiresSponsorship)
+  if (answers.willingToRelocate) facts.relocation = choiceLabel(answers.willingToRelocate)
+  if (answers.inOfficeOk) facts.work_setting = choiceLabel(answers.inOfficeOk)
+  if (answers.dateOfBirth) facts.date_of_birth = answers.dateOfBirth
+  if (answers.desiredSalaryMin || answers.desiredSalaryMax) {
+    const minimum = answers.desiredSalaryMin ? `$${answers.desiredSalaryMin}` : 'No minimum set'
+    const maximum = answers.desiredSalaryMax ? `$${answers.desiredSalaryMax}` : 'No maximum set'
+    facts.desired_salary = `${minimum} to ${maximum} annual base salary`
+  }
+  if (answers.gender) facts.gender = choiceLabel(answers.gender)
+  if (answers.ethnicity) facts.race_ethnicity = choiceLabel(answers.ethnicity)
+  if (answers.veteran) facts.veteran_status = choiceLabel(answers.veteran)
+  if (answers.disability) facts.disability_status = choiceLabel(answers.disability)
   return facts
 }

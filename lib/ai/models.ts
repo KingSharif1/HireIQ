@@ -4,8 +4,8 @@
  */
 
 export const AI_MODELS = {
-  /** Main generate (one call, no retry) */
-  strong: 'claude-sonnet-4-6',
+  /** Main generate (one call, no retry) — Sonnet 5 */
+  strong: 'claude-sonnet-5',
   /** Cheap / fast — autofill drafts only. Never used to "fix" a failed tailor. */
   fast: 'claude-haiku-4-5-20251001',
 } as const
@@ -15,6 +15,7 @@ export type AiModelId = string
 export type AiFeature =
   | 'job_analyze'
   | 'resume_parse'
+  | 'repo_intelligence'
   | 'gap_questions'
   | 'tailor_resume'
   | 'cover_letter'
@@ -29,6 +30,7 @@ export const AI_FEATURES: {
 }[] = [
   { id: 'job_analyze', label: 'Analyze job posting', uses: 'strong', where: 'Save / paste a job' },
   { id: 'resume_parse', label: 'Parse uploaded resume', uses: 'strong', where: 'Resume upload' },
+  { id: 'repo_intelligence', label: 'Analyze GitHub repository', uses: 'fast', where: 'Profile → Projects' },
   { id: 'gap_questions', label: 'Gap questions', uses: 'strong', where: 'Tailor Q&A' },
   { id: 'tailor_resume', label: 'Tailor resume', uses: 'strong', where: 'Job documents / tailor' },
   { id: 'cover_letter', label: 'Cover letter', uses: 'strong', where: 'Job → Cover letter' },
@@ -137,6 +139,7 @@ export const TYPICAL_ACTION_TOKENS: Record<
 > = {
   job_analyze: { strongIn: 1400, strongOut: 800, fastIn: 0, fastOut: 0 },
   resume_parse: { strongIn: 1600, strongOut: 2200, fastIn: 0, fastOut: 0 },
+  repo_intelligence: { strongIn: 0, strongOut: 0, fastIn: 30000, fastOut: 2200 },
   gap_questions: { strongIn: 2500, strongOut: 900, fastIn: 0, fastOut: 0 },
   tailor_resume: { strongIn: 22000, strongOut: 4800, fastIn: 0, fastOut: 0 },
   cover_letter: { strongIn: 2300, strongOut: 700, fastIn: 0, fastOut: 0 },

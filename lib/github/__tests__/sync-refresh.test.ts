@@ -49,12 +49,21 @@ describe('mergeGitHubPendingSuggestions', () => {
     }
 
     const fresh = githubSuggestionsFromRepos([repo()], data)
-    const merged = mergeGitHubPendingSuggestions([stale, tailorPending], fresh)
+    const merged = mergeGitHubPendingSuggestions([stale, tailorPending], fresh, data)
 
     expect(merged).toHaveLength(2)
     expect(merged.find(s => s.id === 'wb-1')).toBeTruthy()
     const gh = merged.find(s => s.id === 'gh-42')
     expect(gh?.proposedText).not.toContain('Open-source project')
     expect(gh?.proposedText.toLowerCase()).toContain('hireiq')
+  })
+
+  it('drops dismissed GitHub ids even if generation forgot to filter', () => {
+    const data = emptyProfileData()
+    data.dismissedSuggestionIds = ['gh-42']
+    const incoming = githubSuggestionsFromRepos([repo()], { ...data, dismissedSuggestionIds: [] })
+    expect(incoming.some(s => s.id === 'gh-42')).toBe(true)
+    const merged = mergeGitHubPendingSuggestions([], incoming, data)
+    expect(merged.find(s => s.id === 'gh-42')).toBeUndefined()
   })
 })

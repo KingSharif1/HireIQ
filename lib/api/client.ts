@@ -10,6 +10,7 @@ import type {
   JobExtractedData,
 } from '@/types'
 import type { TailorProcessLogEntry } from '@/lib/tailor/process-log'
+import type { RepoIntelligenceRecord } from '@/lib/github/types'
 
 // ---------------------------------------------------------------------------
 // Shared error type
@@ -64,6 +65,17 @@ async function post<T>(
   } finally {
     window.clearTimeout(timer)
   }
+}
+
+// ---------------------------------------------------------------------------
+// GitHub
+// ---------------------------------------------------------------------------
+
+export async function analyzeGitHubRepository(repoId: number, force = false): Promise<{
+  cached: boolean
+  record: RepoIntelligenceRecord
+}> {
+  return post(`/api/github/repos/${repoId}/intelligence`, { force }, { timeoutMs: 125_000 })
 }
 
 // ---------------------------------------------------------------------------

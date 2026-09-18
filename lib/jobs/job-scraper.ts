@@ -11,6 +11,12 @@ import {
 
 import { classifyApplyEaseFromJobPage, type ApplyEaseResult } from '@/lib/apply/ease'
 
+/** Cap JD text kept from scrapes — thick enough for thesis + skills, not infinite. */
+const MAX_SCRAPED_JD_CHARS = 16_000
+
+/** Below this, Oracle CX / thin generic pages should try a thicker extract path. */
+const THIN_JD_CHARS = 1_200
+
 export type JobSource =
   | 'greenhouse'
   | 'lever'
@@ -38,6 +44,16 @@ function detectSource(url: string): JobSource {
   if (kind === 'amazon') return 'amazon'
   if (kind === 'microsoft') return 'microsoft'
   return 'generic'
+}
+
+/** Oracle HCM / Candidate Experience SPAs often return a thin title blurb without Playwright. */
+export function isOracleCloudJobUrl(url: string): boolean {
+  try {
+    const host = new URL(url.trim()).hostname.toLowerCase()
+    return host.includes('oraclecloud.com') || host.includes('oracle.com')
+  } catch {
+    return false
+  }
 }
 
 function stripHtml(html: string): string {
@@ -187,13 +203,61 @@ async function scrapeGeneric(url: string): Promise<{
     return { text: '', company: '', title: '', pageHtml }
   }
 
+  let text = result.text.slice(0, MAX_SCRAPED_JD_CHARS)
+  let method = result.method
+  let ruleId = result.ruleId
+  let title = result.title
+  let company = result.company
+
+  // Oracle CX and other thin SPA scrapes: force a Playwright pass when still short.
+  const needsThicker =
+    text.length < THIN_JD_CHARS &&
+    (isOracleCloudJobUrl(url) || method === 'html-heuristic' || method === 'open-graph')
+
+  if (needsThicker) {
+    const thicker = await tryThickerRender(url)
+    if (thicker && thicker.text.length > text.length) {
+      text = thicker.text.slice(0, MAX_SCRAPED_JD_CHARS)
+      method = thicker.method
+      ruleId = thicker.ruleId ?? ruleId
+      title = thicker.title || title
+      company = thicker.company || company
+    }
+  }
+
   return {
-    text: result.text.slice(0, 8000),
-    company: result.company,
-    title: result.title,
-    extractionMethod: result.method,
-    extractionRuleId: result.ruleId,
+    text,
+    company,
+    title,
+    extractionMethod: method,
+    extractionRuleId: ruleId,
     pageHtml,
+  }
+}
+
+async function tryThickerRender(url: string): Promise<{
+  text: string
+  title: string
+  company: string
+  method: 'playwright'
+  ruleId?: string
+} | null> {
+  const {
+    fetchRenderedHtml,
+    extractFromRenderedHtml,
+    isPlaywrightFetchEnabled,
+  } = await import('@/lib/jobs/extractors/playwright-fetch')
+  if (!isPlaywrightFetchEnabled()) return null
+  const html = await fetchRenderedHtml(url)
+  if (!html) return null
+  const hit = extractFromRenderedHtml(html, url)
+  if (!hit || hit.text.length < 100) return null
+  return {
+    text: hit.text,
+    title: hit.title,
+    company: hit.company,
+    method: 'playwright',
+    ruleId: hit.ruleId,
   }
 }
 
@@ -216,7 +280,7 @@ async function scrapeAmazon(url: string): Promise<{
     const og = extractFromOpenGraph(html)
     if (og && og.text.length >= 100) {
       return {
-        text: og.text.slice(0, 8000),
+        text: og.text.slice(0, MAX_SCRAPED_JD_CHARS),
         company: og.company || 'Amazon',
         title: og.title,
         extractionMethod: og.method,
@@ -343,11 +407,15 @@ export async function scrapeJobUrl(url: string): Promise<{
 
   const genericConfidence =
     source === 'generic' && 'extractionMethod' in result
-      ? result.extractionMethod === 'html-heuristic' && result.text.length < 500
+      ? result.extractionMethod === 'html-heuristic' && result.text.length < THIN_JD_CHARS
         ? 'low'
         : result.extractionMethod === 'playwright'
-          ? 'medium'
-          : 'high'
+          ? result.text.length >= THIN_JD_CHARS
+            ? 'high'
+            : 'medium'
+          : result.text.length >= THIN_JD_CHARS
+            ? 'high'
+            : 'medium'
       : confidence
 
   const applyEase = classifyApplyEaseFromJobPage({

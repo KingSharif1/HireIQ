@@ -61,10 +61,11 @@ export function QuestionsPanel({ answers, tailoredResumeId }: QuestionsPanelProp
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="questions-panel-title" className="text-lg font-semibold tracking-tight">
-            Questions
+            Tailor gaps
           </h2>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Answers saved while tailoring. Suggest durable facts to your master profile when you want.
+            Answers from resume tailoring. Suggest durable facts to your master profile when you want —
+            separate from ATS form answers below.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -98,9 +99,10 @@ export function QuestionsPanel({ answers, tailoredResumeId }: QuestionsPanelProp
 
       {answerCount === 0 ? (
         <div className="mt-4 rounded-lg border border-dashed border-border bg-secondary/20 px-5 py-7 text-center">
-          <p className="text-sm font-medium text-foreground">No saved questions yet</p>
+          <p className="text-sm font-medium text-foreground">No tailor gaps yet</p>
           <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
-            Questions and answers will appear here after you tailor a resume for this job.
+            Resume tailor Q&amp;A appears here after you tailor for this job — not ATS form fields
+            (those live under Form answers).
           </p>
         </div>
       ) : (

@@ -89,11 +89,15 @@ export async function syncGitHubForUser(
   profileData = ensureGitHubUrl(profileData, ghUser.login, ghUser.html_url)
   profileData = {
     ...profileData,
-    projects: linkProjectGithubUrls(profileData.projects, repos),
+    projects: linkProjectGithubUrls(profileData.projects, repos, ghUser.login),
   }
 
   const incoming = githubSuggestionsFromRepos(repos, profileData)
-  const mergedPending = mergeGitHubPendingSuggestions(profileData.pendingSuggestions ?? [], incoming)
+  const mergedPending = mergeGitHubPendingSuggestions(
+    profileData.pendingSuggestions ?? [],
+    incoming,
+    profileData
+  )
   profileData = { ...profileData, pendingSuggestions: mergedPending }
 
   await supabase.from('github_connections').upsert({

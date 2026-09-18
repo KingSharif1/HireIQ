@@ -1,11 +1,12 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { normalizeProfileData } from '@/lib/profile/provenance'
 import type { Profile, ProfileData } from '@/types'
 import type { ResumeTheme } from '@/lib/export/theme'
+import type { AcceptedSuggestionFocus } from '@/lib/profile/suggestion-focus'
 
 interface UseProfileSaveOptions {
   userId: string
@@ -27,10 +28,21 @@ export function useProfileSave({
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [acceptedFocus, setAcceptedFocus] = useState<AcceptedSuggestionFocus | null>(null)
+  const focusTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
+    // Server refreshes (for example, GitHub sync) replace the editable profile snapshot.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setData(normalizeProfileData(initialData))
   }, [initialData])
+
+  useEffect(
+    () => () => {
+      if (focusTimer.current) clearTimeout(focusTimer.current)
+    },
+    []
+  )
 
   const update = useCallback((patch: Partial<ProfileData>) => {
     setData(prev => ({ ...prev, ...patch }))
@@ -85,6 +97,11 @@ export function useProfileSave({
     const json = await res.json()
     if (!res.ok) throw new Error(json.error || 'Failed')
     setData(normalizeProfileData(json.profileData))
+    if (json.acceptedFocus) {
+      setAcceptedFocus(json.acceptedFocus as AcceptedSuggestionFocus)
+      if (focusTimer.current) clearTimeout(focusTimer.current)
+      focusTimer.current = setTimeout(() => setAcceptedFocus(null), 5000)
+    }
     setDirty(false)
     router.refresh()
   }
@@ -99,6 +116,7 @@ export function useProfileSave({
     saving,
     saved,
     error,
+    acceptedFocus,
     setError,
     setSaved,
     handleSave,

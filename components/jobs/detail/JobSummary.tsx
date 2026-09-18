@@ -147,8 +147,10 @@ export function JobSummaryOverview({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-foreground">Quick actions</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Keep this application moving without losing your place.
+            <p className="mt-0.5 max-w-md text-xs leading-relaxed text-muted-foreground">
+              {hasTailoredResume
+                ? 'Open your tailored resume, then apply from Documents or Auto-apply.'
+                : 'Tailor a resume for this role, then apply from Documents or Auto-apply.'}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

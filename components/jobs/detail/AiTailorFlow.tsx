@@ -11,6 +11,7 @@ import { MatchScore } from '@/components/tailor/MatchScore'
 import { ResumePreview } from '@/components/resume/ResumePreview'
 import { DEFAULT_RESUME_THEME } from '@/lib/export/theme'
 import { buildApprovedResume, initialDecisions } from '@/lib/tailor/change-decisions'
+import { highlightsFromChanges } from '@/lib/tailor/change-copy'
 import {
   APIError,
   continueTailorRun,
@@ -24,6 +25,7 @@ import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { TailorProcessLog } from '@/components/tailor/TailorProcessLog'
 import type { TailorProcessLogEntry } from '@/lib/tailor/process-log'
 import { isBusyTailorStatus } from '@/lib/tailor/run-types'
+import { hasMaterialGapAnswers, SKIP_GAP_ANSWER } from '@/lib/tailor/ats-gap-hints'
 import { userFacingTailorError } from '@/lib/tailor/user-error'
 import type {
   ChangeDecision,
@@ -95,6 +97,7 @@ export function AiTailorFlow({
   const [tailoredScore, setTailoredScore] = useState<number | null>(reviewOnly?.tailoredScore ?? null)
   const [saving, setSaving] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [highlightedChangeId, setHighlightedChangeId] = useState<string | null>(null)
   const [processLog, setProcessLog] = useState<TailorProcessLogEntry[]>([])
   const [logExpanded, setLogExpanded] = useState(false)
   const startedRef = useRef(false)
@@ -197,6 +200,43 @@ export function AiTailorFlow({
     }
   }
 
+  async function submitOptionalChips() {
+    if (!runId) return
+    if (!hasMaterialGapAnswers(answers, questions)) {
+      try {
+        const result = await continueTailorRun(runId, answers)
+        applyRun(result.run, null)
+        setQuestions([])
+      } catch (err) {
+        setError(err instanceof APIError ? err.message : 'Could not update tips')
+      }
+      return
+    }
+    setPhase('generate')
+    setRunStatus('generating')
+    try {
+      const result = await continueTailorRun(runId, answers)
+      applyRun(result.run, null)
+    } catch (err) {
+      setError(err instanceof APIError ? err.message : 'Could not update draft')
+      setPhase('error')
+      setLogExpanded(true)
+    }
+  }
+
+  async function skipOptionalChips() {
+    if (!runId) return
+    const skipped: Record<string, string> = {}
+    for (const q of questions) skipped[q.id] = SKIP_GAP_ANSWER
+    try {
+      const result = await continueTailorRun(runId, skipped)
+      applyRun(result.run, null)
+      setQuestions([])
+    } catch (err) {
+      setError(err instanceof APIError ? err.message : 'Could not dismiss tips')
+    }
+  }
+
   async function retryTailor() {
     setError(null)
     setLogExpanded(false)
@@ -222,6 +262,11 @@ export function AiTailorFlow({
     if (!approvedPreview || !jobExtracted) return null
     return calculateATSScore(approvedPreview, jobExtracted)
   }, [approvedPreview, jobExtracted])
+
+  const previewHighlights = useMemo(
+    () => (changes.length ? highlightsFromChanges(changes, highlightedChangeId) : null),
+    [changes, highlightedChangeId]
+  )
 
   async function saveReview() {
     if (!tailoredId) return
@@ -289,7 +334,13 @@ export function AiTailorFlow({
                 {tailoredScore}%
               </span>
             ) : null}
-            <Button type="button" variant="ghost" size="sm" onClick={onDone}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-label={phase === 'review' ? 'Close review' : 'Go back'}
+              onClick={onDone}
+            >
               {phase === 'review' ? <X className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
             </Button>
           </div>
@@ -310,7 +361,12 @@ export function AiTailorFlow({
         />
       ) : null}
 
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div
+        className={cn(
+          'min-h-0 flex-1',
+          phase === 'review' ? 'flex flex-col overflow-hidden' : 'overflow-auto'
+        )}
+      >
         {phase === 'connect' ? (
           <AiFlowLoader
             title="Reviewing this job"
@@ -367,32 +423,69 @@ export function AiTailorFlow({
         ) : null}
 
         {phase === 'review' && original && tailored ? (
-          <div className="flex min-h-0 flex-col lg:flex-row">
-            <div className="min-w-0 flex-1 space-y-4 p-4 md:p-6 lg:max-w-[52%]">
-              {liveScore ? (
-                <div className="rounded-xl border border-border bg-card p-4">
-                  <MatchScore score={liveScore} compact />
-                </div>
-              ) : null}
-              <TailorDiff
-                original={original}
-                tailored={tailored}
-                changes={changes}
-                decisions={decisions}
-                onDecisionsChange={setDecisions}
-                onSave={() => saveReview()}
-                saving={saving}
-              />
+          <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+            {/* Left: score + suggestions — independent scroll (~30%) */}
+            <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain p-4 md:p-6 lg:w-[30%] lg:max-w-[35%] lg:flex-none lg:border-r lg:border-border">
+              <div className="space-y-4">
+                {questions.length > 0 ? (
+                  <div className="rounded-xl border border-brand-amber/30 bg-brand-amber/5 p-4 space-y-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Optional tips</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Add only what you’ve actually used. Skip leaves it off — no quiz before the draft.
+                      </p>
+                    </div>
+                    <QuestionFlow
+                      questions={questions}
+                      answers={answers}
+                      onAnswer={(id, val) => setAnswers(prev => ({ ...prev, [id]: val }))}
+                      onComplete={() => void submitOptionalChips()}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => void skipOptionalChips()}
+                    >
+                      Skip all — leave them off
+                    </Button>
+                  </div>
+                ) : null}
+                {liveScore ? (
+                  <div className="rounded-xl border border-border bg-card p-4">
+                    <MatchScore score={liveScore} compact />
+                  </div>
+                ) : null}
+                <TailorDiff
+                  original={original}
+                  tailored={tailored}
+                  changes={changes}
+                  decisions={decisions}
+                  onDecisionsChange={setDecisions}
+                  onSave={() => saveReview()}
+                  saving={saving}
+                  highlightedChangeId={highlightedChangeId}
+                  onHighlightChange={setHighlightedChangeId}
+                  jobExtracted={jobExtracted}
+                  liveScoreTotal={liveScore?.total ?? tailoredScore}
+                />
+              </div>
             </div>
-            <div className="hidden min-h-[320px] flex-1 border-t border-border bg-neutral-100/80 dark:bg-secondary/20 lg:block lg:border-l lg:border-t-0">
+
+            {/* Right: sticky preview majority (~70%) — viewport-height, does not grow the page */}
+            <div className="hidden min-h-0 flex-1 lg:flex lg:w-[70%] lg:flex-col lg:sticky lg:top-0 lg:self-stretch lg:overflow-hidden border-border bg-neutral-100/80 dark:bg-secondary/20">
               <ResumePreview
                 data={approvedPreview ?? tailored}
                 theme={DEFAULT_RESUME_THEME}
                 showHealth={false}
-                className="h-full min-h-[480px] p-4"
+                highlights={previewHighlights}
+                className="h-full min-h-0 flex-1 overflow-auto p-4"
               />
             </div>
-            <div className="border-t border-border p-3 lg:hidden">
+
+            {/* Mobile: collapsible preview */}
+            <div className="flex-shrink-0 border-t border-border p-3 lg:hidden">
               <Button
                 type="button"
                 variant="outline"
@@ -403,11 +496,12 @@ export function AiTailorFlow({
                 {showPreview ? 'Hide preview' : 'Preview resume'}
               </Button>
               {showPreview && approvedPreview ? (
-                <div className="mt-3 overflow-hidden rounded-xl border border-border">
+                <div className="mt-3 max-h-[50vh] overflow-auto rounded-xl border border-border">
                   <ResumePreview
                     data={approvedPreview}
                     theme={DEFAULT_RESUME_THEME}
                     showHealth={false}
+                    highlights={previewHighlights}
                     className="min-h-[360px] p-2"
                   />
                 </div>

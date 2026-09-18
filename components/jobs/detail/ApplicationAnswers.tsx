@@ -108,10 +108,10 @@ export function ApplicationAnswers({
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="application-answers-title" className="text-lg font-semibold tracking-tight">
-            Application answers
+            Form answers
           </h2>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Answers saved for this job.{' '}
+            ATS form answers for this job only — they do not update your tailored resume.{' '}
             <Link href="/dashboard/profile?section=applyAnswers" className="underline underline-offset-2">
               Edit reusable answers on Profile
             </Link>
@@ -131,10 +131,14 @@ export function ApplicationAnswers({
 
       {answers.length === 0 ? (
         <div className="mt-5 rounded-lg border border-dashed border-border bg-secondary/20 px-5 py-8 text-center">
-          <p className="text-sm font-medium text-foreground">No application answers yet</p>
+          <p className="text-sm font-medium text-foreground">No form answers yet</p>
           <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
-            When you accept autofill answers in the extension, they show up here so you can edit or
-            remove them.
+            ATS form answers you accept in the extension appear here for this job only. They do not
+            change your tailored resume — set reusable defaults on{' '}
+            <Link href="/dashboard/profile?section=applyAnswers" className="underline underline-offset-2">
+              Profile
+            </Link>
+            .
           </p>
         </div>
       ) : (
@@ -147,43 +151,40 @@ export function ApplicationAnswers({
             return (
               <li
                 key={entry.key}
+                title={updatedLabel ? `Updated ${updatedLabel}` : undefined}
                 className="rounded-lg border border-border bg-secondary/10 px-3.5 py-3 sm:px-4"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground">{entry.question}</p>
-                    {updatedLabel ? (
-                      <p className="mt-0.5 text-xs text-muted-foreground">{updatedLabel}</p>
-                    ) : null}
                   </div>
                   {!isEditing ? (
-                    <div className="flex shrink-0 items-center gap-1">
+                    <div className="flex shrink-0 items-center gap-0.5 opacity-60 transition-opacity hover:opacity-100 focus-within:opacity-100">
                       <Button
                         type="button"
-                        size="sm"
+                        size="icon"
                         variant="ghost"
+                        className="size-7"
                         disabled={isBusy}
                         onClick={() => startEdit(entry)}
                         aria-label={`Edit answer for ${entry.question}`}
                       >
                         <Pencil className="size-3.5" />
-                        Edit
                       </Button>
                       <Button
                         type="button"
-                        size="sm"
+                        size="icon"
                         variant="ghost"
+                        className="size-7 text-destructive hover:text-destructive"
                         disabled={isBusy}
                         onClick={() => void deleteAnswer(entry.key)}
                         aria-label={`Delete answer for ${entry.question}`}
-                        className="text-destructive hover:text-destructive"
                       >
                         {isBusy ? (
                           <Loader2 className="size-3.5 animate-spin" />
                         ) : (
                           <Trash2 className="size-3.5" />
                         )}
-                        Delete
                       </Button>
                     </div>
                   ) : null}

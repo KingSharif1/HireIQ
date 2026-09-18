@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { cleanReadmeExcerpt, isMeaningfulRepo } from '@/lib/github/repo-quality'
 import { buildRepoHighlight } from '@/lib/github/repo-enrichment'
 import { formatGitHubContextForAi } from '@/lib/profile/github-context'
-import type { GitHubRepoSnapshot, GitHubProfileData } from '@/lib/github/types'
+import type {
+  GitHubRepoSnapshot,
+  GitHubProfileData,
+  RepoIntelligenceRecord,
+} from '@/lib/github/types'
+import { emptyProfileData } from '@/lib/profile/data'
+import type { JobExtractedData } from '@/types'
 
 const baseRepo = (over: Partial<GitHubRepoSnapshot> = {}): GitHubRepoSnapshot => ({
   id: 1,
@@ -43,17 +49,21 @@ describe('isMeaningfulRepo', () => {
     ).toBe(false)
   })
 
-  it('accepts repos with readme and code structure', () => {
+  it('rejects username profile README repos', () => {
     expect(
       isMeaningfulRepo(
         baseRepo({
-          readmeExcerpt:
-            'HireIQ is an AI resume tailoring platform with job gap analysis and ATS scoring for developers.',
-          rootPaths: ['src', 'app', 'package.json'],
-          tools: ['next', 'supabase'],
+          name: 'dev',
+          fullName: 'dev/dev',
+          description: null,
+          languages: [],
+          tools: [],
+          stars: 0,
+          rootPaths: ['README.md'],
+          readmeExcerpt: 'Hi I am a developer.',
         })
       )
-    ).toBe(true)
+    ).toBe(false)
   })
 })
 
@@ -112,5 +122,90 @@ describe('formatGitHubContextForAi', () => {
     const ctx = formatGitHubContextForAi(data)
     expect(ctx).toContain('dev/hireiq')
     expect(ctx).not.toContain('dev/empty')
+  })
+
+  it('expands deep evidence only for a linked job-relevant project', () => {
+    const frontend = baseRepo({ id: 10, name: 'web-app', fullName: 'dev/web-app' })
+    const backend = baseRepo({ id: 11, name: 'data-tool', fullName: 'dev/data-tool' })
+    const data: GitHubProfileData = {
+      username: 'dev',
+      profileUrl: 'https://github.com/dev',
+      avatarUrl: null,
+      syncedAt: new Date().toISOString(),
+      repos: [frontend, backend],
+    }
+    const profile = emptyProfileData()
+    profile.projects = [
+      {
+        id: 'frontend-project',
+        name: 'Web App',
+        description: 'React frontend application',
+        bullets: [],
+        technologies: ['React'],
+        url: '',
+        github: frontend.htmlUrl,
+      },
+      {
+        id: 'backend-project',
+        name: 'Data Tool',
+        description: 'Python data processing',
+        bullets: [],
+        technologies: ['Python'],
+        url: '',
+        github: backend.htmlUrl,
+      },
+    ]
+    const record = (repo: GitHubRepoSnapshot, usage: string): RepoIntelligenceRecord => ({
+      id: `intel-${repo.id}`,
+      repoId: repo.id,
+      fullName: repo.fullName,
+      defaultBranch: 'main',
+      commitSha: `${repo.id}`.repeat(40).slice(0, 40),
+      repoPushedAt: repo.pushedAt,
+      status: 'ready',
+      intelligence: {
+        overview: usage,
+        architecture: [],
+        tools: [],
+        features: [],
+        keyFiles: [],
+        resumeHighlights: [],
+        limitations: [],
+      },
+      treeFileCount: 20,
+      analyzedFileCount: 5,
+      treeTruncated: false,
+      error: null,
+      updatedAt: new Date().toISOString(),
+    })
+    const job: JobExtractedData = {
+      title: 'Frontend Engineer',
+      company: 'Example',
+      required_skills: ['React'],
+      preferred_skills: [],
+      required_experience_years: 0,
+      education_requirement: '',
+      keywords: ['frontend'],
+      responsibilities: [],
+      ats_system: '',
+      red_flags: [],
+      company_values: [],
+      compensation: { min: null, max: null, currency: 'USD', period: 'year' },
+      work_type: '',
+      seniority: '',
+      summary: '',
+    }
+
+    const context = formatGitHubContextForAi(data, {
+      profileData: profile,
+      job,
+      intelligenceByRepoId: {
+        10: record(frontend, 'Deep React frontend evidence'),
+        11: record(backend, 'Deep Python backend evidence'),
+      },
+    })
+
+    expect(context).toContain('Deep React frontend evidence')
+    expect(context).not.toContain('Deep Python backend evidence')
   })
 })

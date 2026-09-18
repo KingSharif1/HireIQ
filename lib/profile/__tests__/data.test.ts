@@ -42,6 +42,20 @@ describe('resolveProfileData', () => {
     expect(data.personal.lastName).toBe('Doe')
     expect(data.personal.email).toBe('jane@example.com')
   })
+
+  it('folds leftover attachments into additional documents', () => {
+    const stored = emptyProfileData()
+    stored.additionalDocuments = [
+      { id: 'doc-1', name: 'Transcript', url: 'https://example.com/t', note: '' },
+    ]
+    stored.attachments = [
+      { id: 'doc-2', name: 'Reference', url: 'https://example.com/r', note: '' },
+    ]
+    const profile = sampleProfile({ profile_data: stored })
+    const data = resolveProfileData(profile, null)
+    expect(data.additionalDocuments.map(d => d.id)).toEqual(['doc-1', 'doc-2'])
+    expect(data.attachments).toEqual([])
+  })
 })
 
 describe('profileDataToStructuredResume', () => {

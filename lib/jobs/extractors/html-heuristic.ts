@@ -33,7 +33,7 @@ export function extractFromHtmlHeuristic(html: string): ExtractionResult | null 
   }
 
   if (!text) {
-    text = $('body').text().replace(/\s+/g, ' ').trim().slice(0, 8000)
+    text = $('body').text().replace(/\s+/g, ' ').trim().slice(0, 16_000)
   }
 
   const title = $('h1').first().text().trim() || $('title').text().trim()
@@ -42,7 +42,7 @@ export function extractFromHtmlHeuristic(html: string): ExtractionResult | null 
     $('[data-company], .company, .employer').first().text().trim() ||
     ''
 
-  const trimmed = text.slice(0, 8000).trim()
+  const trimmed = text.slice(0, 16_000).trim()
   if (trimmed.length < 80) return null
 
   return {

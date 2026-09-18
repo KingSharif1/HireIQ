@@ -105,6 +105,16 @@ export interface JobExtractedData {
   work_type: string
   seniority: string
   summary: string
+  /**
+   * One-line hiring thesis for this posting (analyze-time).
+   * Used to aim project ranking + tailor rewrite at the role, not a generic SE story.
+   */
+  role_thesis?: string
+  /**
+   * Domain tags for this role (e.g. embedded, hardware, web, controls).
+   * Analyze-time or inferred; drives domain-aware project ranking when JD tokens are sparse.
+   */
+  domain_tags?: string[]
   /** Hosted auto-apply: simple public form vs account/portal. Set when the URL is fetched. */
   apply_ease?: 'easy' | 'hard' | 'unknown'
   apply_ease_reason?: string
@@ -212,6 +222,9 @@ export interface ProfileApplyAnswers {
   requiresSponsorship: YesNoBlank
   willingToRelocate: YesNoBlank
   inOfficeOk: YesNoBlank
+  dateOfBirth: string
+  desiredSalaryMin: string
+  desiredSalaryMax: string
   gender: string
   ethnicity: string
   veteran: string
@@ -255,11 +268,29 @@ export interface ProfileAchievement {
   description: string
 }
 
+/** Extra docs can point at a professional section (and optional entries). */
+export type ProfileDocumentLinkSection =
+  | 'projects'
+  | 'experience'
+  | 'education'
+  | 'volunteering'
+  | 'achievements'
+  | 'skills'
+  | 'summary'
+  | 'additional'
+
 export interface ProfileDocument {
   id: string
   name: string
   url: string
   note: string
+  /** Section this document supports. Empty / omitted = unscoped. */
+  linkedSection?: ProfileDocumentLinkSection | ''
+  /** Experience / project / education / volunteering / achievement ids. */
+  linkedEntryIds?: string[]
+  /** Storage object in the resumes bucket, e.g. `{userId}/docs/{id}.pdf`. */
+  storagePath?: string
+  fileType?: string
 }
 
 export type PendingSuggestionSection = 'experience' | 'projects' | 'summary' | 'skills'
@@ -321,6 +352,8 @@ export interface ProfileData {
   applyAnswers?: ProfileApplyAnswers
   provenance?: Record<string, ProvenanceEntry>
   pendingSuggestions?: PendingSuggestion[]
+  /** Suggestion ids the user declined — never re-offer (GitHub gh-* and others). */
+  dismissedSuggestionIds?: string[]
 }
 
 // DB row types

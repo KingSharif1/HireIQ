@@ -32,4 +32,29 @@ describe('rememberApplyAnswer', () => {
     expect(data.applyAnswers?.saved).toHaveLength(1)
     expect(data.applyAnswers?.saved[0]?.answer).toContain('product')
   })
+
+  it('maps date of birth and bounded salary questions into reusable fields', () => {
+    let data = rememberApplyAnswer(emptyProfileData(), {
+      key: 'dob',
+      question: 'Date of birth',
+      answer: '2000-06-15',
+      updatedAt: '2026-09-17T00:00:00Z',
+    })
+    data = rememberApplyAnswer(data, {
+      key: 'salary-min',
+      question: 'Minimum desired salary',
+      answer: '70000',
+      updatedAt: '2026-09-17T00:00:00Z',
+    })
+    data = rememberApplyAnswer(data, {
+      key: 'salary-max',
+      question: 'Maximum desired compensation',
+      answer: '115000',
+      updatedAt: '2026-09-17T00:00:00Z',
+    })
+
+    expect(data.applyAnswers?.dateOfBirth).toBe('2000-06-15')
+    expect(data.applyAnswers?.desiredSalaryMin).toBe('70000')
+    expect(data.applyAnswers?.desiredSalaryMax).toBe('115000')
+  })
 })

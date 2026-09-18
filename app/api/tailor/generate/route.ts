@@ -5,6 +5,7 @@ import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { getMasterResumeContext } from '@/lib/profile/master'
 import { buildTailorPromptContext } from '@/lib/profile/tailor-context'
 import { formatGitHubContextForAi } from '@/lib/profile/github-context'
+import { loadLatestReadyIntelligence } from '@/lib/github/intelligence-store'
 import type { GitHubProfileData } from '@/lib/github/types'
 import { runTailorPipeline } from '@/lib/ai/tailor-pipeline'
 import type { GenerateFn } from '@/lib/ai/tailor-types'
@@ -108,7 +109,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: master.error, processLog: log.entries }, { status: master.status })
   }
 
-  const [{ data: jobRow }, { data: profileRow }, { data: enhancements }] = await Promise.all([
+  const [{ data: jobRow }, { data: profileRow }, { data: enhancements }, repoIntelligence] =
+    await Promise.all([
     supabase
       .from('jobs')
       .select('extracted_data, description')
@@ -122,6 +124,7 @@ export async function POST(request: Request) {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(15),
+    loadLatestReadyIntelligence(supabase, user.id),
   ])
 
   if (!jobRow?.extracted_data) {
@@ -139,11 +142,16 @@ export async function POST(request: Request) {
   }
   revertStatus = claim.previousStatus === 'tailored' ? 'tailored' : 'not_started'
 
+  const job = jobRow.extracted_data
   const githubContext = formatGitHubContextForAi(
-    profileRow?.github_data as GitHubProfileData | null | undefined
+    profileRow?.github_data as GitHubProfileData | null | undefined,
+    {
+      profileData: master.profileData,
+      job,
+      intelligenceByRepoId: repoIntelligence,
+    }
   )
   const ghRepos = (profileRow?.github_data as GitHubProfileData | null)?.repos?.length ?? 0
-  const job = jobRow.extracted_data
   const { resumeMarkdown, profileContext } = buildTailorPromptContext({
     master,
     priorEnhancements: (enhancements ?? []).map(row => ({

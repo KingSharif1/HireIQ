@@ -280,7 +280,11 @@ export function SettingsIntegrations() {
             GitHub powers project suggestions on your profile. Manage sync here.
           </p>
         </div>
-        <GitHubConnectPanel initialGithubData={null} onSynced={() => router.refresh()} />
+        <GitHubConnectPanel
+          initialGithubData={null}
+          showAddProject={false}
+          onSynced={() => router.refresh()}
+        />
       </section>
     </div>
   )

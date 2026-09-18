@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { githubSuggestionsFromRepos, ensureGitHubUrl } from '@/lib/github/suggestions'
+import {
+  enrichmentSuggestionsForLinkedRepo,
+  githubSuggestionsFromRepos,
+  ensureGitHubUrl,
+} from '@/lib/github/suggestions'
 import { emptyProfileData } from '@/lib/profile/data'
 import type { GitHubRepoSnapshot } from '@/lib/github/types'
 
@@ -32,7 +36,7 @@ describe('githubSuggestionsFromRepos', () => {
     expect(suggestions[0].section).toBe('projects')
   })
 
-  it('suggests bullet for matched project without github url', () => {
+  it('does not invent a new card for name-matched unlinked projects', () => {
     const data = emptyProfileData()
     data.projects = [
       {
@@ -45,6 +49,52 @@ describe('githubSuggestionsFromRepos', () => {
         github: '',
       },
     ]
+    const suggestions = githubSuggestionsFromRepos([baseRepo()], data)
+    expect(suggestions).toHaveLength(0)
+  })
+
+  it('emits pending tool + bullet enrichments for linked repos (Option A)', () => {
+    const data = emptyProfileData()
+    data.projects = [
+      {
+        id: 'p1',
+        name: 'HireIQ',
+        description: '',
+        bullets: ['Built the first prototype'],
+        technologies: ['React'],
+        url: '',
+        github: 'https://github.com/dev/hireiq',
+      },
+    ]
+    const suggestions = githubSuggestionsFromRepos([baseRepo()], data)
+    expect(suggestions.some(s => s.id === 'gh-1-bullet')).toBe(true)
+    expect(suggestions.some(s => s.id.startsWith('gh-1-tool-'))).toBe(true)
+    expect(suggestions.every(s => s.targetEntryId === 'p1')).toBe(true)
+    expect(suggestions.every(s => !s.newProject)).toBe(true)
+  })
+
+  it('skips enrichment ids the user dismissed forever', () => {
+    const data = emptyProfileData()
+    data.projects = [
+      {
+        id: 'p1',
+        name: 'HireIQ',
+        description: '',
+        bullets: ['Built the first prototype'],
+        technologies: [],
+        url: '',
+        github: 'https://github.com/dev/hireiq',
+      },
+    ]
+    data.dismissedSuggestionIds = ['gh-1-bullet', 'gh-1-tool-next-js']
+    const suggestions = githubSuggestionsFromRepos([baseRepo()], data)
+    expect(suggestions.find(s => s.id === 'gh-1-bullet')).toBeUndefined()
+    expect(suggestions.find(s => s.id === 'gh-1-tool-next-js')).toBeUndefined()
+  })
+
+  it('skips dismissed new-project ids on re-sync', () => {
+    const data = emptyProfileData()
+    data.dismissedSuggestionIds = ['gh-1']
     const suggestions = githubSuggestionsFromRepos([baseRepo()], data)
     expect(suggestions).toHaveLength(0)
   })
@@ -74,6 +124,23 @@ describe('githubSuggestionsFromRepos', () => {
       data
     )
     expect(suggestions).toHaveLength(0)
+  })
+})
+
+describe('enrichmentSuggestionsForLinkedRepo', () => {
+  it('does not re-offer tools already on the project card', () => {
+    const data = emptyProfileData()
+    const project = {
+      id: 'p1',
+      name: 'HireIQ',
+      description: '',
+      bullets: ['Built app'],
+      technologies: ['Next.js', 'Supabase', 'TypeScript', 'React'],
+      url: '',
+      github: 'https://github.com/dev/hireiq',
+    }
+    const suggestions = enrichmentSuggestionsForLinkedRepo(project, baseRepo(), data)
+    expect(suggestions.every(s => !s.id.includes('-tool-'))).toBe(true)
   })
 })
 
