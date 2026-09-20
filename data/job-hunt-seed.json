@@ -1,0 +1,11 @@
+{
+  "cadence": { "weekdayTargetMin": 2, "weekdayTargetMax": 3 },
+  "applications": [
+    {"id":"self-ui-2026-09-19","company":"Self Financial","title":"Associate Software Engineer (UI)","location":"Austin, TX","workType":"Hybrid","status":"applied","appliedDate":"2026-09-19","fitPct":42,"url":"https://www.linkedin.com/jobs/view/4463180019","lastEmailCheck":"2026-09-19","emailNote":"Greenhouse confirmation received","nextStep":"Await recruiter review"},
+    {"id":"ontic-fs-2026-09-19","company":"Ontic","title":"Associate Software Engineer - Full Stack","location":"Austin, TX","workType":"Not stated","status":"applied","appliedDate":"2026-09-19","fitPct":38,"url":"https://www.linkedin.com/jobs/view/4457705654","lastEmailCheck":"2026-09-19","emailNote":"Ashby confirmation received","nextStep":"Await recruiter review"},
+    {"id":"vestwell-ase-2026-09-19","company":"Vestwell","title":"Associate, Software Engineer","location":"Austin, TX","workType":"Hybrid","status":"applied","appliedDate":"2026-09-19","fitPct":40,"url":"https://www.linkedin.com/jobs/view/4461403629","lastEmailCheck":"2026-09-19","emailNote":"Confirmation received","nextStep":"Await recruiter review"},
+    {"id":"torc-sys-2026-09-19","company":"Torc Robotics","title":"Systems Engineer I Test Automation","location":"Fort Worth, TX","workType":"Onsite","status":"applied","appliedDate":"2026-09-19","fitPct":30,"url":"https://www.linkedin.com/jobs/view/4418287823","lastEmailCheck":"2026-09-19","emailNote":"Confirmation received","nextStep":"Await recruiter review"},
+    {"id":"l3harris-ase-2026-09-19","company":"L3Harris","title":"Associate Software Engineer","location":"Richardson, TX","workType":"Onsite","status":"applied","appliedDate":"2026-09-19","fitPct":28,"url":"https://www.linkedin.com/jobs/view/4465613600","lastEmailCheck":"2026-09-19","emailNote":"Confirmation received","nextStep":"Await recruiter review"},
+    {"id":"raytheon-eoir-skip","company":"Raytheon","title":"Software Engineer I EO/IR","location":"McKinney, TX","workType":"Onsite/hybrid","status":"skipped","appliedDate":null,"fitPct":25,"url":"https://www.linkedin.com/jobs/view/4462467805","lastEmailCheck":null,"emailNote":null,"nextStep":"Skip unless clearance obtainable without prior active","skipReason":"Requires active clearance"}
+  ]
+}
