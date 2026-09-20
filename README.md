@@ -1,6 +1,19 @@
 # HireIQ
 
-AI-powered resume tailoring and job application tracking.
+**AI resume tailoring + application tracking so job-search paperwork actually gets finished.**
+
+Live: [hireiq.kingsharif.com](https://hireiq.kingsharif.com)
+
+---
+
+## Case study
+
+| | |
+|---|---|
+| **Problem** | Job seekers waste hours rewriting resumes per posting and lose track of where they applied. |
+| **Built** | Next.js / TypeScript app with Claude-powered tailoring, ATS-oriented scoring, application tracker (table + board), GitHub evidence enrichment, and document export. |
+| **Result** | Live product used in a real job-search workflow: tailor → track → apply. |
+| **Stack** | Next.js, TypeScript, Supabase, Claude, Tailwind |
 
 **Two pillars:** tailor a resume to a job posting · track every application in one place.
 
@@ -30,8 +43,7 @@ All planning, specs, migrations, and dev scripts live in **[docs/](docs/)**:
 | [docs/TAILOR-EDIT.md](docs/TAILOR-EDIT.md) | Job tailor + Documents Edit / Match |
 | [docs/AUTH.md](docs/AUTH.md) | Supabase auth + proxy setup |
 | [docs/supabase/migrations/](docs/supabase/migrations/) | Database migrations |
+| [docs/PROFILE_PROJECTS.md](docs/PROFILE_PROJECTS.md) | Recruiter-ready project blurbs for profile / GitHub enrich |
 
 **Runtime layout:** `app/`, `components/`, `lib/`, `proxy.ts`, `store/`, `types/`  
 **Framework:** Next.js 16
-
-| [docs/legacy/](docs/legacy/) | Archived v0 spec & pre-v1 planning (see [docs/legacy/README.md](docs/legacy/README.md)) |
