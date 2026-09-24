@@ -1,17 +1,17 @@
 # HireIQ Status
 
-**As of:** 2026-09-18
-**Branch:** `main` · **Production:** https://hireiq.kingsharif.com
-**Tests:** 391+ passing · extension **v0.9.9** · Tasks **162, 164–171** DONE
+**As of:** 2026-09-23
+**Branch:** `design/redesign-foundation` · **Production:** https://hireiq.kingsharif.com
+**Tests:** 391+ passing · extension **v0.9.9** · Tasks **162, 164–172** DONE
 
 ## Session handoff
 
 | | |
 |--|--|
-| **Working on** | Idle — **168–171** shipped |
+| **Working on** | Idle — Task 172 Phase 1 foundation shipped on design/redesign-foundation |
 | **Parallel** | Clear |
 | **Blocked** | Human: Google Data access for `gmail.readonly`; Cloud Run worker env for live Auto-apply |
-| **Next** | Live smoke: review overlay + GitHub enrich + Emerson tailor; Wire Cloud Run · Task 147 |
+| **Next** | Task 173 — landing redesign + Higgsfield illustrated footer video |
 | **Roadmap** | [TAILOR-EDIT.md](./TAILOR-EDIT.md) · [TAILOR-QUALITY.md](./TAILOR-QUALITY.md) · [GITHUB.md](./GITHUB.md) · [AUTO-APPLY.md](./AUTO-APPLY.md) |
 
 **Job detail (Applications):** Overview CTAs clearer; Job description rejects glued ATS chrome as bullets; Q&A tab = Tailor gaps + Form answers (not on Activity); Email shows Synced / HireIQ address / Forwarded; Auto-apply shows **setup needed** when `APPLY_WORKER_URL`+secret unset. **Defaults:** strong = Sonnet 5, fast = Haiku 4.5. Master Profile hub remains locked ([PROFILE-MASTER.md](./PROFILE-MASTER.md)).
@@ -40,9 +40,9 @@
 | Forward-to-save (Task 115) | ✓ Address + webhook; needs one forwarded posting smoke |
 | Chrome extension | 🟡 **v0.9.9** · GH/Lever/Ashby/Workday · EXTENSION.md |
 | Gmail sync | 🟡 **Task 114** | History API; prod OAuth + smoke |
-| Settings | ✓ `/dashboard/settings` — AI, tracking, GitHub, password, delete |
+| Settings | ✓ `/dashboard/settings` — Applications (auto-apply pref, tracking, GitHub) · AI (calm card + advanced) · Account (password, theme, sign out, delete) |
 | Mask reply-relay | ✓ **Task 140** — Reply via HireIQ on Email tab |
-| Auto-apply (Sprout-like) | ✓ **157** CTA · **148** Cloud Run code · **167** honesty gate · deploy still ops |
+| Auto-apply (Sprout-like) | ✓ **157** CTA · **148** Cloud Run code · **167** honesty gate · **172** server-owned submit pref (default submit / review-first) · deploy still ops |
 
 ## Phase 1 MVP progress (spec order)
 
@@ -67,7 +67,7 @@ Legend: ✓ done · 🟡 in progress · 🔴 not started · 🔭 planned
 | Resend webhook smoke | User | Secret set; redeploy + send test to masked address |
 | Cloud Run apply worker | User / eng | Set `APPLY_WORKER_URL` + `APPLY_WORKER_SECRET` — [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) |
 
-Migrations 001–**024** applied remotely — see [supabase/MIGRATIONS.md](./supabase/MIGRATIONS.md).
+Migrations 001–**025** applied remotely — see [supabase/MIGRATIONS.md](./supabase/MIGRATIONS.md).
 
 ## Next recommended tasks
 

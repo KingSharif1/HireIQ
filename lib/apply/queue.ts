@@ -86,25 +86,36 @@ export function applyRerunBlock(
 
 /**
  * Queue a server auto-apply run for a job owned by the user.
+ * Submit comes from `profiles.auto_apply_submit` (server-owned).
  */
 export async function queueServerApply(opts: {
   userId: string
   jobId: string
-  /** When true, worker may click Submit. Default false (fill + verify only). */
-  submit?: boolean
   /** User explicitly starts a new run after a finished/failed attempt. */
   force?: boolean
 }): Promise<ApplyRunRow> {
   const admin = createAdminClient()
 
-  const { data: job, error: jobError } = await admin
-    .from('jobs')
-    .select('id, user_id, apply_url, title, company, extracted_data')
-    .eq('id', opts.jobId)
-    .eq('user_id', opts.userId)
-    .maybeSingle()
+  const [{ data: job, error: jobError }, { data: applyProfile, error: profileError }] = await Promise.all([
+    admin
+      .from('jobs')
+      .select('id, user_id, apply_url, title, company, extracted_data')
+      .eq('id', opts.jobId)
+      .eq('user_id', opts.userId)
+      .maybeSingle(),
+    admin
+      .from('profiles')
+      .select('auto_apply_submit')
+      .eq('id', opts.userId)
+      .maybeSingle(),
+  ])
 
-  if (jobError || !job) throw new ApplyQueueError('Job not found', 404)
+  if (jobError) throw new ApplyQueueError(jobError.message, 500)
+  if (!job) throw new ApplyQueueError('Job not found', 404)
+  if (profileError) throw new ApplyQueueError(profileError.message, 500)
+  if (!applyProfile) throw new ApplyQueueError('Profile not found', 404)
+
+  const submit = applyProfile.auto_apply_submit !== false
 
   const applyUrl = (job.apply_url || '').trim()
   if (!applyUrl) throw new ApplyQueueError('This job has no apply URL')
@@ -126,21 +137,22 @@ export async function queueServerApply(opts: {
     )
   }
 
-  const { data: app } = await admin
-    .from('applications')
-    .select('id')
-    .eq('user_id', opts.userId)
-    .eq('job_id', opts.jobId)
-    .maybeSingle()
-
-  const { data: latest } = await admin
-    .from('apply_runs')
-    .select('id, status')
-    .eq('user_id', opts.userId)
-    .eq('job_id', opts.jobId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  const [{ data: app }, { data: latest }] = await Promise.all([
+    admin
+      .from('applications')
+      .select('id')
+      .eq('user_id', opts.userId)
+      .eq('job_id', opts.jobId)
+      .maybeSingle(),
+    admin
+      .from('apply_runs')
+      .select('id, status')
+      .eq('user_id', opts.userId)
+      .eq('job_id', opts.jobId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ])
 
   const rerunBlock = applyRerunBlock(latest?.status as ApplyRunStatus | undefined, Boolean(opts.force))
   if (rerunBlock) {
@@ -162,7 +174,7 @@ export async function queueServerApply(opts: {
       complexity,
       board,
       apply_url: applyUrl,
-      submit: Boolean(opts.submit),
+      submit,
       result: {
         jobTitle: job.title,
         company: job.company,
@@ -193,7 +205,7 @@ export async function queueServerApply(opts: {
         runId: run.id,
         board,
         complexity,
-        submit: Boolean(opts.submit),
+        submit,
       },
     })
   }

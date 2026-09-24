@@ -4,49 +4,57 @@
 
 @layer base {
   :root {
-    --background: 210 25% 98%;
-    --foreground: 215 35% 12%;
-    --card: 0 0% 100%;
-    --card-foreground: 215 35% 12%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 215 35% 12%;
+    --background: 38 48% 91%;
+    --foreground: 180 45% 11%;
+    --card: 42 57% 95%;
+    --card-foreground: 180 45% 11%;
+    --popover: 42 57% 95%;
+    --popover-foreground: 180 45% 11%;
     /* Logo teal #0d9488 */
-    --primary: 175 77% 32%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 210 18% 94%;
-    --secondary-foreground: 215 25% 25%;
-    --muted: 210 16% 94%;
-    --muted-foreground: 215 12% 42%;
-    --accent: 175 45% 94%;
-    --accent-foreground: 175 80% 22%;
+    --primary: 175 84% 32%;
+    --primary-foreground: 43 60% 97%;
+    --secondary: 38 39% 85%;
+    --secondary-foreground: 180 30% 16%;
+    --muted: 38 39% 85%;
+    --muted-foreground: 164 7% 41%;
+    --accent: 174 38% 88%;
+    --accent-foreground: 175 80% 18%;
     --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 214 18% 88%;
-    --input: 214 18% 96%;
-    --ring: 175 77% 32%;
+    --destructive-foreground: 43 60% 97%;
+    --border: 38 22% 65%;
+    --input: 38 30% 80%;
+    --ring: 175 84% 32%;
     --radius: 0.75rem;
+    --paper: 43 45% 91%;
+    --ink: 180 45% 11%;
+    --signal: 175 77% 32%;
+    --ink-shadow: 180 45% 11%;
   }
 
   .dark {
-    --background: 220 32% 7%;
-    --foreground: 210 30% 96%;
-    --card: 220 28% 10%;
-    --card-foreground: 210 30% 96%;
-    --popover: 220 28% 10%;
-    --popover-foreground: 210 30% 96%;
-    --primary: 173 70% 42%;
-    --primary-foreground: 175 80% 8%;
-    --secondary: 220 22% 16%;
-    --secondary-foreground: 210 30% 88%;
-    --muted: 220 22% 16%;
-    --muted-foreground: 215 16% 58%;
-    --accent: 175 30% 16%;
-    --accent-foreground: 173 70% 70%;
+    --background: 210 59% 7%;
+    --foreground: 120 21% 93%;
+    --card: 204 47% 10%;
+    --card-foreground: 120 21% 93%;
+    --popover: 204 47% 10%;
+    --popover-foreground: 120 21% 93%;
+    --primary: 172 66% 50%;
+    --primary-foreground: 210 59% 7%;
+    --secondary: 201 39% 14%;
+    --secondary-foreground: 120 21% 93%;
+    --muted: 201 39% 14%;
+    --muted-foreground: 167 12% 62%;
+    --accent: 172 40% 14%;
+    --accent-foreground: 172 66% 65%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 20% 18%;
-    --input: 220 20% 16%;
-    --ring: 173 70% 42%;
+    --border: 193 29% 23%;
+    --input: 201 39% 16%;
+    --ring: 172 66% 50%;
+    --paper: 210 59% 7%;
+    --ink: 120 21% 93%;
+    --signal: 172 66% 50%;
+    --ink-shadow: 180 45% 11%;
   }
 }
 
@@ -75,6 +83,30 @@
   .score-ring-red {
     stroke: #EF4444;
   }
+  .poster-kicker {
+    @apply font-display text-[0.68rem] font-bold uppercase tracking-[0.22em];
+  }
+  .ink-panel {
+    @apply border border-border bg-card;
+    box-shadow: 3px 3px 0 hsl(var(--ink-shadow) / 0.14);
+  }
+  .ink-rule {
+    background-image: repeating-linear-gradient(90deg, hsl(var(--foreground) / .32) 0 8px, transparent 8px 13px);
+  }
+}
+
+.dashboard-app::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.1;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+}
+.dark .dashboard-app::before {
+  opacity: 0.07;
+  mix-blend-mode: screen;
 }
 
 /* Marketing / auth surface — ink + logo teal, scoped so dashboard stays unchanged */
@@ -114,6 +146,12 @@
   .marketing .animate-mk-scan,
   .marketing .animate-mk-pulse-soft {
     animation: none !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+  .dashboard-app * {
+    transition-property: background-color, border-color, color, opacity, outline, box-shadow !important;
   }
 }
 

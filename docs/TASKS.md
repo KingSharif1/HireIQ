@@ -13,6 +13,17 @@ Files changed: [list]
 
 ---
 
+## Task 172 — Phase 1 design foundation + server-owned auto-apply submit
+Status: DONE
+Owner: this session (branch `design/redesign-foundation`)
+Scope: `app/globals.css`, `components/ui/{button,card}.tsx`, `components/shared/{primary-nav.ts,Sidebar.tsx,MobileNav.tsx,DashboardShell.tsx}`, `components/settings/**`, auto-apply preference chain (`types/index.ts`, `app/api/profile/auto-apply`, `lib/apply/queue.ts`, `app/api/apply/jobs/[jobId]/queue`, `components/jobs/{JobDetailPage,detail/AutoApplyWithHireIQ}.tsx`, `app/dashboard/tracker/[jobId]/page.tsx`, `lib/apply/__tests__`), `docs/supabase/migrations/025*`, docs
+Avoid: remote migration apply, feature-page redesigns, `extension/dist`, dev server restart
+Goal: Foundation for technical-field-notebook + hand-drawn-ink + vintage-travel-poster + duotone art direction; labeled five-item navigation; Settings → Applications/AI/Account; `profiles.auto_apply_submit` enforced server-side.
+Result: new light/dark paper+ink+teal tokens, `poster-kicker`/`ink-panel`/`ink-rule` utilities, `.dashboard-app` paper grain, reduced-motion guard; bordered offset-shadow buttons + `ink-panel` cards; Sidebar 232px labeled rail + HireIQ wordmark, MobileNav = the same five links (account dropdown removed); Settings Auto-apply radio cards (submit vs review-first), AI collapsed to one calm card with Advanced details, Account gains Theme + Sign out; `queueServerApply` reads `profiles.auto_apply_submit` (default true) — client `submit` flag removed end-to-end. Migration 025 applied remotely (2026-09-23); desktop/mobile UI review passed.
+Files changed: `app/globals.css`, `components/ui/{button,card}.tsx`, `components/shared/{primary-nav.ts,Sidebar.tsx,MobileNav.tsx,DashboardShell.tsx}`, `components/settings/{SettingsPage,SettingsPanels,AiSettingsPanel}.tsx`, `types/index.ts`, `app/api/profile/auto-apply/route.ts`, `lib/apply/queue.ts`, `app/api/apply/jobs/[jobId]/queue/route.ts`, `components/jobs/{JobDetailPage.tsx,detail/AutoApplyWithHireIQ.tsx}`, `app/dashboard/tracker/[jobId]/page.tsx`, `lib/apply/__tests__/{submit-preference,apply-routes}.test.ts`, `docs/supabase/migrations/025_auto_apply_preference.sql`, `docs/supabase/MIGRATIONS.md`, TASKS, CHANGELOG, STATUS, ARCHITECTURE, DECISIONS
+
+---
+
 ## Task 171 — TailorDiff clarity (what/why + expand + edit score impact)
 Status: DONE
 Owner: this session

@@ -5,7 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-import { Loader2, Mail, RefreshCw, Shield, Unlink } from 'lucide-react'
+import { Loader2, Mail, Monitor, Moon, RefreshCw, Send, Shield, Sun, Unlink } from 'lucide-react'
+import { useTheme } from 'next-themes'
+import { createClient } from '@/lib/supabase/client'
 import { mapGoogleConnectError } from '@/lib/google/oauth'
 import { GitHubConnectPanel } from '@/components/profile/GitHubConnectPanel'
 import { MaskedEmailCard } from '@/components/profile/MaskedEmailCard'
@@ -40,6 +42,19 @@ const MODES: { id: TrackingMode; title: string; body: string }[] = [
   },
 ]
 
+const AUTO_APPLY_MODES: { id: boolean; title: string; body: string }[] = [
+  {
+    id: true,
+    title: 'Submit automatically',
+    body: 'For eligible public forms, HireIQ fills, submits, and records the attempt. CAPTCHA or missing answers pause for you.',
+  },
+  {
+    id: false,
+    title: 'Fill and let me review',
+    body: 'HireIQ fills the form and pauses before Submit.',
+  },
+]
+
 export function SettingsIntegrations() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -48,6 +63,11 @@ export function SettingsIntegrations() {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
+  const [applySubmit, setApplySubmit] = useState<boolean | null>(null)
+  const [applyLoading, setApplyLoading] = useState(true)
+  const [applyBusy, setApplyBusy] = useState(false)
+  const [applyError, setApplyError] = useState<string | null>(null)
+  const [applyInfo, setApplyInfo] = useState<string | null>(null)
 
   useEffect(() => {
     const gError = searchParams.get('google_error')
@@ -75,6 +95,50 @@ export function SettingsIntegrations() {
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/profile/auto-apply')
+      .then(async res => {
+        const json = (await res.json()) as { submit?: boolean; error?: string }
+        if (!res.ok) throw new Error(json.error || 'Failed to load')
+        if (!cancelled) setApplySubmit(json.submit !== false)
+      })
+      .catch(e => {
+        if (!cancelled) setApplyError(e instanceof Error ? e.message : 'Failed to load')
+      })
+      .finally(() => {
+        if (!cancelled) setApplyLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  async function setAutoApply(submit: boolean) {
+    setApplyBusy(true)
+    setApplyError(null)
+    setApplyInfo(null)
+    try {
+      const res = await fetch('/api/profile/auto-apply', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ submit }),
+      })
+      const json = (await res.json()) as { submit?: boolean; error?: string }
+      if (!res.ok) throw new Error(json.error || 'Could not update')
+      setApplySubmit(json.submit !== false)
+      setApplyInfo(
+        json.submit !== false
+          ? 'Auto-apply will submit eligible forms.'
+          : 'Auto-apply will fill and pause for your review.',
+      )
+    } catch (e) {
+      setApplyError(e instanceof Error ? e.message : 'Could not update')
+    } finally {
+      setApplyBusy(false)
+    }
+  }
 
   async function setMode(mode: TrackingMode) {
     setBusy(mode)
@@ -168,6 +232,74 @@ export function SettingsIntegrations() {
 
   return (
     <div className="space-y-8">
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Send className="w-4 h-4" /> Auto-apply behavior
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            Choose what hosted Auto-apply does on eligible public forms.
+          </p>
+        </div>
+
+        <div
+          role="radiogroup"
+          aria-label="Auto-apply behavior"
+          className="rounded-2xl border border-border bg-secondary/20 p-1.5 grid gap-1 sm:grid-cols-2"
+        >
+          {AUTO_APPLY_MODES.map(m => {
+            const selected = applySubmit === m.id
+            return (
+              <button
+                key={String(m.id)}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                disabled={applyLoading || applyBusy}
+                onClick={() => void setAutoApply(m.id)}
+                className={cn(
+                  'relative rounded-xl px-3 py-3 text-left transition-all',
+                  selected
+                    ? 'bg-background shadow-sm ring-1 ring-border'
+                    : 'hover:bg-background/50 text-muted-foreground',
+                )}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span
+                    className={cn(
+                      'text-sm font-medium',
+                      selected ? 'text-foreground' : 'text-muted-foreground',
+                    )}
+                  >
+                    {m.title}
+                  </span>
+                  <span
+                    className={cn(
+                      'h-4 w-4 rounded-full border flex items-center justify-center flex-shrink-0',
+                      selected ? 'border-primary bg-primary' : 'border-muted-foreground/40',
+                    )}
+                    aria-hidden
+                  >
+                    {selected && <span className="h-1.5 w-1.5 rounded-full bg-primary-foreground" />}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1.5 leading-snug">{m.body}</p>
+                {applyBusy && selected && (
+                  <Loader2 className="absolute top-3 right-8 w-3.5 h-3.5 animate-spin text-muted-foreground" />
+                )}
+              </button>
+            )
+          })}
+        </div>
+        {applyLoading && (
+          <p className="text-xs text-muted-foreground flex items-center gap-2">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading auto-apply preference…
+          </p>
+        )}
+        {applyInfo && <p className="text-xs text-muted-foreground">{applyInfo}</p>}
+        {applyError && <p className="text-xs text-destructive">{applyError}</p>}
+      </section>
+
       <section className="space-y-3">
         <div>
           <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -291,12 +423,21 @@ export function SettingsIntegrations() {
 }
 
 export function SettingsAccount() {
+  const router = useRouter()
+  const { theme, setTheme } = useTheme()
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState('')
+
+  async function signOut() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
 
   async function changePassword(e: React.FormEvent) {
     e.preventDefault()
@@ -350,6 +491,44 @@ export function SettingsAccount() {
   return (
     <div className="space-y-8">
       <section className="space-y-3">
+        <h2 className="text-sm font-semibold">Theme</h2>
+        <div
+          role="radiogroup"
+          aria-label="Theme"
+          className="rounded-2xl border border-border bg-secondary/20 p-1.5 grid gap-1 grid-cols-3 max-w-sm"
+        >
+          {(
+            [
+              { id: 'light', label: 'Light', Icon: Sun },
+              { id: 'system', label: 'System', Icon: Monitor },
+              { id: 'dark', label: 'Dark', Icon: Moon },
+            ] as const
+          ).map(t => {
+            const selected = theme === t.id
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                suppressHydrationWarning
+                onClick={() => setTheme(t.id)}
+                className={cn(
+                  'flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all',
+                  selected
+                    ? 'bg-background shadow-sm ring-1 ring-border text-foreground'
+                    : 'text-muted-foreground hover:bg-background/50',
+                )}
+              >
+                <t.Icon className="w-4 h-4" />
+                {t.label}
+              </button>
+            )
+          })}
+        </div>
+      </section>
+
+      <section className="space-y-3">
         <h2 className="text-sm font-semibold">Password</h2>
         <p className="text-xs text-muted-foreground">
           For email/password accounts. Google-only accounts can set a password as a backup sign-in.
@@ -373,6 +552,16 @@ export function SettingsAccount() {
             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Update password'}
           </Button>
         </form>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold">Sign out</h2>
+        <p className="text-xs text-muted-foreground">
+          Ends this session on this device. You can sign back in any time.
+        </p>
+        <Button type="button" variant="outline" size="sm" onClick={() => void signOut()}>
+          Sign out
+        </Button>
       </section>
 
       <section className="space-y-3 rounded-xl border border-destructive/30 p-4">

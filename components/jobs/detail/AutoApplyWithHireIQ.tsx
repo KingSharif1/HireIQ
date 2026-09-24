@@ -19,6 +19,7 @@ type Props = {
   hasApplyUrl: boolean
   /** When false, CTA explains Cloud Run setup instead of queueing a worker. */
   workerReady?: boolean
+  submitByDefault?: boolean
 }
 
 const FIELD_LABELS: Record<string, string> = {
@@ -85,6 +86,7 @@ export function AutoApplyWithHireIQ({
   jobId,
   hasApplyUrl,
   workerReady = true,
+  submitByDefault = true,
 }: Props) {
   const reduceMotion = useReducedMotion()
   const [busy, setBusy] = useState(false)
@@ -175,7 +177,7 @@ export function AutoApplyWithHireIQ({
       const res = await fetch(`/api/apply/jobs/${jobId}/queue`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ submit: false, force }),
+        body: JSON.stringify({ force }),
       })
       const body = (await res.json().catch(() => ({}))) as {
         run?: ApplyRunRow
@@ -221,7 +223,9 @@ export function AutoApplyWithHireIQ({
         disabled={busy}
         title={
           workerReady
-            ? 'Fills the form from your profile, then pauses for your review — HireIQ does not submit until you confirm.'
+            ? submitByDefault
+              ? 'Submits eligible forms automatically and records the result. CAPTCHA or missing answers pause for you.'
+              : 'Fills the form from your profile, then pauses for your review.'
             : 'Hosted auto-apply needs Cloud Run (APPLY_WORKER_URL). Open for setup steps.'
         }
         onClick={() => void startApply()}
@@ -267,7 +271,9 @@ export function AutoApplyWithHireIQ({
                           <>
                             {run?.board ? `${run.board} · ` : null}
                             {run?.complexity === 3 ? 'complex portal · ' : null}
-                            Fills the form, then pauses for your review
+                            {submitByDefault
+                              ? 'Submitting this eligible application automatically'
+                              : 'Fills the form, then pauses for your review'}
                           </>
                         )}
                   </p>

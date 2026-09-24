@@ -373,6 +373,7 @@ export interface Profile {
   gmail_sync_enabled?: boolean | null
   /** Exclusive tracking path: gmail | masked | off */
   email_tracking_mode?: 'gmail' | 'masked' | 'off' | null
+  auto_apply_submit?: boolean | null
   target_role: string | null
   years_experience: number | null
   profile_data: ProfileData | null

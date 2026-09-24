@@ -36,7 +36,7 @@ Profile: `components/profile/ProfileHome.tsx`. It is the master evidence hub: on
 - Fallbacks: `chrome.identity` Google OAuth, legacy `hiq_` API tokens (`api_tokens`)
 - ATS account email: `applications.ats_account_email` when employer site needs signup (user creates account; we store email only)
 - Masked tracking: profile API overlays autofill `email` with `masked_email`
-- **Auto-apply:** extension path + hosted Playwright on Cloud Run — [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md). Queue table `apply_runs` (021); worker `services/apply-worker`; job-detail progress UI. Cloud Run deploy still ops.
+- **Auto-apply:** extension path + hosted Playwright on Cloud Run — [AUTO-APPLY.md](./AUTO-APPLY.md) · [CLOUD-RUN-APPLY.md](./CLOUD-RUN-APPLY.md) · [PRICING.md](./PRICING.md). Queue table `apply_runs` (021); worker `services/apply-worker`; job-detail progress UI. Cloud Run deploy still ops. Submit vs review-first is user-owned: `queueServerApply` reads `profiles.auto_apply_submit` (025 — default submits eligible forms; Settings → Applications toggles) at queue time; the queue route and job-detail client cannot pass `submit`.
 - Docs: [EXTENSION.md](./EXTENSION.md)
 
 ---
@@ -205,7 +205,7 @@ Migrations in `docs/supabase/migrations/` (001 → 024):
 | `ai_usage_events` | Per-request token/cost log (022) |
 | `user_ai_secrets` | Encrypted Anthropic BYOK (022; service_role only) |
 
-**Remote (Supabase project `wsbbgznobxhjefaqbniv`):** Core schema + RLS applied through migration 024 (repository intelligence).
+**Remote (Supabase project `wsbbgznobxhjefaqbniv`):** Core schema + RLS applied through migration 025 (`profiles.auto_apply_submit`).
 
 Spec target still pending: normalized `experiences`/`projects`/`skills`, Gmail columns on `profiles`.
 

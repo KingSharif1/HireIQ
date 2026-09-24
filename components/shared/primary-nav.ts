@@ -1,6 +1,6 @@
-import { Home, User, Briefcase, FileText, type LucideIcon } from 'lucide-react'
+import { Home, User, Briefcase, FileText, Settings2, type LucideIcon } from 'lucide-react'
 
-/** Primary rail — Profile is master + autofill; Builder is tailored versions. */
+/** Primary rail — Profile is master + auto-apply; Builder is tailored versions. */
 export const PRIMARY_NAV: {
   href: string
   icon: LucideIcon
@@ -40,5 +40,12 @@ export const PRIMARY_NAV: {
     match: (p) =>
       p.startsWith('/dashboard/builder') ||
       p.startsWith('/dashboard/resume'),
+  },
+  {
+    href: '/dashboard/settings',
+    icon: Settings2,
+    label: 'Settings & integrations',
+    shortLabel: 'Settings',
+    match: (p) => p.startsWith('/dashboard/settings'),
   },
 ]

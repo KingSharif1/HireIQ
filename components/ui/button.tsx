@@ -4,17 +4,21 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md border text-sm font-semibold transition-[transform,box-shadow,background-color,color,border-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 motion-safe:active:translate-x-px motion-safe:active:translate-y-px',
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20',
-        destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
-        outline: 'border border-border bg-transparent hover:bg-secondary text-foreground',
-        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-        ghost: 'hover:bg-secondary text-foreground',
-        link: 'text-primary underline-offset-4 hover:underline',
-        success: 'bg-brand-green text-white hover:bg-brand-green/90 shadow-lg shadow-brand-green/20',
+        default:
+          'border-primary bg-primary text-primary-foreground shadow-[3px_3px_0_hsl(var(--ink-shadow)/0.16)] hover:-translate-y-px hover:shadow-[4px_4px_0_hsl(var(--ink-shadow)/0.18)]',
+        destructive:
+          'border-destructive bg-destructive text-destructive-foreground shadow-[3px_3px_0_hsl(var(--ink-shadow)/0.16)] hover:-translate-y-px',
+        outline:
+          'border-border bg-transparent text-foreground shadow-[3px_3px_0_hsl(var(--ink-shadow)/0.1)] hover:-translate-y-px hover:bg-secondary',
+        secondary: 'border-border bg-secondary text-secondary-foreground hover:bg-secondary/80',
+        ghost: 'border-transparent text-foreground hover:bg-secondary',
+        link: 'border-transparent text-primary underline-offset-4 hover:underline',
+        success:
+          'border-[#16a34a] bg-brand-green text-white shadow-[3px_3px_0_hsl(var(--ink-shadow)/0.16)] hover:-translate-y-px',
       },
       size: {
         default: 'h-10 px-4 py-2',

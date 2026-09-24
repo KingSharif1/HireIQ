@@ -1,5 +1,29 @@
 # HireIQ Decisions
 
+## 2026-09-23 — Auto-apply submits by default; preference is server-enforced (Task 172)
+
+**Context:** Hosted auto-apply previously defaulted to fill-only and the client passed a `submit` flag per queue call. Users needed a durable choice between hands-off submit and review-first — and a client flag is the wrong trust boundary for "click Submit on my behalf."
+
+**Choice:** `profiles.auto_apply_submit` (migration **025**, applied 2026-09-23 via HIRE/Nami Supabase MCP) — `NOT NULL DEFAULT TRUE` so **default = submit eligible forms automatically**; users may switch to **Fill and let me review** in Settings → Applications. `queueServerApply` reads the column at queue time; the queue route accepts only `{ force }` and the job-detail client never sends `submit`. `apply_runs.submit` + `auto_apply_queued` event meta record what the server decided.
+
+**Tradeoff:** One global preference (not per job) — simpler mental model, less control per posting.
+
+**Revisit if:** Users ask for per-job or per-board overrides; then add a job-level exception, not a client flag.
+
+---
+
+## 2026-09-23 — Art direction: technical field notebook + hand-drawn ink + vintage travel poster + duotone (Task 172)
+
+**Context:** Dashboard read as generic SaaS (gray surface, soft shadows, icon-only rail). Approved direction is an intentional system: **technical field notebook + hand-drawn ink illustration + vintage travel poster + duotone** — warm, precise, data-heavy where it counts.
+
+**Choice:** Phase 1 foundation only — semantic tokens stay (`--background`/`--card`/`--primary`…) but values become warm paper `#F3EBDD` / dark ink `#102A2A` / signal teal `#0D9488` (light) and midnight `#07111B` / pale ink `#E8F0E8` / luminous teal `#2DD4BF` (dark). Art tokens `--paper`/`--ink`/`--signal`/`--ink-shadow` + utilities `.poster-kicker`, `.ink-panel` (offset ink shadow), `.ink-rule`, `.dashboard-app::before` paper grain. Buttons get borders + offset ink shadow + 1px press/lift. Labeled nav (232px rail + wordmark; mobile = same five links). Feature pages redesign in later phases — global tokens update them safely now.
+
+**Tradeoff:** Border/shadow restyle touches every `Button`/`Card` consumer at once; accepted because Phase 1 must move the whole surface. Grain + transforms gated for `prefers-reduced-motion`.
+
+**Revisit if:** Data-dense tables/forms feel cramped with ink borders — then scope `ink-panel` to chrome and give tables a calmer variant.
+
+---
+
 ## 2026-09-18 — GitHub = CS evidence library; link carefully, enrich boldly
 
 **Context:** First user is CS; GitHub holds most real work. Goal is not aggressive auto-linking — it’s a durable **evidence library** so tailor/profile can fill forgotten skills/tools/projects without the user reconstructing memory by hand.

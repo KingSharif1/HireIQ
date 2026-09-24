@@ -15,7 +15,7 @@ type RouteContext = {
 
 /**
  * POST /api/apply/jobs/[jobId]/queue
- * Queue a Cloud Run hosted apply (dry-run fill by default).
+ * Queue a Cloud Run hosted apply; server reads `profiles.auto_apply_submit`.
  */
 export async function POST(request: Request, context: RouteContext) {
   const { jobId } = await context.params;
@@ -28,11 +28,9 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let submit = false;
   let force = false;
   try {
-    const body = (await request.json()) as { submit?: boolean; force?: boolean };
-    submit = body.submit === true;
+    const body = (await request.json()) as { force?: boolean };
     force = body.force === true;
   } catch {
     /* empty body OK */
@@ -42,7 +40,6 @@ export async function POST(request: Request, context: RouteContext) {
     const run = await queueServerApply({
       userId: user.id,
       jobId,
-      submit,
       force,
     });
 

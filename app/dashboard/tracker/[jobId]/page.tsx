@@ -49,7 +49,7 @@ export default async function TrackerJobDetailPage({
   if (!user) redirect('/login')
 
   // `*` includes form_answers (migration 014) for ApplicationAnswers on the Q&A tab.
-  const [{ data: appRow }, { data: profile }] = await Promise.all([
+  const [{ data: appRow }, { data: profile, error: profileError }] = await Promise.all([
     supabase
       .from('applications')
       .select(
@@ -64,8 +64,10 @@ export default async function TrackerJobDetailPage({
       .eq('user_id', user.id)
       .eq('job_id', jobId)
       .maybeSingle(),
-    supabase.from('profiles').select('profile_data, email_tracking_mode, masked_email').eq('id', user.id).maybeSingle(),
+    supabase.from('profiles').select('profile_data, email_tracking_mode, masked_email, auto_apply_submit').eq('id', user.id).maybeSingle(),
   ])
+
+  if (profileError) throw profileError
 
   const app = appRow as AppRow | null
   if (!app?.job) notFound()
@@ -154,6 +156,8 @@ export default async function TrackerJobDetailPage({
     Boolean(process.env.APPLY_WORKER_URL?.trim() && process.env.APPLY_WORKER_SECRET?.trim()) ||
     process.env.APPLY_WORKER_INLINE === '1'
 
+  const autoApplySubmit = (profile as { auto_apply_submit?: boolean | null } | null)?.auto_apply_submit !== false
+
   return (
     <Suspense fallback={null}>
       <JobDetailPage
@@ -164,6 +168,7 @@ export default async function TrackerJobDetailPage({
         emailTrackingEnabled={emailTrackingEnabled}
         applyEmail={applyEmail}
         applyWorkerReady={applyWorkerReady}
+        autoApplySubmit={autoApplySubmit}
       />
     </Suspense>
   )

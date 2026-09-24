@@ -74,6 +74,7 @@ interface JobDetailPageProps {
   applyEmail?: string | null
   /** When false, auto-apply CTA explains Cloud Run setup instead of queueing. */
   applyWorkerReady?: boolean
+  autoApplySubmit?: boolean
 }
 
 function resolveInitialTab(param: string | null): DetailTab {
@@ -104,6 +105,7 @@ export function JobDetailPage({
   emailTrackingEnabled = true,
   applyEmail = null,
   applyWorkerReady = true,
+  autoApplySubmit = true,
 }: JobDetailPageProps) {
   const searchParams = useSearchParams()
   const visibleTabs = useMemo(
@@ -449,6 +451,7 @@ export function JobDetailPage({
                 jobId={item.job.id}
                 hasApplyUrl
                 workerReady={applyWorkerReady}
+                submitByDefault={autoApplySubmit}
               />
             ) : null}
             <div className="sm:hidden">

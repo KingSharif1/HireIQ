@@ -1,5 +1,17 @@
 # HireIQ Changelog
 
+## 2026-09-23 — Task 172: Phase 1 design foundation + server-owned auto-apply preference
+
+**What:** New visual foundation for the field-notebook/ink/poster direction — warm paper/dark ink/teal (light) and midnight/pale ink/luminous teal (dark) tokens, `.poster-kicker`/`.ink-panel`/`.ink-rule` utilities, paper-grain overlay, reduced-motion guard; tactile bordered buttons and `ink-panel` cards; five-item labeled nav (232px desktop rail with wordmark; mobile bottom bar shows the same five, account dropdown removed); Settings simplified to Applications/AI/Account — Auto-apply behavior radio cards, AI collapsed into one calm card behind “Advanced AI settings”, Account gains Theme + Sign out. `profiles.auto_apply_submit` (migration 025, applied remotely 2026-09-23) is read server-side at queue time: default submits eligible forms, review-first pauses; client `submit` flag removed end-to-end.
+
+**Files:** `app/globals.css`, `components/ui/{button,card}.tsx`, `components/shared/{primary-nav,Sidebar,MobileNav,DashboardShell}.*`, `components/settings/{SettingsPage,SettingsPanels,AiSettingsPanel}.tsx`, `types/index.ts`, `app/api/profile/auto-apply/route.ts`, `lib/apply/queue.ts`, `app/api/apply/jobs/[jobId]/queue/route.ts`, `components/jobs/{JobDetailPage,detail/AutoApplyWithHireIQ}.tsx`, `app/dashboard/tracker/[jobId]/page.tsx`, `lib/apply/__tests__/{submit-preference,apply-routes}.test.ts`, `docs/supabase/migrations/025*`, TASKS/STATUS/ARCHITECTURE/DECISIONS
+
+**Why:** Intentional art direction over generic SaaS chrome; submit behavior is a trust decision — the server must own it, not a client flag.
+
+**Next:** Task 173 — landing redesign + Higgsfield illustrated footer video.
+
+---
+
 ## 2026-09-18 — Task 171: TailorDiff what/why + expand + score impact
 
 **What:** Review change cards now lead with section, action, and Why; suggested text preview; ± match points for keeping the change. Before/after (and keyword/skill effect) live under **Show before / after**. Edit → Save recalculates that change’s ATS impact and the live match %.
