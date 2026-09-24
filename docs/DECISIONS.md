@@ -1,5 +1,17 @@
 # HireIQ Decisions
 
+## 2026-09-23 — Whole-site visual language: hand-drawn ink + vintage travel poster + duotone (Task 173)
+
+**Context:** Phase 2 extends the Phase 1 foundation to the public landing. The product story needed a distinctive, non-generic direction that survives both light and dark themes.
+
+**Choice:** Hand-drawn ink illustration + 1930s vintage travel poster + strict duotone screen print. Light = warm ivory paper / dark ink / oxidized teal; dark = midnight / pale ink / luminous teal. Flat color fields, offset borders, paper grain, hatch/dot patterns, registration marks — no gradient backgrounds or stock imagery. Generated media (footer video/poster) never contains baked-in text; real HTML overlays (link row, giant wordmark, pause control) sit on top so the footer is complete even before media lands.
+
+**Tradeoff:** Flat duotone panels give up the glossy depth of aurora/glow styling. Footer poster + restrained one-shot video were generated via Higgsfield and compressed for web (~440KB webp poster, ~509KB mp4); no text is baked into media — real HTML overlays carry all copy.
+
+**Revisit if:** The duotone system constrains a future surface that needs richer illustration or photography.
+
+---
+
 ## 2026-09-23 — Auto-apply submits by default; preference is server-enforced (Task 172)
 
 **Context:** Hosted auto-apply previously defaulted to fill-only and the client passed a `submit` flag per queue call. Users needed a durable choice between hands-off submit and review-first — and a client flag is the wrong trust boundary for "click Submit on my behalf."

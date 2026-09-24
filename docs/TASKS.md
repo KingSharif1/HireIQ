@@ -13,6 +13,17 @@ Files changed: [list]
 
 ---
 
+## Task 173 — Phase 2 landing redesign + cinematic footer
+Status: DONE
+Owner: this session (branch `design/redesign-landing`)
+Scope: `components/marketing/**`, `app/page.tsx`, `app/globals.css` (.marketing tokens), docs
+Avoid: authenticated app pages, `extension/dist`, dev server restart
+Goal: Whole-site visual language — hand-drawn ink illustration + vintage travel poster + duotone; semantic light/dark landing (warm ivory/ink/teal, midnight/pale/luminous teal); interactive product story; cinematic footer with generated video slot + finished CSS/HTML fallback.
+Result: Semantic light/dark landing with visible header ThemeToggle; reduced-motion-safe WorkflowRoute transit-line + staggered step reveals and honesty fade; tightened ~300px content-driven demo panels; generated Higgsfield poster + compressed one-shot subtle footer video (masked fade-in blend, no Play/Pause control, pauses under ~5s); giant HTML wordmark and `Made with ❤️ in Texas.` meta row; desktop/mobile UI review passed.
+Files changed: `components/marketing/{LandingPage,ProductScrollStory,MatchStage,ScrollParallaxBackground,CinematicFooter}.tsx`, `app/page.tsx`, `app/globals.css`, TASKS, STATUS, DECISIONS, CHANGELOG
+
+---
+
 ## Task 172 — Phase 1 design foundation + server-owned auto-apply submit
 Status: DONE
 Owner: this session (branch `design/redesign-foundation`)

@@ -1,5 +1,17 @@
 # HireIQ Changelog
 
+## 2026-09-23 — Task 173: Phase 2 landing redesign + cinematic footer
+
+**What:** Public landing rebuilt in the hand-drawn-ink + vintage-travel-poster + duotone language. Semantic light/dark marketing tokens (`.marketing` vars + `.dark` overrides, auth controls legible both themes); header gains a visible `ThemeToggle`; hero gets a hand-drawn underline and the overlapping resume↔job `MatchStage` with a circular `TAILORED` inspection seal; `#how` gains the four-step `WorkflowRoute` transit line with reduced-motion-safe reveals; product scenes keep interactive Tailor/Extension/Tracker demos restyled as `ink-panel` poster panels tightened to content height (~300px); background is flat paper + grain + contour/transit SVGs; closing CTA uses the same underline accent. `CinematicFooter` overlaps the closing section with a masked fade, plays a generated Higgsfield poster + compressed one-shot subtle MP4 (IntersectionObserver, ~5s max motion, no Play/Pause control), keeps a finished CSS/HTML fallback and giant HTML `HireIQ` wordmark plus `Made with ❤️ in Texas.`
+
+**Files:** `components/marketing/{LandingPage,ProductScrollStory,MatchStage,ScrollParallaxBackground,CinematicFooter}.tsx`, `components/shared/ThemeToggle` (rendered), `app/page.tsx`, `app/globals.css`, `public/marketing/hireiq-footer*`, TASKS/STATUS/DECISIONS
+
+**Why:** The public page needed the same intentional identity as the dashboard foundation; one restrained scroll-triggered motion moment beats continuous autoplay for WCAG and taste.
+
+**Next:** Task 174 — core logged-in workflow redesign.
+
+---
+
 ## 2026-09-23 — Task 172: Phase 1 design foundation + server-owned auto-apply preference
 
 **What:** New visual foundation for the field-notebook/ink/poster direction — warm paper/dark ink/teal (light) and midnight/pale ink/luminous teal (dark) tokens, `.poster-kicker`/`.ink-panel`/`.ink-rule` utilities, paper-grain overlay, reduced-motion guard; tactile bordered buttons and `ink-panel` cards; five-item labeled nav (232px desktop rail with wordmark; mobile bottom bar shows the same five, account dropdown removed); Settings simplified to Applications/AI/Account — Auto-apply behavior radio cards, AI collapsed into one calm card behind “Advanced AI settings”, Account gains Theme + Sign out. `profiles.auto_apply_submit` (migration 025, applied remotely 2026-09-23) is read server-side at queue time: default submits eligible forms, review-first pauses; client `submit` flag removed end-to-end.

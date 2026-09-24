@@ -4,9 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import { LandingPage } from '@/components/marketing/LandingPage'
 
 export const metadata: Metadata = {
-  title: 'HireIQ — Resume tailor & application tracker',
+  title: 'HireIQ — Tailor, auto-apply, and track every job',
   description:
-    'HireIQ helps job seekers tailor resumes to each role, track applications, and optionally sync employer email updates — so you spend less time on paperwork and more time interviewing.',
+    'Paste a job URL, tailor your resume from your master profile and GitHub, auto-apply on supported forms, and track every employer reply.',
 }
 
 export default async function RootPage() {

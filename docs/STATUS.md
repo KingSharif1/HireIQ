@@ -1,17 +1,17 @@
 # HireIQ Status
 
 **As of:** 2026-09-23
-**Branch:** `design/redesign-foundation` · **Production:** https://hireiq.kingsharif.com
-**Tests:** 391+ passing · extension **v0.9.9** · Tasks **162, 164–172** DONE
+**Branch:** `design/redesign-landing` · **Production:** https://hireiq.kingsharif.com
+**Tests:** 407+ passing · extension **v0.9.9** · Tasks **162, 164–173** DONE
 
 ## Session handoff
 
 | | |
 |--|--|
-| **Working on** | Idle — Task 172 Phase 1 foundation shipped on design/redesign-foundation |
+| **Working on** | Idle — Task 173 Phase 2 landing shipped on design/redesign-landing |
 | **Parallel** | Clear |
 | **Blocked** | Human: Google Data access for `gmail.readonly`; Cloud Run worker env for live Auto-apply |
-| **Next** | Task 173 — landing redesign + Higgsfield illustrated footer video |
+| **Next** | Task 174 — core logged-in workflow redesign |
 | **Roadmap** | [TAILOR-EDIT.md](./TAILOR-EDIT.md) · [TAILOR-QUALITY.md](./TAILOR-QUALITY.md) · [GITHUB.md](./GITHUB.md) · [AUTO-APPLY.md](./AUTO-APPLY.md) |
 
 **Job detail (Applications):** Overview CTAs clearer; Job description rejects glued ATS chrome as bullets; Q&A tab = Tailor gaps + Form answers (not on Activity); Email shows Synced / HireIQ address / Forwarded; Auto-apply shows **setup needed** when `APPLY_WORKER_URL`+secret unset. **Defaults:** strong = Sonnet 5, fast = Haiku 4.5. Master Profile hub remains locked ([PROFILE-MASTER.md](./PROFILE-MASTER.md)).
