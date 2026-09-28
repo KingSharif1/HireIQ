@@ -5,9 +5,11 @@ import {
 import type { StructuredResume } from '@/types'
 import { normalizeResumeForDisplay, toTitleCaseName } from '@/lib/format/normalize'
 import {
+  formatDateRange,
   formatEducationLine,
   polishStructuredForExport,
   skillCategoryLines,
+  stripMarkdownInline,
 } from '@/lib/export/format'
 
 function hr(): Paragraph {
@@ -96,7 +98,7 @@ export async function generateDocx(rawData: StructuredResume): Promise<Buffer> {
 
       children.push(new Paragraph({
         children: [new TextRun({
-          text: `${exp.startDate} – ${exp.endDate}`,
+          text: formatDateRange(exp.startDate, exp.endDate),
           size: 18, italics: true, color: '777777',
         })],
         spacing: { after: 80 },
@@ -104,7 +106,7 @@ export async function generateDocx(rawData: StructuredResume): Promise<Buffer> {
 
       for (const bullet of (exp.bullets || [])) {
         children.push(new Paragraph({
-          children: [new TextRun({ text: bullet, size: 20 })],
+          children: [new TextRun({ text: stripMarkdownInline(bullet), size: 20 })],
           bullet: { level: 0 },
           spacing: { after: 40 },
         }))
@@ -132,7 +134,7 @@ export async function generateDocx(rawData: StructuredResume): Promise<Buffer> {
 
       for (const bullet of (proj.bullets || [])) {
         children.push(new Paragraph({
-          children: [new TextRun({ text: bullet, size: 20 })],
+          children: [new TextRun({ text: stripMarkdownInline(bullet), size: 20 })],
           bullet: { level: 0 },
           spacing: { after: 40 },
         }))
@@ -159,7 +161,7 @@ export async function generateDocx(rawData: StructuredResume): Promise<Buffer> {
 
       children.push(new Paragraph({
         children: [new TextRun({
-          text: `${edu.startDate} – ${edu.endDate}${edu.gpa ? ` · GPA: ${edu.gpa}` : ''}`,
+          text: `${formatDateRange(edu.startDate, edu.endDate)}${edu.gpa ? ` · GPA: ${edu.gpa}` : ''}`,
           size: 18, italics: true, color: '777777',
         })],
         spacing: { after: 120 },

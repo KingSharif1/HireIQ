@@ -35,8 +35,12 @@ export default async function ResumeDetailPage({ params }: { params: Promise<{ i
           <div>
             <h1 className="text-xl font-bold text-foreground">{resume.title}</h1>
             {resume.ats_format_score != null && (
-              <Badge variant={resume.ats_format_score >= 70 ? 'success' : 'warning'} className="mt-1">
-                Format score: {resume.ats_format_score}%
+              <Badge
+                variant={resume.ats_format_score >= 70 ? 'success' : 'warning'}
+                className="mt-1"
+                title="Section completeness — not a real ATS parse test"
+              >
+                Completeness: {resume.ats_format_score}%
               </Badge>
             )}
           </div>

@@ -1,7 +1,7 @@
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { decryptSecret } from '@/lib/crypto/secret'
-import { AI_MODELS, isAllowedAiModel } from '@/lib/ai/models'
+import { effectiveModels } from '@/lib/ai/models'
 import type { AiKeySource } from '@/lib/ai/usage'
 
 export class AiConfigError extends Error {
@@ -30,14 +30,11 @@ export async function resolveAiRuntime(userId: string): Promise<AiRuntime> {
     .maybeSingle()
 
   const keySource: AiKeySource = profile?.ai_key_source === 'byok' ? 'byok' : 'hireiq'
-  const strong =
-    profile?.ai_model_strong && isAllowedAiModel(profile.ai_model_strong)
-      ? profile.ai_model_strong
-      : AI_MODELS.strong
-  const fast =
-    profile?.ai_model_fast && isAllowedAiModel(profile.ai_model_fast)
-      ? profile.ai_model_fast
-      : AI_MODELS.fast
+  // On HireIQ's key we pick the models; on BYOK the user's picks win.
+  const { strong, fast } = effectiveModels(keySource, {
+    strong: profile?.ai_model_strong,
+    fast: profile?.ai_model_fast,
+  })
 
   let apiKey: string | undefined
   if (keySource === 'byok') {

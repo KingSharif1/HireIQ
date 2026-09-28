@@ -68,6 +68,10 @@ describe('seniorityLengthBudget', () => {
     expect(seniorityLengthBudget('intern')).toContain('STRICTLY 1 page')
     expect(seniorityLengthBudget('early career')).toContain('STRICTLY 1 page')
   })
+
+  it('treats new_grad as early career', () => {
+    expect(seniorityLengthBudget('new_grad')).toContain('STRICTLY 1 page')
+  })
 })
 
 describe('buildResumeChanges', () => {

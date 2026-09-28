@@ -13,6 +13,7 @@ import { formatGitHubContextForAi } from '@/lib/profile/github-context'
 import { loadLatestReadyIntelligence } from '@/lib/github/intelligence-store'
 import type { GitHubProfileData } from '@/lib/github/types'
 import { jsonForPrompt } from '@/lib/ai/tailor-engine'
+import { tierForFeature } from '@/lib/ai/models'
 import { createProcessLog } from '@/lib/tailor/process-log'
 import { withAtsFallbackQuestions } from '@/lib/tailor/ats-gap-hints'
 
@@ -135,7 +136,7 @@ export async function POST(request: Request) {
       generateAiText({
         runtime: ai,
         feature: 'gap_questions',
-        tier: 'strong',
+        tier: tierForFeature('gap_questions'),
         prompt,
         maxOutputTokens: 2500,
       }),

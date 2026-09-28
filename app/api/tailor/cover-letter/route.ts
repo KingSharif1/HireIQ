@@ -5,6 +5,7 @@ import { resolveAiRuntime } from '@/lib/ai/runtime'
 import { streamAiText } from '@/lib/ai/complete'
 import { aiErrorResponse } from '@/lib/ai/error-response'
 import { beginAiOnce, endAiOnce, AI_IN_FLIGHT_MESSAGE } from '@/lib/ai/once'
+import { tierForFeature } from '@/lib/ai/models'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -68,7 +69,7 @@ Summary: ${resume.summary || 'Not provided'}
     const result = streamAiText({
       runtime: ai,
       feature: 'cover_letter',
-      tier: 'strong',
+      tier: tierForFeature('cover_letter'),
       prompt,
       maxOutputTokens: 1024,
       onSettled: () => endAiOnce(lockKey),

@@ -20,6 +20,7 @@ import { createProcessLog } from '@/lib/tailor/process-log'
 import { gapAnalysisFromAts } from '@/lib/tailor/ats-gap-hints'
 import { beginAiOnce, endAiOnce, AI_IN_FLIGHT_MESSAGE } from '@/lib/ai/once'
 import { claimTailorJob, releaseTailorJob } from '@/lib/ai/tailor-lock'
+import { tierForFeature } from '@/lib/ai/models'
 import type { GapAnalysis, TailoringStatus } from '@/types'
 
 export const runtime = 'nodejs'
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
     const result = await generateAiText({
       runtime: ai,
       feature: 'tailor_resume',
-      tier: 'strong',
+      tier: tierForFeature('tailor_resume'),
       prompt,
       maxOutputTokens,
       modelOverride: model,

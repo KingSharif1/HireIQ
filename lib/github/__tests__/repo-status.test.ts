@@ -41,4 +41,56 @@ describe('repoMatchesProject', () => {
       )
     ).toBe(true)
   })
+
+  it('matches when the repo name has an affix the project name lacks', () => {
+    expect(
+      repoMatchesProject(
+        {
+          fullName: 'k1ngsharif/mapping-robot-ros2',
+          htmlUrl: 'https://github.com/k1ngsharif/mapping-robot-ros2',
+          name: 'mapping-robot-ros2',
+        },
+        { name: 'Mapping Robot', github: '' }
+      )
+    ).toBe(true)
+  })
+
+  it('matches when the project name has extra descriptive words', () => {
+    expect(
+      repoMatchesProject(
+        {
+          fullName: 'k1ngsharif/cowboy-cards',
+          htmlUrl: 'https://github.com/k1ngsharif/cowboy-cards',
+          name: 'cowboy-cards',
+        },
+        { name: 'Cowboy Cards \u2014 SaaS flashcard app', github: '' }
+      )
+    ).toBe(true)
+  })
+
+  it('does not match on a lone short generic token', () => {
+    expect(
+      repoMatchesProject(
+        {
+          fullName: 'k1ngsharif/some-api',
+          htmlUrl: 'https://github.com/k1ngsharif/some-api',
+          name: 'some-api',
+        },
+        { name: 'API', github: '' }
+      )
+    ).toBe(false)
+  })
+
+  it('does not match unrelated names', () => {
+    expect(
+      repoMatchesProject(
+        {
+          fullName: 'k1ngsharif/nemt-billing',
+          htmlUrl: 'https://github.com/k1ngsharif/nemt-billing',
+          name: 'nemt-billing',
+        },
+        { name: 'Cowboy Cards', github: '' }
+      )
+    ).toBe(false)
+  })
 })

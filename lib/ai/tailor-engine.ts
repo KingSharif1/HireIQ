@@ -60,7 +60,7 @@ export function normalizeStructuredResume(raw: Partial<StructuredResume> | null 
 }
 
 export function seniorityLengthBudget(seniority: string): string {
-  const s = seniority.toLowerCase()
+  const s = seniority.toLowerCase().replace(/_/g, ' ')
   if (['senior', 'lead', 'staff', 'principal'].some(level => s.includes(level))) {
     return 'up to 2 pages — senior/lead; keep only strong relevant content'
   }

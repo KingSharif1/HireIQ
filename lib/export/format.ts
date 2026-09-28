@@ -21,6 +21,25 @@ export function formatEducationLine(edu: Pick<ResumeEducation, 'degree' | 'field
   return formatDegreeField(edu.degree ?? '', edu.field ?? '')
 }
 
+/** Join a date range without a dangling separator when one side is empty. */
+export function formatDateRange(
+  startDate: string | null | undefined,
+  endDate: string | null | undefined,
+): string {
+  return [startDate?.trim(), endDate?.trim()].filter(Boolean).join(' – ')
+}
+
+/**
+ * Strip inline markdown markers for plain-text renderers (preview, PDF, DOCX).
+ * Profile bullets sometimes carry `**bold**` markers that would otherwise show literally.
+ */
+export function stripMarkdownInline(text: string | null | undefined): string {
+  return (text ?? '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/__(.+?)__/g, '$1')
+    .replace(/`(.+?)`/g, '$1')
+}
+
 /** Deduplicate across technical / tools / languages (case-insensitive). Soft stays separate.
  * Order matters: languages first so TS/JS stay under Languages, not stolen by Frameworks. */
 export function dedupeResumeSkills(skills: ResumeSkills): ResumeSkills {

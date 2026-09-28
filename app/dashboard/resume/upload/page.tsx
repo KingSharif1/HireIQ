@@ -25,6 +25,7 @@ export default function UploadResumePage() {
   const [error, setError] = useState<string | null>(null)
   const [parsedData, setParsedData] = useState<StructuredResume | null>(null)
   const [resumeId, setResumeId] = useState<string | null>(null)
+  const [extractSource, setExtractSource] = useState<'pdf-text' | 'docx-text' | 'pdf-vision' | null>(null)
   const [replaced, setReplaced] = useState(false)
   const [hasAdditions, setHasAdditions] = useState(false)
   const [additions, setAdditions] = useState<ParseAdditions | null>(null)
@@ -62,10 +63,12 @@ export default function UploadResumePage() {
         replaced?: boolean
         hasAdditions?: boolean
         additions?: ParseAdditions | null
+        extractSource?: 'pdf-text' | 'docx-text' | 'pdf-vision'
       }>(res, detail => setParseDetail(detail))
 
       setParsedData(data.structuredData)
       setResumeId(data.resumeId)
+      setExtractSource(data.extractSource ?? null)
       setReplaced(Boolean(data.replaced))
       setHasAdditions(Boolean(data.hasAdditions))
       setAdditions(data.additions ?? null)
@@ -117,6 +120,18 @@ export default function UploadResumePage() {
             </p>
           </div>
         </div>
+
+        {extractSource === 'pdf-vision' ? (
+          <div
+            role="status"
+            className="mb-6 rounded-xl border border-brand-amber/30 bg-brand-amber/10 px-4 py-3 text-sm text-foreground"
+          >
+            <p className="font-medium">This resume was read from a scan</p>
+            <p className="mt-0.5 text-muted-foreground">
+              Double-check skills, dates, and company names — OCR can misread text on scanned pages.
+            </p>
+          </div>
+        ) : null}
 
         {/* Summary card */}
         <Card className="mb-6">

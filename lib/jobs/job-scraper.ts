@@ -104,22 +104,63 @@ async function scrapeWorkday(url: string): Promise<{ text: string; company: stri
   }
 }
 
+/** Pure HTML → company-name extraction for a Greenhouse job board page. */
+export function extractCompanyFromGreenhouseHtml(html: string): string | null {
+  const jsonLd = html.match(/"hiringOrganization"\s*:\s*\{[^}]*"name"\s*:\s*"([^"]+)"/)
+  if (jsonLd?.[1]?.trim()) return jsonLd[1].trim()
+
+  const og =
+    html.match(/<meta[^>]+property="og:site_name"[^>]+content="([^"]+)"/i) ||
+    html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:site_name"/i)
+  if (og?.[1]?.trim()) return og[1].trim()
+
+  const title = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]?.trim()
+  const atMatch = title?.match(/\bat\s+(.+)$/i)
+  if (atMatch?.[1]?.trim()) return atMatch[1].trim()
+
+  return null
+}
+
+/** Best-effort company name from a Greenhouse job board page — the boards API has no company field. */
+async function greenhouseCompanyFromPage(boardToken: string, jobId: string): Promise<string | null> {
+  try {
+    const pageUrl = `https://job-boards.greenhouse.io/${boardToken}/jobs/${jobId}`
+    const res = await fetch(pageUrl, { headers: { 'User-Agent': 'HireIQ/1.0' } })
+    if (!res.ok) return null
+    return extractCompanyFromGreenhouseHtml(await res.text())
+  } catch {
+    return null
+  }
+}
+
+/** Last-resort prettifier for a Greenhouse board token like "freeformfuturecorp". */
+export function humanizeBoardToken(token: string): string {
+  const spaced = token
+    .replace(/[-_]+/g, ' ')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .trim()
+  return spaced.replace(/\b\w/g, c => c.toUpperCase())
+}
+
 async function scrapeGreenhouse(url: string): Promise<{ text: string; company: string; title: string }> {
   const parsed = parseGreenhouseUrl(url)
   if (!parsed) throw new Error('Could not parse Greenhouse URL')
 
   const { boardToken, jobId } = parsed
   const apiUrl = `https://boards-api.greenhouse.io/v1/boards/${boardToken}/jobs/${jobId}`
-  const res = await fetch(apiUrl, { headers: { 'User-Agent': 'HireIQ/1.0' } })
-  if (!res.ok) throw new Error('Failed to fetch Greenhouse job')
+  const [apiRes, companyFromPage] = await Promise.all([
+    fetch(apiUrl, { headers: { 'User-Agent': 'HireIQ/1.0' } }),
+    greenhouseCompanyFromPage(boardToken, jobId),
+  ])
+  if (!apiRes.ok) throw new Error('Failed to fetch Greenhouse job')
 
-  const data = await res.json()
+  const data = await apiRes.json()
   const rawHtml = data.content || ''
   const text = stripHtml(rawHtml)
 
   return {
     text: `${data.title}\n\n${text}`,
-    company: boardToken,
+    company: companyFromPage ?? humanizeBoardToken(boardToken),
     title: data.title || '',
   }
 }
@@ -196,6 +237,7 @@ async function scrapeGeneric(url: string): Promise<{
   extractionMethod?: string
   extractionRuleId?: string
   pageHtml?: string
+  playwrightBlocked?: boolean
 }> {
   const { extractJobFromHtmlUrl } = await import('@/lib/jobs/extract-pipeline')
   const { result, pageHtml } = await extractJobFromHtmlUrl(url)
@@ -214,7 +256,10 @@ async function scrapeGeneric(url: string): Promise<{
     text.length < THIN_JD_CHARS &&
     (isOracleCloudJobUrl(url) || method === 'html-heuristic' || method === 'open-graph')
 
+  let playwrightBlocked = false
   if (needsThicker) {
+    const { isPlaywrightFetchEnabled } = await import('@/lib/jobs/extractors/playwright-fetch')
+    playwrightBlocked = !isPlaywrightFetchEnabled()
     const thicker = await tryThickerRender(url)
     if (thicker && thicker.text.length > text.length) {
       text = thicker.text.slice(0, MAX_SCRAPED_JD_CHARS)
@@ -222,6 +267,7 @@ async function scrapeGeneric(url: string): Promise<{
       ruleId = thicker.ruleId ?? ruleId
       title = thicker.title || title
       company = thicker.company || company
+      playwrightBlocked = false
     }
   }
 
@@ -232,6 +278,7 @@ async function scrapeGeneric(url: string): Promise<{
     extractionMethod: method,
     extractionRuleId: ruleId,
     pageHtml,
+    playwrightBlocked,
   }
 }
 
@@ -317,6 +364,14 @@ async function scrapeMicrosoft(url: string): Promise<{
   }
 
   if (!positionId) {
+    if (parsed.legacyJobId) {
+      const { isPlaywrightFetchEnabled } = await import('@/lib/jobs/extractors/playwright-fetch')
+      if (!isPlaywrightFetchEnabled()) {
+        throw new Error(
+          "This site needs a full browser render, which isn't available on our hosted fetcher — paste the job description instead",
+        )
+      }
+    }
     throw new Error(
       'Could not resolve this Microsoft careers link — try the apply.careers.microsoft.com URL or paste the description',
     )
@@ -394,7 +449,12 @@ export async function scrapeJobUrl(url: string): Promise<{
   }
 
   if (result.text.trim().length < 100 && (source === 'generic' || source === 'amazon')) {
-    throw new Error('Could not extract enough job content from this URL — paste the description instead')
+    const playwrightBlocked = source === 'generic' && 'playwrightBlocked' in result && result.playwrightBlocked
+    throw new Error(
+      playwrightBlocked
+        ? "This site needs a full browser render, which isn't available on our hosted fetcher — paste the job description instead"
+        : 'Could not extract enough job content from this URL — paste the description instead',
+    )
   }
 
   const genericMeta =

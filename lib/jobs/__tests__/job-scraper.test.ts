@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { scrapeJobUrl, LinkedInBlockedError, isOracleCloudJobUrl } from '../job-scraper'
+import {
+  scrapeJobUrl,
+  LinkedInBlockedError,
+  isOracleCloudJobUrl,
+  extractCompanyFromGreenhouseHtml,
+  humanizeBoardToken,
+} from '../job-scraper'
 
 describe('isOracleCloudJobUrl', () => {
   it('detects Emerson-style Oracle CX hosts', () => {
@@ -152,5 +158,41 @@ describe('scrapeJobUrl — Oracle thin → thicker Playwright', () => {
     expect(result.text.length).toBeGreaterThan(800)
     expect(result.extractionMethod).toBe('playwright')
     expect(result.text).toMatch(/embedded/i)
+  })
+})
+
+describe('extractCompanyFromGreenhouseHtml', () => {
+  it('prefers JSON-LD hiringOrganization', () => {
+    const html =
+      '<html><head><script type="application/ld+json">{"@type":"JobPosting","hiringOrganization":{"@type":"Organization","name":"Freeform"}}</script><title>Software Engineer at Freeform</title></head></html>'
+    expect(extractCompanyFromGreenhouseHtml(html)).toBe('Freeform')
+  })
+
+  it('falls back to og:site_name', () => {
+    const html =
+      '<html><head><meta property="og:site_name" content="Acme Corp" /><title>Engineer</title></head></html>'
+    expect(extractCompanyFromGreenhouseHtml(html)).toBe('Acme Corp')
+  })
+
+  it('falls back to the "at Company" tail of <title>', () => {
+    const html = '<html><head><title>Software Engineer at Globex</title></head></html>'
+    expect(extractCompanyFromGreenhouseHtml(html)).toBe('Globex')
+  })
+
+  it('returns null when nothing is found', () => {
+    expect(extractCompanyFromGreenhouseHtml('<html><head><title>Jobs</title></head></html>')).toBe(
+      null,
+    )
+  })
+})
+
+describe('humanizeBoardToken', () => {
+  it('splits separators and camelCase, then title-cases', () => {
+    expect(humanizeBoardToken('acme-corp')).toBe('Acme Corp')
+    expect(humanizeBoardToken('acmeCorp')).toBe('Acme Corp')
+  })
+
+  it('never returns the raw lowercase token', () => {
+    expect(humanizeBoardToken('freeformfuturecorp')).not.toBe('freeformfuturecorp')
   })
 })

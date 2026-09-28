@@ -6,6 +6,7 @@ import { resolveAiRuntime } from '@/lib/ai/runtime'
 import { streamAiMessagesToCompletion, streamAiTextToCompletion } from '@/lib/ai/complete'
 import { withAiOnce } from '@/lib/ai/once'
 import { ndjsonResponse } from '@/lib/ai/ndjson-stream'
+import { tierForFeature } from '@/lib/ai/models'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
 import { buildProfileSeedFromParse, hasProfileContent, profileRowUpdatesFromSeed } from '@/lib/profile/master'
 import { resolveProfileData } from '@/lib/profile/data'
@@ -123,7 +124,7 @@ export async function POST(request: Request) {
         const result = await streamAiMessagesToCompletion({
           runtime: ai,
           feature: 'resume_parse',
-          tier: 'strong',
+          tier: tierForFeature('resume_parse'),
           maxOutputTokens: 6000,
           partialEveryMs: 800,
           onPartial: text => {
@@ -152,7 +153,7 @@ export async function POST(request: Request) {
         const result = await streamAiTextToCompletion({
           runtime: ai,
           feature: 'resume_parse',
-          tier: 'strong',
+          tier: tierForFeature('resume_parse'),
           prompt,
           maxOutputTokens: 6000,
           partialEveryMs: 800,

@@ -12,32 +12,70 @@ export const AI_MODELS = {
 
 export type AiModelId = string
 
+/**
+ * Model-selection policy. HireIQ picks the model for every task (the tier
+ * table above is the single source of truth) — users cannot change it, because
+ * on HireIQ's key they gain nothing from choosing and can only degrade the
+ * output or burn our budget. The one exception is BYOK: when the user pays with
+ * their own Anthropic key, their per-tier picks are honored.
+ */
+export function effectiveModels(
+  keySource: 'hireiq' | 'byok',
+  overrides?: { strong?: string | null; fast?: string | null }
+): { strong: string; fast: string } {
+  if (keySource === 'hireiq') {
+    return { strong: AI_MODELS.strong, fast: AI_MODELS.fast }
+  }
+  return {
+    strong: overrides?.strong && isAllowedAiModel(overrides.strong) ? overrides.strong : AI_MODELS.strong,
+    fast: overrides?.fast && isAllowedAiModel(overrides.fast) ? overrides.fast : AI_MODELS.fast,
+  }
+}
+
 export type AiFeature =
   | 'job_analyze'
   | 'resume_parse'
   | 'repo_intelligence'
   | 'gap_questions'
   | 'tailor_resume'
+  | 'tailor_critique'
   | 'cover_letter'
   | 'autofill_draft'
   | 'auto_apply'
 
+/**
+ * Best model for the job. Rule: any step that *judges evidence or writes the
+ * final resume* gets `strong` — quality failures there are the ones the user
+ * sees. `fast` is only for drafts the user reviews inline (autofill), where a
+ * weak answer is cheap to discard.
+ *
+ * The user's Settings → AI override still wins per tier (see resolveAiRuntime):
+ * these defaults choose the right *tier* for each task; the user chooses the
+ * exact model inside the tier.
+ */
 export const AI_FEATURES: {
   id: AiFeature
   label: string
   uses: 'strong' | 'fast' | 'strong+fast' | 'infra'
   where: string
-}[] = [
-  { id: 'job_analyze', label: 'Analyze job posting', uses: 'strong', where: 'Save / paste a job' },
+}[] = [  { id: 'job_analyze', label: 'Analyze job posting', uses: 'strong', where: 'Save / paste a job' },
   { id: 'resume_parse', label: 'Parse uploaded resume', uses: 'strong', where: 'Resume upload' },
-  { id: 'repo_intelligence', label: 'Analyze GitHub repository', uses: 'fast', where: 'Profile → Projects' },
+  { id: 'repo_intelligence', label: 'Analyze GitHub repository', uses: 'strong', where: 'Profile → Projects' },
   { id: 'gap_questions', label: 'Gap questions', uses: 'strong', where: 'Tailor Q&A' },
   { id: 'tailor_resume', label: 'Tailor resume', uses: 'strong', where: 'Job documents / tailor' },
+  { id: 'tailor_critique', label: 'Critique tailored draft', uses: 'strong', where: 'Job documents / tailor' },
   { id: 'cover_letter', label: 'Cover letter', uses: 'strong', where: 'Job → Cover letter' },
   { id: 'autofill_draft', label: 'Application question drafts', uses: 'fast', where: 'Chrome extension' },
   { id: 'auto_apply', label: 'Auto-apply with HireIQ', uses: 'infra', where: 'Job → Auto-apply' },
 ]
 
+export function tierForFeature(id: AiFeature): 'strong' | 'fast' {
+  const entry = AI_FEATURES.find(f => f.id === id)
+  const uses = entry?.uses
+  // 'infra' (auto-apply) and 'strong+fast' both resolve the strong slot here;
+  // only 'fast' resolves the fast slot.
+  return uses === 'fast' ? 'fast' : 'strong'
+}
 /** Cloud Run fill estimate from CLOUD-RUN-APPLY.md (~$0.005 per ~90s run before free tier). */
 export const AUTO_APPLY_USD_PER_COMPLEXITY_UNIT = 0.005
 
@@ -142,6 +180,7 @@ export const TYPICAL_ACTION_TOKENS: Record<
   repo_intelligence: { strongIn: 0, strongOut: 0, fastIn: 30000, fastOut: 2200 },
   gap_questions: { strongIn: 2500, strongOut: 900, fastIn: 0, fastOut: 0 },
   tailor_resume: { strongIn: 22000, strongOut: 4800, fastIn: 0, fastOut: 0 },
+  tailor_critique: { strongIn: 4000, strongOut: 800, fastIn: 0, fastOut: 0 },
   cover_letter: { strongIn: 2300, strongOut: 700, fastIn: 0, fastOut: 0 },
   autofill_draft: { strongIn: 0, strongOut: 0, fastIn: 2800, fastOut: 900 },
 }

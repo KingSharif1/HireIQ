@@ -14,9 +14,11 @@ interface QuestionFlowProps {
   answers: Record<string, string>
   onAnswer: (questionId: string, answer: string) => void
   onComplete: () => void
+  /** Disables all buttons (e.g. while the answers are being submitted). */
+  disabled?: boolean
 }
 
-export function QuestionFlow({ questions, answers, onAnswer, onComplete }: QuestionFlowProps) {
+export function QuestionFlow({ questions, answers, onAnswer, onComplete, disabled = false }: QuestionFlowProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [showTip, setShowTip] = useState(false)
   const [showWrite, setShowWrite] = useState(false)
@@ -185,16 +187,16 @@ export function QuestionFlow({ questions, answers, onAnswer, onComplete }: Quest
       </Card>
 
       <div className="flex gap-2">
-        <Button variant="outline" size="sm" onClick={handleNext} className="gap-1.5">
+        <Button variant="outline" size="sm" onClick={handleNext} className="gap-1.5" disabled={disabled}>
           <SkipForward className="w-3.5 h-3.5" />
           Skip
         </Button>
         <Button
           onClick={handleNext}
           className="flex-1 gap-1.5"
-          disabled={!hasAnswer && !isLast}
+          disabled={disabled || (!hasAnswer && !isLast)}
         >
-          {isLast ? 'Generate tailored resume' : 'Next question'}
+          {disabled && isLast ? 'Updating…' : isLast ? 'Generate tailored resume' : 'Next question'}
           <ChevronRight className="w-4 h-4" />
         </Button>
       </div>

@@ -69,8 +69,11 @@ export function ResumeCard({ resume }: ResumeCardProps) {
 
               <div className="flex items-center gap-3 mt-3">
                 {resume.ats_format_score != null && (
-                  <Badge variant={resume.ats_format_score >= 70 ? 'success' : 'warning'}>
-                    Format: {resume.ats_format_score}%
+                  <Badge
+                    variant={resume.ats_format_score >= 70 ? 'success' : 'warning'}
+                    title="Section completeness — not a real ATS parse test"
+                  >
+                    Completeness: {resume.ats_format_score}%
                   </Badge>
                 )}
                 <span className="text-xs text-muted-foreground">{expCount} roles</span>

@@ -2,7 +2,8 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
@@ -30,7 +31,15 @@ const PASTE_STAGES = [
   { id: 'save', label: 'Saving to your tracker' },
 ] as const
 
+/** Rotating sub-hints while the blocking fetch-url call is in flight. */
+const FETCH_HINTS = [
+  'Trying direct fetch…',
+  'Reading page content…',
+  'Trying reader fallback…',
+] as const
+
 export default function JobsPage() {
+  const router = useRouter()
   const [url, setUrl] = useState('')
   const [description, setDescription] = useState('')
   const [loading, setLoading] = useState(false)
@@ -42,9 +51,22 @@ export default function JobsPage() {
   const [activeTab, setActiveTab] = useState<'url' | 'paste'>('url')
   const [extractedData, setExtractedData] = useState<JobExtractedData | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
+  const [fetchConfidence, setFetchConfidence] = useState<'high' | 'medium' | 'low' | null>(null)
+  const [fetchHint, setFetchHint] = useState(0)
+  const [openingJob, setOpeningJob] = useState(false)
   const analyzeLock = useRef(false)
 
   const linkedInDetected = useMemo(() => isLinkedInJobUrl(url), [url])
+
+  // Rotate contextual hints while the blocking fetch-url call is in flight
+  // (stage 0 of URL mode). Stops as soon as analyzeJob advances the stage.
+  useEffect(() => {
+    if (!(loading && loadingMode === 'url' && loadingStage === 0)) return
+    const id = window.setInterval(() => {
+      setFetchHint(i => (i + 1) % FETCH_HINTS.length)
+    }, 4000)
+    return () => window.clearInterval(id)
+  }, [loading, loadingMode, loadingStage])
 
   function handleUrlChange(value: string) {
     setUrl(value)
@@ -70,9 +92,15 @@ export default function JobsPage() {
     const analyzeData = await readNdjsonResponse<{
       jobId: string
       extractedData: JobExtractedData
-    }>(analyzeRes, detail => {
+    }>(analyzeRes, (detail, event) => {
       setLoadingDetail(detail)
-      if (detail.toLowerCase().includes('saving')) {
+      const stage = event?.stage
+      if (stage === 'save') {
+        setLoadingStage(mode === 'url' ? 3 : 1)
+      } else if (stage === 'analyze') {
+        setLoadingStage(mode === 'url' ? 2 : 0)
+      } else if (detail.toLowerCase().includes('saving')) {
+        // Fallback for servers that don't emit stage events.
         setLoadingStage(mode === 'url' ? 3 : 1)
       } else if (detail.toLowerCase().includes('analyzing')) {
         setLoadingStage(mode === 'url' ? 2 : 0)
@@ -93,6 +121,8 @@ export default function JobsPage() {
     setLoadingDetail('Fetching job posting')
     setError(null)
     setUrlWarning(null)
+    setFetchConfidence(null)
+    setFetchHint(0)
 
     try {
       const scrapeRes = await fetch('/api/jobs/fetch-url', {
@@ -113,6 +143,8 @@ export default function JobsPage() {
       if (scrapeData.warning) {
         setUrlWarning(scrapeData.warning)
       }
+
+      setFetchConfidence(scrapeData.confidence ?? null)
 
       setLoadingStage(1)
       await analyzeJob(
@@ -143,6 +175,7 @@ export default function JobsPage() {
     setLoadingStage(0)
     setLoadingDetail('Analyzing this job')
     setError(null)
+    setFetchConfidence(null)
 
     try {
       await analyzeJob(
@@ -161,13 +194,24 @@ export default function JobsPage() {
     }
   }
 
+  function handleOpenJob() {
+    if (!jobId || openingJob) return
+    setOpeningJob(true)
+    router.push(`/dashboard/tracker/${jobId}?tab=documents&docMode=choose`)
+  }
+
   if (loading) {
     const stages = loadingMode === 'url' ? [...URL_STAGES] : [...PASTE_STAGES]
+    const fetching = loadingMode === 'url' && loadingStage === 0
     return (
       <div className="max-w-xl mx-auto px-4 py-8">
         <AiFlowLoader
           title={loadingMode === 'url' ? 'Getting job details' : 'Analyzing job description'}
-          subtitle={loadingDetail || 'We extract skills, keywords, and requirements for tailoring.'}
+          subtitle={
+            fetching
+              ? FETCH_HINTS[fetchHint]
+              : loadingDetail || 'We extract skills, keywords, and requirements for tailoring.'
+          }
           stages={stages}
           activeIndex={loadingStage}
         />
@@ -179,7 +223,7 @@ export default function JobsPage() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => { setExtractedData(null); setJobId(null) }} className="text-muted-foreground hover:text-foreground">
+          <button onClick={() => { setExtractedData(null); setJobId(null); setFetchConfidence(null) }} className="text-muted-foreground hover:text-foreground">
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div>
@@ -202,6 +246,16 @@ export default function JobsPage() {
               reason={extractedData.apply_ease_reason}
               className="mb-1"
             />
+
+            {fetchConfidence === 'low' ? (
+              <div className="flex items-start gap-2 bg-brand-amber/10 border border-brand-amber/20 rounded-lg p-3">
+                <AlertTriangle className="w-4 h-4 text-brand-amber flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-muted-foreground">
+                  We extracted this posting with best-effort parsing — verify the title, company,
+                  and skills list before tailoring.
+                </p>
+              </div>
+            ) : null}
 
             {extractedData.required_skills.length > 0 && (
               <div>
@@ -239,11 +293,18 @@ export default function JobsPage() {
           </CardContent>
         </Card>
 
-        <Button className="w-full" asChild size="lg">
-          <Link href={`/dashboard/tracker/${jobId}?tab=documents&docMode=choose`}>
-            Tailor resume for this job
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+        <Button className="w-full" size="lg" onClick={handleOpenJob} disabled={openingJob}>
+          {openingJob ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Opening your job…
+            </>
+          ) : (
+            <>
+              Tailor resume for this job
+              <ArrowRight className="w-4 h-4" />
+            </>
+          )}
         </Button>
       </div>
     )

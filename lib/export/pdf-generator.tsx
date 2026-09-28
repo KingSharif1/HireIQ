@@ -5,9 +5,11 @@ import {
 import type { StructuredResume } from '@/types'
 import { normalizeResumeForDisplay } from '@/lib/format/normalize'
 import {
+  formatDateRange,
   formatEducationLine,
   polishStructuredForExport,
   skillCategoryLines,
+  stripMarkdownInline,
 } from '@/lib/export/format'
 import {
   DEFAULT_RESUME_THEME,
@@ -214,7 +216,7 @@ export function ResumePDF({ data: rawData, theme, themeOverride }: ResumePDFProp
               {proj.bullets?.map((bullet, i) => (
                 <View key={i} style={styles.bullet}>
                   <Text style={styles.bulletDot}>•</Text>
-                  <Text style={styles.bulletText}>{bullet}</Text>
+                  <Text style={styles.bulletText}>{stripMarkdownInline(bullet)}</Text>
                 </View>
               ))}
             </View>
@@ -301,7 +303,7 @@ function ExperienceEntry({
   styles: PdfStyles
 }) {
   const { showBy, showLocationBy, showDatesBy } = theme.experienceSettings
-  const dateStr = `${exp.startDate} – ${exp.endDate}`
+  const dateStr = formatDateRange(exp.startDate, exp.endDate)
   const locationSuffix = showLocationBy !== 'hidden' && exp.location ? `  ·  ${exp.location}` : ''
 
   const titleFirst = showBy === 'title-first'
@@ -335,7 +337,7 @@ function ExperienceEntry({
         {exp.bullets?.map((bullet, i) => (
           <View key={i} style={styles.bullet}>
             <Text style={styles.bulletDot}>•</Text>
-            <Text style={styles.bulletText}>{bullet}</Text>
+            <Text style={styles.bulletText}>{stripMarkdownInline(bullet)}</Text>
           </View>
         ))}
       </View>
@@ -356,7 +358,7 @@ function ExperienceEntry({
       {exp.bullets?.map((bullet, i) => (
         <View key={i} style={styles.bullet}>
           <Text style={styles.bulletDot}>•</Text>
-          <Text style={styles.bulletText}>{bullet}</Text>
+          <Text style={styles.bulletText}>{stripMarkdownInline(bullet)}</Text>
         </View>
       ))}
     </View>
@@ -373,7 +375,7 @@ function EducationEntry({
   styles: PdfStyles
 }) {
   const { showBy, layout } = theme.educationSettings
-  const dateStr = `${edu.startDate} – ${edu.endDate}`
+  const dateStr = formatDateRange(edu.startDate, edu.endDate)
   const degreeText = formatEducationLine(edu)
 
   const primaryText = showBy === 'degree-first' ? degreeText : edu.institution

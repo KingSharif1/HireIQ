@@ -456,6 +456,12 @@ function DocumentsPreview({
             tailoredResumeId={selected.id}
             fileStem={`resume-v${selected.version}`}
             resume={selected.structured_data}
+            pageCount={pageCount}
+            fonts={{
+              bodyFontSize: DEFAULT_RESUME_THEME.bodyFontSize,
+              nameFontSize: DEFAULT_RESUME_THEME.nameFontSize,
+              lineHeight: DEFAULT_RESUME_THEME.lineHeight,
+            }}
             inline
           />
         </div>

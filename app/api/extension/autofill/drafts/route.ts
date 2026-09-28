@@ -12,6 +12,7 @@ import { AUTOFILL_DRAFTS_PROMPT, extractJSON } from '@/lib/ai/prompts'
 import { resolveAiRuntime } from '@/lib/ai/runtime'
 import { generateAiText } from '@/lib/ai/complete'
 import { withAiOnce, AiInFlightError } from '@/lib/ai/once'
+import { tierForFeature } from '@/lib/ai/models'
 import type { ProfileData } from '@/types'
 
 export const runtime = 'nodejs'
@@ -261,7 +262,7 @@ export async function POST(request: Request) {
         generateAiText({
           runtime: ai,
           feature: 'autofill_draft',
-          tier: 'fast',
+          tier: tierForFeature('autofill_draft'),
           prompt,
           maxOutputTokens: 2500,
         }),

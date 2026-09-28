@@ -43,6 +43,11 @@ const WAIT_HINTS = [
   'Safe to leave — we’ll keep going',
 ] as const
 
+const CONNECT_STAGES = [
+  { id: 'review', label: 'Reviewing job requirements' },
+  { id: 'draft', label: 'Writing your draft' },
+]
+
 type FlowPhase = 'connect' | 'questions' | 'generate' | 'review' | 'error'
 
 export type AiTailorCompletePayload = {
@@ -96,6 +101,7 @@ export function AiTailorFlow({
   const [matchScore, setMatchScore] = useState<number | null>(reviewOnly?.matchScore ?? null)
   const [tailoredScore, setTailoredScore] = useState<number | null>(reviewOnly?.tailoredScore ?? null)
   const [saving, setSaving] = useState(false)
+  const [tipsBusy, setTipsBusy] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [highlightedChangeId, setHighlightedChangeId] = useState<string | null>(null)
   const [processLog, setProcessLog] = useState<TailorProcessLogEntry[]>([])
@@ -201,14 +207,17 @@ export function AiTailorFlow({
   }
 
   async function submitOptionalChips() {
-    if (!runId) return
+    if (!runId || tipsBusy) return
     if (!hasMaterialGapAnswers(answers, questions)) {
+      setTipsBusy(true)
       try {
         const result = await continueTailorRun(runId, answers)
         applyRun(result.run, null)
         setQuestions([])
       } catch (err) {
         setError(err instanceof APIError ? err.message : 'Could not update tips')
+      } finally {
+        setTipsBusy(false)
       }
       return
     }
@@ -225,15 +234,18 @@ export function AiTailorFlow({
   }
 
   async function skipOptionalChips() {
-    if (!runId) return
+    if (!runId || tipsBusy) return
     const skipped: Record<string, string> = {}
     for (const q of questions) skipped[q.id] = SKIP_GAP_ANSWER
+    setTipsBusy(true)
     try {
       const result = await continueTailorRun(runId, skipped)
       applyRun(result.run, null)
       setQuestions([])
     } catch (err) {
       setError(err instanceof APIError ? err.message : 'Could not dismiss tips')
+    } finally {
+      setTipsBusy(false)
     }
   }
 
@@ -273,21 +285,25 @@ export function AiTailorFlow({
     setSaving(true)
     setError(null)
     try {
-      const res = await fetch(`/api/tailor/${tailoredId}/decisions`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ change_decisions: decisions }),
-      })
-      if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as { error?: string }
+      // The score route carries change_decisions in its own body and persists
+      // them when persist=true, so the two calls are independent — fire together.
+      const [decisionsRes, scoreRes] = await Promise.all([
+        fetch(`/api/tailor/${tailoredId}/decisions`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ change_decisions: decisions }),
+        }),
+        fetch(`/api/tailor/${tailoredId}/score`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ change_decisions: decisions, persist: true }),
+        }),
+      ])
+      if (!decisionsRes.ok) {
+        const body = (await decisionsRes.json().catch(() => ({}))) as { error?: string }
         throw new Error(body.error || 'Could not save review')
       }
 
-      const scoreRes = await fetch(`/api/tailor/${tailoredId}/score`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ change_decisions: decisions, persist: true }),
-      })
       const scoreBody = (await scoreRes.json()) as { score?: { total: number }; error?: string }
       if (!scoreRes.ok) throw new Error(scoreBody.error || 'Could not update score')
 
@@ -368,10 +384,21 @@ export function AiTailorFlow({
         )}
       >
         {phase === 'connect' ? (
-          <AiFlowLoader
-            title="Reviewing this job"
-            subtitle={WAIT_HINTS[hintIndex]}
-          />
+          <div className="flex min-h-0 flex-1 flex-col">
+            {processLog.length > 0 ? (
+              <TailorProcessLog
+                entries={processLog}
+                expanded={logExpanded}
+                onToggle={() => setLogExpanded(v => !v)}
+              />
+            ) : null}
+            <AiFlowLoader
+              title="Reviewing this job"
+              subtitle={WAIT_HINTS[hintIndex]}
+              stages={CONNECT_STAGES}
+              activeIndex={runStatus === 'generating' ? 1 : 0}
+            />
+          </div>
         ) : null}
 
         {phase === 'error' ? (
@@ -440,15 +467,17 @@ export function AiTailorFlow({
                       answers={answers}
                       onAnswer={(id, val) => setAnswers(prev => ({ ...prev, [id]: val }))}
                       onComplete={() => void submitOptionalChips()}
+                      disabled={tipsBusy}
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       className="w-full"
+                      disabled={tipsBusy}
                       onClick={() => void skipOptionalChips()}
                     >
-                      Skip all — leave them off
+                      {tipsBusy ? 'Skipping…' : 'Skip all — leave them off'}
                     </Button>
                   </div>
                 ) : null}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, FileDown, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { downloadBlob, exportDOCX, exportPDF } from '@/lib/api/client'
@@ -105,17 +105,32 @@ export function DocumentExportActions({
   tailoredResumeId,
   fileStem,
   resume,
+  pageCount,
+  fonts,
   inline = false,
 }: {
   tailoredResumeId: string
   fileStem: string
   resume: StructuredResume
+  pageCount?: number
+  fonts?: { bodyFontSize?: number; nameFontSize?: number; lineHeight?: number }
   inline?: boolean
 }) {
-  const layout = useMemo(() => runResumeLayoutCheck(resume), [resume])
+  const layout = useMemo(
+    () => runResumeLayoutCheck(resume, { pageCount, fonts }),
+    [resume, pageCount, fonts?.bodyFontSize, fonts?.nameFontSize, fonts?.lineHeight],
+  )
   const [busy, setBusy] = useState<'pdf' | 'docx' | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const blocked = !layout.ok
+  const [overflowAck, setOverflowAck] = useState(false)
+  useEffect(() => {
+    setOverflowAck(false)
+  }, [tailoredResumeId, pageCount, resume])
+  const pageOverflowIssue = layout.issues.find(issue => issue.id === 'multi-page')
+  // A multi-page preview doesn't fail the critical checks, but it is a v1 quality
+  // fail — block export until the user explicitly acknowledges it.
+  const overflowBlocked = layout.ok && pageOverflowIssue != null && !overflowAck
+  const blocked = !layout.ok || overflowBlocked
 
   async function handleExport(format: 'pdf' | 'docx') {
     if (blocked) {
@@ -159,6 +174,14 @@ export function DocumentExportActions({
         </Button>
       </div>
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
+      {overflowBlocked && pageOverflowIssue ? (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span>{pageOverflowIssue.detail}</span>
+          <Button type="button" size="sm" variant="ghost" onClick={() => setOverflowAck(true)}>
+            Export anyway
+          </Button>
+        </div>
+      ) : null}
     </div>
   )
 }

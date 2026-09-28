@@ -7,6 +7,7 @@ import { streamAiTextToCompletion } from '@/lib/ai/complete'
 import { withAiOnce } from '@/lib/ai/once'
 import { ndjsonResponse, streamingJobProgress } from '@/lib/ai/ndjson-stream'
 import { parseModelJson } from '@/lib/ai/parse-json'
+import { tierForFeature } from '@/lib/ai/models'
 import { classifyApplyEase, type ApplyEaseResult } from '@/lib/apply/ease'
 import type { JobExtractedData } from '@/types'
 
@@ -47,18 +48,18 @@ export async function POST(request: Request) {
   const prompt = JOB_ANALYZER_PROMPT.replace('{jobDescription}', description.slice(0, 10000))
 
   return ndjsonResponse<AnalyzeDone>(async emit => {
-    emit({ type: 'progress', detail: 'Analyzing this job' })
+    emit({ type: 'progress', detail: 'Analyzing this job', stage: 'analyze' })
 
     const extractedBase = await withAiOnce(`job_analyze:${user.id}`, async () => {
       const result = await streamAiTextToCompletion({
         runtime: ai,
         feature: 'job_analyze',
-        tier: 'strong',
+        tier: tierForFeature('job_analyze'),
         prompt,
         maxOutputTokens: 2048,
         partialEveryMs: 700,
         onPartial: text => {
-          emit({ type: 'progress', detail: streamingJobProgress(text) })
+          emit({ type: 'progress', detail: streamingJobProgress(text), stage: 'analyze' })
         },
       })
       try {
@@ -68,7 +69,7 @@ export async function POST(request: Request) {
       }
     })
 
-    emit({ type: 'progress', detail: 'Saving to your tracker' })
+    emit({ type: 'progress', detail: 'Saving to your tracker', stage: 'save' })
 
     const ease =
       applyEase && (applyEase.ease === 'easy' || applyEase.ease === 'hard' || applyEase.ease === 'unknown')

@@ -9,6 +9,7 @@ import { loadLatestReadyIntelligence } from '@/lib/github/intelligence-store'
 import type { GitHubProfileData } from '@/lib/github/types'
 import { runTailorPipeline } from '@/lib/ai/tailor-pipeline'
 import type { GenerateFn } from '@/lib/ai/tailor-types'
+import { tierForFeature } from '@/lib/ai/models'
 import {
   gapAnalysisFromAts,
   leftoverGapChips,
@@ -38,7 +39,7 @@ import {
 } from '@/lib/export/theme'
 
 function defaultThemeForSeniority(seniority: string | undefined): ResumeThemeOverride {
-  const s = (seniority || '').toLowerCase()
+  const s = (seniority || '').toLowerCase().replace(/_/g, ' ')
   const early = ['intern', 'internship', 'early', 'new grad', 'entry', 'junior', 'associate'].some(
     level => s.includes(level)
   )
@@ -228,7 +229,7 @@ export async function executeGeneratePhase(
     const result = await streamAiTextToCompletion({
       runtime: ai,
       feature: 'tailor_resume',
-      tier: 'strong',
+      tier: tierForFeature('tailor_resume'),
       prompt,
       maxOutputTokens,
       modelOverride: model,

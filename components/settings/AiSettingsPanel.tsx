@@ -112,8 +112,8 @@ export function AiSettingsPanel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           keySource,
-          modelStrong,
-          modelFast,
+          // Model picks only apply on BYOK; the server ignores them otherwise.
+          ...(keySource === 'byok' ? { modelStrong, modelFast } : {}),
           ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
           ...(extra?.clearKey ? { clearKey: true } : {}),
         }),
@@ -228,44 +228,55 @@ export function AiSettingsPanel() {
       <section className="space-y-3">
         <div>
           <h2 className="text-sm font-semibold text-foreground">Models</h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            Strong is used for tailor, cover letters, job analyze, and resume parse. Fast is used
-            for tailor critiques and extension drafts. Haiku is cheapest if you are low on credits.
-          </p>
+          {keySource === 'byok' ? (
+            <>
+              <p className="text-xs text-muted-foreground mt-1">
+                Strong is used for job analysis, resume parsing, repo analysis, gap questions,
+                tailoring, critiques, and cover letters. Fast is used for extension drafts. Haiku
+                is cheapest if you are low on credits.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2 mt-3">
+                <label className="text-xs font-medium space-y-1">
+                  <span>Strong</span>
+                  <select
+                    className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm"
+                    value={modelStrong}
+                    onChange={e => setModelStrong(e.target.value)}
+                  >
+                    {settings.catalog.map(m => (
+                      <option key={m.id} value={m.id}>
+                        {m.label} — ${m.inputUsdPerMTok}/${m.outputUsdPerMTok} per MTok
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-xs font-medium space-y-1">
+                  <span>Fast</span>
+                  <select
+                    className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm"
+                    value={modelFast}
+                    onChange={e => setModelFast(e.target.value)}
+                  >
+                    {settings.catalog.map(m => (
+                      <option key={m.id} value={m.id}>
+                        {m.label} — ${m.inputUsdPerMTok}/${m.outputUsdPerMTok} per MTok
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <Button size="sm" variant="secondary" className="mt-3" onClick={() => void save()} disabled={busy}>
+                Save models
+              </Button>
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground mt-1">
+              HireIQ picks the best model for each task — currently {modelLabel(modelStrong)} for
+              analysis, tailoring, and cover letters, and {modelLabel(modelFast)} for quick
+              drafts. Switch to your own Anthropic key above to choose models yourself.
+            </p>
+          )}
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="text-xs font-medium space-y-1">
-            <span>Strong</span>
-            <select
-              className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm"
-              value={modelStrong}
-              onChange={e => setModelStrong(e.target.value)}
-            >
-              {settings.catalog.map(m => (
-                <option key={m.id} value={m.id}>
-                  {m.label} — ${m.inputUsdPerMTok}/${m.outputUsdPerMTok} per MTok
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-xs font-medium space-y-1">
-            <span>Fast</span>
-            <select
-              className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm"
-              value={modelFast}
-              onChange={e => setModelFast(e.target.value)}
-            >
-              {settings.catalog.map(m => (
-                <option key={m.id} value={m.id}>
-                  {m.label} — ${m.inputUsdPerMTok}/${m.outputUsdPerMTok} per MTok
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <Button size="sm" variant="secondary" onClick={() => void save()} disabled={busy}>
-          Save models
-        </Button>
       </section>
 
       <section className="space-y-3">
@@ -392,12 +403,21 @@ export function AiSettingsPanel() {
 
       {info ? <p className="text-xs text-muted-foreground">{info}</p> : null}
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
-      <p className="text-xs text-muted-foreground">
-        Switch both models to Haiku 4.5 to drop the per-action price, then Save.{' '}
-        <Link href="https://platform.claude.com/docs/en/about-claude/pricing" className="underline" target="_blank">
-          Anthropic pricing
-        </Link>
-      </p>
+      {keySource === 'byok' ? (
+        <p className="text-xs text-muted-foreground">
+          Switch both models to Haiku 4.5 to drop the per-action price, then Save.{' '}
+          <Link href="https://platform.claude.com/docs/en/about-claude/pricing" className="underline" target="_blank">
+            Anthropic pricing
+          </Link>
+        </p>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Costs above use HireIQ’s chosen models.{' '}
+          <Link href="https://platform.claude.com/docs/en/about-claude/pricing" className="underline" target="_blank">
+            Anthropic pricing
+          </Link>
+        </p>
+      )}
     </div>
   )
 }

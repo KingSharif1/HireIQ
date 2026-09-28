@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
   dedupeResumeSkills,
+  formatDateRange,
   formatDegreeField,
   formatEducationLine,
   polishStructuredForExport,
   skillCategoryLines,
+  stripMarkdownInline,
 } from '@/lib/export/format'
 import type { StructuredResume } from '@/types'
 
@@ -89,5 +91,41 @@ describe('polishStructuredForExport', () => {
       ...polished.skills.tools,
     ].map(s => s.toLowerCase())
     expect(new Set(flat).size).toBe(flat.length)
+  })
+})
+
+describe('formatDateRange', () => {
+  it('joins start and end with an en dash', () => {
+    expect(formatDateRange('09/2022', '10/2023')).toBe('09/2022 – 10/2023')
+  })
+
+  it('omits the dangling separator when the end date is empty', () => {
+    expect(formatDateRange('2025', '')).toBe('2025')
+  })
+
+  it('omits the dangling separator when the start date is empty', () => {
+    expect(formatDateRange('', '2025')).toBe('2025')
+  })
+
+  it('returns empty string when both are empty', () => {
+    expect(formatDateRange('', '')).toBe('')
+  })
+})
+
+describe('stripMarkdownInline', () => {
+  it('strips **bold** markers', () => {
+    expect(stripMarkdownInline('**Process Optimization:** Streamlined workflows')).toBe(
+      'Process Optimization: Streamlined workflows',
+    )
+  })
+
+  it('strips __ and backtick markers', () => {
+    expect(stripMarkdownInline('__Lead__ the `deploy` step')).toBe('Lead the deploy step')
+  })
+
+  it('leaves plain text untouched', () => {
+    expect(stripMarkdownInline('Streamlined technical workflows by 20%')).toBe(
+      'Streamlined technical workflows by 20%',
+    )
   })
 })

@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import {
   AI_FEATURES,
   AI_MODEL_CATALOG,
-  AI_MODELS,
+  effectiveModels,
   isAllowedAiModel,
 } from '@/lib/ai/models'
 import { encryptSecret, last4 } from '@/lib/crypto/secret'
@@ -28,12 +28,10 @@ export async function GET() {
     .maybeSingle()
 
   const keySource = profile?.ai_key_source === 'byok' ? 'byok' : 'hireiq'
-  const modelStrong = profile?.ai_model_strong && isAllowedAiModel(profile.ai_model_strong)
-    ? profile.ai_model_strong
-    : AI_MODELS.strong
-  const modelFast = profile?.ai_model_fast && isAllowedAiModel(profile.ai_model_fast)
-    ? profile.ai_model_fast
-    : AI_MODELS.fast
+  const { strong: modelStrong, fast: modelFast } = effectiveModels(keySource, {
+    strong: profile?.ai_model_strong,
+    fast: profile?.ai_model_fast,
+  })
 
   return NextResponse.json({
     keySource,
@@ -67,18 +65,30 @@ export async function PATCH(request: Request) {
     patch.ai_key_source = body.keySource
   }
 
-  if (body.modelStrong) {
-    if (!isAllowedAiModel(body.modelStrong)) {
-      return NextResponse.json({ error: 'Unknown strong model' }, { status: 400 })
-    }
-    patch.ai_model_strong = body.modelStrong
-  }
+  // Model picks only apply on BYOK (the user pays). On HireIQ's key we choose
+  // the models, so any model fields in the request are ignored.
+  const { data: currentProfile } = await admin
+    .from('profiles')
+    .select('ai_key_source')
+    .eq('id', user.id)
+    .maybeSingle()
+  const effectiveKeySource =
+    body.keySource ?? (currentProfile?.ai_key_source === 'byok' ? 'byok' : 'hireiq')
 
-  if (body.modelFast) {
-    if (!isAllowedAiModel(body.modelFast)) {
-      return NextResponse.json({ error: 'Unknown fast model' }, { status: 400 })
+  if (effectiveKeySource === 'byok') {
+    if (body.modelStrong) {
+      if (!isAllowedAiModel(body.modelStrong)) {
+        return NextResponse.json({ error: 'Unknown strong model' }, { status: 400 })
+      }
+      patch.ai_model_strong = body.modelStrong
     }
-    patch.ai_model_fast = body.modelFast
+
+    if (body.modelFast) {
+      if (!isAllowedAiModel(body.modelFast)) {
+        return NextResponse.json({ error: 'Unknown fast model' }, { status: 400 })
+      }
+      patch.ai_model_fast = body.modelFast
+    }
   }
 
   if (body.clearKey) {

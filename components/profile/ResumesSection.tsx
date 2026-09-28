@@ -136,9 +136,13 @@ function ResumeRowCard({
               ) : null}
             </div>
             <p className="text-xs text-muted-foreground">
-              {resume.ats_format_score != null
-                ? `Format score: ${resume.ats_format_score}%`
-                : 'Click to view the original'}
+              {resume.ats_format_score != null ? (
+                <span title="Section completeness — not a real ATS parse test">
+                  {`Completeness: ${resume.ats_format_score}%`}
+                </span>
+              ) : (
+                'Click to view the original'
+              )}
             </p>
           </div>
         </button>

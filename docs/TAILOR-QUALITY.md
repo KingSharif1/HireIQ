@@ -120,6 +120,54 @@ Re-run Emerson after P0–P1:
 
 ---
 
+## 2026-09-26 — Voice, evidence strength, model routing (branch `evidence-and-models`, uncommitted)
+
+**Human voice (anti-AI-tell).** Generate prompt RULE 14 bans the tell-tale diction
+(em-dashes, "leveraged/utilized/spearheaded", "passionate", "cutting-edge", "delve",
+"in today's fast-paced", …) and the tell-tale patterns (uniform bullet shape, every
+bullet quantified, adjective-stuffed summaries). New constraints: never "upgrade" the
+user's words ("built" stays "built"), vary bullet rhythm, and leave some bullets
+unquantified when the source has no number. Critique JUDGE 2 now runs explicit
+AI-tell checks: concrete nouns pass, polished-but-generic fails.
+
+**Repo evidence strength gate (RULE 15).** A tool from GitHub may appear on the
+resume only at the strength its evidence supports:
+- STRONG (deep-scan verified usage w/ file paths, or tool in project tech + bullet
+  describes using it) → may be listed as a skill and named in bullets.
+- MEDIUM (README mention / language stats only) → project technologies only, never a
+  headline skill or proficiency claim.
+- WEAK (inferred / passing mention) → off the resume; leftover chip at most.
+A STRONG repo signal for a JD-requested tool the master lacks may be added to that
+project's technologies with honest framing — evidence, not invention.
+
+**Model routing.** `AI_FEATURES` is now the single source of truth via
+`tierForFeature()`; all 8 AI call sites resolve their tier from it instead of
+hardcoding. `repo_intelligence` moved `fast` → `strong` (the "is this evidence
+strong enough?" verdict is a judgment call — cheap model, expensive mistakes).
+New `tailor_critique` feature → `strong`.
+
+**Model-selection policy (we pick the model).** New `effectiveModels()` in
+`lib/ai/models.ts` is the single enforcement point, used by `resolveAiRuntime`
+and both `/api/ai/*` routes. On HireIQ's key we always use our chosen models —
+stored user overrides are ignored, and the Settings PATCH drops any model fields
+when the effective key source is `hireiq`. On BYOK (user's own Anthropic key,
+user pays) the user's per-tier picks are honored. Settings UI shows the model
+pickers only for BYOK; on HireIQ's key it shows a read-only note naming the
+models we chose. Rationale: on our key the user gains nothing from choosing and
+can only degrade output quality or burn our budget; on their key it's their
+money, their tradeoff.
+
+**Repo ↔ project auto-link fix.** `repoMatchesProject` was boundary-stripping names
+then using `endsWith`, so any affix on either side silently missed ("Mapping Robot"
+vs repo `mapping-robot-ros2`; "Cowboy Cards — SaaS flashcard app" vs `cowboy-cards`).
+Replaced with token-containment matching on the repo *name* (affix-proof both
+directions), explicit-URL match first, legacy suffix check kept as a gated fallback
+(min 4-char name — "API" no longer matches every `*-api` repo). `github` is now
+correctly optional in the project type. Regression tests added; full suite green
+(410 passed, 11 skipped), `tsc` clean.
+
+---
+
 ## Related docs
 
 - Pipeline / Edit UI: [TAILOR-EDIT.md](./TAILOR-EDIT.md)

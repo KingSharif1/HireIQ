@@ -1,6 +1,6 @@
 /** NDJSON event stream helpers for linear AI routes (progress → done | error). */
 
-export type NdjsonProgress = { type: 'progress'; detail: string }
+export type NdjsonProgress = { type: 'progress'; detail: string; stage?: string }
 export type NdjsonDone<T extends Record<string, unknown>> = { type: 'done' } & T
 export type NdjsonError = { type: 'error'; error: string }
 export type NdjsonEvent<T extends Record<string, unknown>> =
@@ -39,7 +39,7 @@ export function ndjsonResponse<T extends Record<string, unknown>>(
 
 export async function readNdjsonResponse<T extends Record<string, unknown>>(
   res: Response,
-  onProgress?: (detail: string) => void,
+  onProgress?: (detail: string, event?: NdjsonProgress) => void,
 ): Promise<T> {
   if (!res.body) {
     const fallback = (await res.json()) as NdjsonEvent<T> | T
@@ -75,7 +75,7 @@ export async function readNdjsonResponse<T extends Record<string, unknown>>(
       } catch {
         continue
       }
-      if (event.type === 'progress') onProgress?.(event.detail)
+      if (event.type === 'progress') onProgress?.(event.detail, event)
       else if (event.type === 'error') streamError = event.error
       else if (event.type === 'done') {
         const { type: _t, ...rest } = event

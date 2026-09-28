@@ -1,5 +1,51 @@
 # HireIQ Changelog
 
+## 2026-09-26 — Trigger.dev scaffold (merged into `v1-honesty-fixes` 2026-09-26)
+
+**What:** Wired Trigger.dev v4 (SDK 4.6.4 + CLI 4.6.4, pinned together) as the durable-execution home for the tailor worker: `trigger.config.ts` (dirs `["trigger"]`, node runtime, project `maxDuration: 600`, 3-attempt backoff retries — `project` field still needs the real `proj_…` ref from the dashboard), a `trigger/healthcheck.ts` smoke-test placeholder to verify the pipeline before the real worker lands, `npm run trigger:dev` / `trigger:deploy` scripts, `.trigger/` in `.gitignore`, `TRIGGER_SECRET_KEY` in `.env.example`. New doc `docs/TRIGGER.md` covers why (Vercel `after()` 120s cap kills the generate phase), current pricing/limits (free tier's $5 credit ≈ hundreds of tailor runs/month — no need to pay $10 until real volume; the Anthropic token bill, not Trigger.dev, is the cost to watch), the human setup checklist, and the planned `tailor-run` task shape. Cloud Run worker pattern kept as fallback.
+
+**Files:** `package.json`, `package-lock.json`, `trigger.config.ts`, `trigger/healthcheck.ts`, `.gitignore`, `.env.example`, `docs/TRIGGER.md`, CHANGELOG
+
+**Why:** "Tailor with AI" dies because Vercel kills the generate phase mid-stream. Trigger.dev gives it a home with no timeouts, retries, and observability — same stack Sprout uses.
+
+**Next:** Owner completes the dashboard setup checklist (project ref + API key), smoke-tests `healthcheck`, then the durable `tailor-run` task spec.
+
+---
+
+## 2026-09-26 — E2E test bug fixes (4 items, uncommitted branch `ux-loading-fixes`)
+
+**What:** Four defects found in the live production test (Freeform "Software Engineer (New Grad December 2026)") fixed: (1) Job extraction taxonomy now includes `new_grad` (`lib/ai/prompts.ts`), so new-grad postings are no longer mislabeled `Level: Intern`; `seniorityLengthBudget` and `defaultThemeForSeniority` normalize underscores so `new_grad` hits the early-career one-page rules (display `titleCase` already renders it "New Grad"). (2) Greenhouse scrape no longer shows the raw board token as company — it now reads the real company name from the job board page (JSON-LD `hiringOrganization` → `og:site_name` → `"at Company"` title tail; verified returning "Freeform" on the live Freeform page), falling back to a title-cased token. (3) Literal `**bold**` markers no longer render in resume bullets — new `stripMarkdownInline` helper applied in the preview `Bullet` component, PDF bullets, and DOCX bullets. (4) Date ranges no longer render a dangling "–" when one side is empty — new `formatDateRange` helper (filters empties) used in the preview, PDF, and DOCX for both experience and education.
+
+**Files:** `lib/export/format.ts`, `components/resume/ResumePreview.tsx`, `lib/export/pdf-generator.tsx`, `lib/export/docx-generator.ts`, `lib/ai/prompts.ts`, `lib/ai/tailor-engine.ts`, `lib/tailor/execute-run.ts`, `lib/jobs/job-scraper.ts`, `lib/export/__tests__/format.test.ts`, `lib/ai/__tests__/tailor-engine.test.ts`, `lib/jobs/__tests__/job-scraper.test.ts`, CHANGELOG
+
+**Why:** The E2E test showed all four on the user's real data — a wrong level label, a raw token as company name, visible markdown in bullets, and a dangling date dash all make the output look broken.
+
+**Validation:** `tsc --noEmit` clean; 406 tests pass, 11 skipped (14 new tests for the helpers, seniority budget, and Greenhouse extraction).
+
+---
+
+## 2026-09-26 — Loading-state / perceived-speed UX fixes (7 items, uncommitted branch `ux-loading-fixes`)
+
+**What:** Seven loading/UX gaps closed across the add-job → tailor → review → export flow: (1) optional-tips submit/skip in the review phase now disables both buttons with "Updating…"/"Skipping…" busy labels (`tipsBusy`) — previously the round-trip had no feedback and was double-clickable. (2) The tailor "connect" phase (gap-analysis wait, 20–60s) now renders the streaming `TailorProcessLog` plus staged `AiFlowLoader` steps ("Reviewing job requirements" → "Writing your draft") instead of generic rotating hints. (3) The blocking "Fetching job posting" call now rotates contextual sub-hints ("Trying direct fetch…", "Reading page content…", "Trying reader fallback…") by elapsed time. (4) Analyze NDJSON progress events carry an explicit `stage` field (`analyze`/`save`) emitted by `/api/jobs/analyze`; the client maps those instead of keyword-sniffing server copy (old sniffing kept as fallback). (5) The "Tailor resume for this job" CTA is now a button with pending state ("Opening your job…", disabled) driving `router.push` instead of a feedback-less `Link`. (6) `ResumePreview` shows a pulsing page skeleton + "Rendering preview…" until its first layout measurement completes (new optional `loading` prop forces it). (7) Review save now fires the decisions PATCH and score POST via `Promise.all` — verified independent in `app/api/tailor/[id]/score/route.ts` (it carries `change_decisions` in its own body and persists them with `persist: true`).
+
+**Files:** `components/jobs/detail/AiTailorFlow.tsx`, `components/tailor/QuestionFlow.tsx`, `components/resume/ResumePreview.tsx`, `app/dashboard/jobs/page.tsx`, `app/api/jobs/analyze/route.ts`, `lib/ai/ndjson-stream.ts`, CHANGELOG
+
+**Why:** The flow's slowest moments previously looked stuck or dead (silent round-trips, spinner-only waits, no-feedback navigation). Every wait now shows real or contextual progress.
+
+---
+
+## 2026-09-26 — v1 honesty fixes (5 items, committed as b60691a on `v1-honesty-fixes`)
+
+**What:** Five code-level v1 gaps closed: (1) badges fed by `calculateFormatScore` relabeled from "ATS %"/"Format score" to "Completeness" with a "Section completeness — not a real ATS parse test" tooltip — the old copy claimed ATS parseability the checklist doesn't measure; genuine keyword-coverage scores untouched. (2) Upload page now reads the parse NDJSON `extractSource` and shows a scan banner ("This resume was read from a scan — double-check skills, dates, and company names") when vision OCR was used. (3) `DocumentExportActions` now receives the preview's `pageCount`/fonts and blocks PDF/DOCX export on a multi-page preview until the user clicks "Export anyway" (blocking-with-override). (4) Add-a-job keeps the scrape `confidence` in page state and shows a "best-effort parsing — verify title, company, skills" notice on the Job Analyzed card for low-confidence fetches. (5) Oracle CX / thin-SPA and legacy Microsoft fetch failures now say "This site needs a full browser render, which isn't available on our hosted fetcher — paste the job description instead" when Playwright is disabled on the server.
+
+**Files:** `components/builder/ResumeLibrary.tsx`, `components/profile/ResumesSection.tsx`, `components/resume/ResumeCard.tsx`, `app/dashboard/resume/[id]/page.tsx`, `app/dashboard/resume/upload/page.tsx`, `components/jobs/detail/LayoutIssuesBanner.tsx`, `components/jobs/detail/DocumentsWorkspace.tsx`, `app/dashboard/jobs/page.tsx`, `lib/jobs/job-scraper.ts`, CHANGELOG
+
+**Why:** v1's biggest trust gaps were copy claiming more than the product measures (ATS badges) and silent quality failures (scan OCR, page overflow, shaky scrapes, browser-render-only sites).
+
+**Next:** Owner review of the branch diff; human-blocked v1 gates remain (Supabase Google provider, `gmail.readonly` verification, Cloud Run worker env).
+
+---
+
 ## 2026-09-18 — Task 171: TailorDiff what/why + expand + score impact
 
 **What:** Review change cards now lead with section, action, and Why; suggested text preview; ± match points for keeping the change. Before/after (and keyword/skill effect) live under **Show before / after**. Edit → Save recalculates that change’s ATS impact and the live match %.
@@ -1458,3 +1504,9 @@
 **Why:** Clean workspace for building Phase 1; single source of truth for what exists vs what the spec requires.
 
 **Next:** Task 101 (structured gap analysis) or Task 102 (accept/decline diff UI).
+
+## 2026-09-26 — v1/v2 scope decisions
+
+**v1 = the prep pipeline:** sign in → paste job posting → extract → gap questions → tailor resume **+ cover letter** → review → export → track. Goal stays "get me an interview."
+**v2 = auto-apply + Chrome extension.**
+Notes: Vercel redeploys on main merge, so no manual redeploy needed for env vars. For v2 auto-apply, chosen design direction is human-in-the-loop: the agent works the application and pauses with questions when it hits something needing a human (CAPTCHA, login wall, ambiguous questions) instead of failing to a dead manual link. Email tracking comparison (Sprout vs HireIQ) discussed — see docs/EMAIL.md; candidate v1 improvement: per-application email aliases for deterministic matching.

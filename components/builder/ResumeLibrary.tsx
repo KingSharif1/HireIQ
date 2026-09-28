@@ -194,7 +194,13 @@ function LibraryResumeRow({ resume }: { resume: ResumeRow }) {
         <span className="block truncate text-sm font-medium text-foreground">{resume.title}</span>
         <span className="mt-0.5 block text-xs text-muted-foreground">
           {resume.is_primary ? 'Primary · ' : ''}
-          {resume.ats_format_score != null ? `ATS ${resume.ats_format_score}% · ` : ''}
+          {resume.ats_format_score != null ? (
+            <span title="Section completeness — not a real ATS parse test">
+              {`Completeness ${resume.ats_format_score}% · `}
+            </span>
+          ) : (
+            ''
+          )}
           Added {new Date(resume.created_at).toLocaleDateString()}
         </span>
       </span>

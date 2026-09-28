@@ -2,6 +2,7 @@ import { generateAiText } from '@/lib/ai/complete'
 import { parseModelJson } from '@/lib/ai/parse-json'
 import { REPO_INTELLIGENCE_PROMPT } from '@/lib/ai/prompts'
 import { resolveAiRuntime } from '@/lib/ai/runtime'
+import { tierForFeature } from '@/lib/ai/models'
 import { isResumeWorthyBullet } from './resume-bullet'
 import { fileCategory, isImplementationFile, type RepositorySourceSnapshot } from './deep-scan'
 import type {
@@ -154,7 +155,7 @@ export async function analyzeRepository(
   const { text } = await generateAiText({
     runtime,
     feature: 'repo_intelligence',
-    tier: 'fast',
+    tier: tierForFeature('repo_intelligence'),
     prompt,
     maxOutputTokens: 2600,
   })

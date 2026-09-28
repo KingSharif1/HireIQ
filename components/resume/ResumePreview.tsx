@@ -7,9 +7,11 @@ import { normalizeResumeForDisplay } from '@/lib/format/normalize'
 import { checkResumeHealth, healthScore, type HealthSeverity } from '@/lib/resume/health'
 import { resumeSkillLabels } from '@/lib/profile/skills'
 import {
+  formatDateRange,
   formatEducationLine,
   polishStructuredForExport,
   skillCategoryLines,
+  stripMarkdownInline,
 } from '@/lib/export/format'
 import {
   DEFAULT_RESUME_THEME,
@@ -47,6 +49,8 @@ interface ResumePreviewProps {
   onPageCount?: (pageCount: number) => void
   /** Teal highlight for tailored / edited lines (Match tab). */
   highlights?: PreviewHighlights | null
+  /** Force the loading skeleton (e.g. while async data is still arriving). */
+  loading?: boolean
 }
 
 const MIN_ZOOM = 0.4
@@ -69,6 +73,7 @@ export function ResumePreview({
   className,
   onPageCount,
   highlights = null,
+  loading = false,
 }: ResumePreviewProps) {
   const data = useMemo(
     () => polishStructuredForExport(normalizeResumeForDisplay(rawData)),
@@ -90,6 +95,9 @@ export function ResumePreview({
   const [zoom, setZoom] = useState(scale ?? 0.85)
   const [autoFit, setAutoFit] = useState(scale == null)
   const [pageCount, setPageCount] = useState(1)
+  /** True once the hidden measurer has run for the current mount — until then
+   * the pane would show a wrong page count / un-fitted zoom, so we skeleton. */
+  const [measured, setMeasured] = useState(false)
   const panRef = useRef<{
     active: boolean
     startX: number
@@ -103,6 +111,7 @@ export function ResumePreview({
     const el = measureRef.current
     if (!el) return
     setPageCount(Math.max(1, Math.ceil(el.scrollHeight / usable - 0.02)))
+    setMeasured(true)
   }, [usable])
 
   useEffect(() => {
@@ -285,6 +294,26 @@ export function ResumePreview({
         onPointerUp={onPanEnd}
         onPointerCancel={onPanEnd}
       >
+        {loading || !measured ? (
+          <div className="flex flex-col items-center gap-3 py-6" role="status" aria-label="Rendering preview">
+            <div
+              aria-hidden
+              className="animate-pulse rounded-md bg-neutral-300/80 dark:bg-neutral-600/50 shadow-xl"
+              style={{ width: Math.min(PAGE_W * zoom, 480), height: Math.min(PAGE_H * zoom, 640), maxWidth: '100%' }}
+            >
+              <div className="space-y-3 p-6">
+                <div className="h-4 w-1/3 rounded bg-neutral-400/60 dark:bg-neutral-500/40" />
+                <div className="h-2.5 w-full rounded bg-neutral-400/50 dark:bg-neutral-500/30" />
+                <div className="h-2.5 w-11/12 rounded bg-neutral-400/50 dark:bg-neutral-500/30" />
+                <div className="h-2.5 w-full rounded bg-neutral-400/50 dark:bg-neutral-500/30" />
+                <div className="h-4 w-1/4 rounded bg-neutral-400/60 dark:bg-neutral-500/40 pt-2" />
+                <div className="h-2.5 w-full rounded bg-neutral-400/50 dark:bg-neutral-500/30" />
+                <div className="h-2.5 w-10/12 rounded bg-neutral-400/50 dark:bg-neutral-500/30" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">Rendering preview…</p>
+          </div>
+        ) : (
         <div
           className={cn(
             'flex flex-col gap-5',
@@ -327,6 +356,7 @@ export function ResumePreview({
             </div>
           ))}
         </div>
+        )}
       </div>
     </div>
   )
@@ -565,7 +595,7 @@ function Bullet({
           lineHeight: theme.listLineHeight,
         }}
       >
-        {children}
+        {typeof children === 'string' ? stripMarkdownInline(children) : children}
       </span>
     </div>
   )
@@ -662,7 +692,7 @@ function ExperienceEntry({
   highlights: PreviewHighlights | null
 }) {
   const { showBy, showLocationBy, showDatesBy } = theme.experienceSettings
-  const dateStr = `${exp.startDate} – ${exp.endDate}`
+  const dateStr = formatDateRange(exp.startDate, exp.endDate)
   const locationSuffix = showLocationBy !== 'hidden' && exp.location ? `  ·  ${exp.location}` : ''
 
   const titleFirst = showBy === 'title-first'
@@ -748,7 +778,7 @@ function EducationEntry({
   theme: ResumeTheme
 }) {
   const { showBy, layout } = theme.educationSettings
-  const dateStr = `${edu.startDate} – ${edu.endDate}`
+  const dateStr = formatDateRange(edu.startDate, edu.endDate)
   const degreeText = formatEducationLine(edu)
 
   const primaryText = showBy === 'degree-first' ? degreeText : edu.institution
