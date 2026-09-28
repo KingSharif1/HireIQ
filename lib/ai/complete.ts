@@ -14,6 +14,8 @@ type GenerateArgs = {
   prompt: string
   maxOutputTokens: number
   modelOverride?: string
+  /** Free-form attribution recorded with the usage event (e.g. { tailor_run_id }). */
+  usageMetadata?: Record<string, unknown>
 }
 
 type StreamPartialArgs = {
@@ -27,6 +29,7 @@ async function consumeTextStream(
     runtime: AiRuntime
     feature: AiFeature
     model: string
+    usageMetadata?: Record<string, unknown>
   } & StreamPartialArgs
 ): Promise<{ text: string; model: string }> {
   let full = ''
@@ -50,6 +53,7 @@ async function consumeTextStream(
     keySource: args.runtime.keySource,
     inputTokens,
     outputTokens,
+    metadata: args.usageMetadata,
   })
   if (args.onPartial) await args.onPartial(full)
   return { text: full, model: args.model }
@@ -71,6 +75,7 @@ export async function generateAiText(args: GenerateArgs): Promise<{ text: string
     keySource: args.runtime.keySource,
     inputTokens,
     outputTokens,
+    metadata: args.usageMetadata,
   })
   return { text: result.text, model }
 }
@@ -93,6 +98,7 @@ export async function streamAiTextToCompletion(
     runtime: args.runtime,
     feature: args.feature,
     model,
+    usageMetadata: args.usageMetadata,
     onPartial: args.onPartial,
     partialEveryMs: args.partialEveryMs,
   })
@@ -116,6 +122,7 @@ export async function streamAiMessagesToCompletion(
     runtime: args.runtime,
     feature: args.feature,
     model,
+    usageMetadata: args.usageMetadata,
     onPartial: args.onPartial,
     partialEveryMs: args.partialEveryMs,
   })
@@ -150,6 +157,7 @@ export function streamAiText(
           keySource: args.runtime.keySource as AiKeySource,
           inputTokens,
           outputTokens,
+          metadata: args.usageMetadata,
         })
         if (args.onText) await args.onText(text)
       } finally {

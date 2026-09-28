@@ -1,4 +1,5 @@
 import type { StructuredResume } from '@/types'
+import { countEmDashes, findAiTells } from '@/lib/resume/ai-tells'
 
 export type LayoutCheckSeverity = 'critical' | 'warning' | 'info'
 
@@ -25,12 +26,80 @@ function hasPlaceholder(text: string): boolean {
   return PLACEHOLDER_PATTERNS.some(pattern => pattern.test(trimmed))
 }
 
-/** Pre-export sanity checks — length, placeholders, empty sections. */
+/** Classify a date string so mixed formats can be flagged for ATS consistency. */
+function dateFormatClass(date: string): 'month-year' | 'year' | 'numeric' | 'other' | null {
+  const d = date.trim()
+  if (!d) return null
+  if (/^(present|current|now)$/i.test(d)) return null
+  if (/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{4}$/i.test(d)) return 'month-year'
+  if (/^\d{4}$/.test(d)) return 'year'
+  if (/^(\d{1,2}\/\d{4}|\d{4}-\d{1,2})$/.test(d)) return 'numeric'
+  return 'other'
+}
+
+function checkDateConsistency(
+  resume: StructuredResume,
+  issues: LayoutCheckIssue[]
+): void {
+  const classes = new Set<string>()
+  const samples: string[] = []
+  const collect = (d?: string) => {
+    const c = d ? dateFormatClass(d) : null
+    if (c) {
+      classes.add(c)
+      if (samples.length < 4) samples.push(d!.trim())
+    }
+  }
+  for (const role of resume.experience ?? []) {
+    collect(role.startDate)
+    collect(role.endDate)
+  }
+  for (const edu of resume.education ?? []) {
+    collect(edu.startDate)
+    collect(edu.endDate)
+  }
+  if (classes.size > 1) {
+    issues.push({
+      id: 'inconsistent-dates',
+      severity: 'warning',
+      title: 'Mixed date formats',
+      detail: `Dates use ${classes.size} different formats (e.g. ${samples.join(', ')}). ATS parsers prefer one consistent format like "Jan 2024".`,
+    })
+  }
+}
+
+/** Warn when generated-sounding diction slipped into the resume text. */
+function checkAiTells(resume: StructuredResume, issues: LayoutCheckIssue[]): void {
+  const texts: string[] = [resume.summary ?? '']
+  for (const role of resume.experience ?? []) texts.push(...(role.bullets ?? []))
+  for (const project of resume.projects ?? []) {
+    texts.push(project.description ?? '', ...(project.bullets ?? []))
+  }
+  const combined = texts.join('\n')
+  const tells = new Set<string>()
+  for (const text of texts) {
+    for (const t of findAiTells(text)) tells.add(t)
+  }
+  const emDashes = countEmDashes(combined)
+  if (tells.size > 0 || emDashes > 2) {
+    const parts: string[] = []
+    if (tells.size > 0) parts.push(`"${[...tells].slice(0, 4).join('", "')}"${tells.size > 4 ? '…' : ''}`)
+    if (emDashes > 2) parts.push(`${emDashes} em-dashes`)
+    issues.push({
+      id: 'ai-tell-diction',
+      severity: 'warning',
+      title: 'Possibly AI-sounding diction',
+      detail: `Found ${parts.join(' and ')} — these read as generated to recruiters. Consider rewording in your own voice.`,
+    })
+  }
+}
 export function runResumeLayoutCheck(
   resume: StructuredResume,
   options?: {
     pageCount?: number
     fonts?: { bodyFontSize?: number; nameFontSize?: number; lineHeight?: number }
+    /** When 'columns', warn — some ATS parsers read multi-column skills out of order. */
+    skillsLayout?: string
   },
 ): LayoutCheckResult {
   const issues: LayoutCheckIssue[] = []
@@ -148,6 +217,20 @@ export function runResumeLayoutCheck(
       severity: 'info',
       title: 'No skills listed',
       detail: 'Adding a focused skills section can improve ATS matching.',
+    })
+  }
+
+  // ATS hygiene: one date format everywhere; no generated-sounding diction.
+  // Warnings only — they never block export.
+  checkDateConsistency(resume, issues)
+  checkAiTells(resume, issues)
+
+  if (options?.skillsLayout === 'columns') {
+    issues.push({
+      id: 'skills-columns',
+      severity: 'warning',
+      title: 'Skills in multi-column layout',
+      detail: 'Some ATS parsers read columns out of order. The categorized single-column layout parses most reliably.',
     })
   }
 

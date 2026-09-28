@@ -1,7 +1,7 @@
-import { after, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getTailorRun, patchTailorRun } from '@/lib/tailor/runs'
-import { executeGeneratePhase } from '@/lib/tailor/execute-run'
+import { kickTailorWorker } from '@/lib/tailor/trigger-client'
 import { hasMaterialGapAnswers, isSkipGapAnswer } from '@/lib/tailor/ats-gap-hints'
 import { TAILOR_RUN_CLAUDE } from '@/lib/tailor/run-types'
 import { AI_IN_FLIGHT_MESSAGE } from '@/lib/ai/once'
@@ -33,7 +33,7 @@ export async function POST(
     if (run.generate_reserved) {
       return NextResponse.json({ run, resumed: true })
     }
-    after(() => executeGeneratePhase(run.id, user.id, answers))
+    await kickTailorWorker(run.id, user.id, 'generate', answers)
     return NextResponse.json(
       { run: { ...run, status: 'generating', answers }, resumed: false },
       { status: 202 },
@@ -69,7 +69,7 @@ export async function POST(
       )
     }
 
-    after(() => executeGeneratePhase(run.id, user.id, answers))
+    await kickTailorWorker(run.id, user.id, 'generate', answers)
     return NextResponse.json(
       { run: { ...run, status: 'generating', answers }, resumed: false },
       { status: 202 },

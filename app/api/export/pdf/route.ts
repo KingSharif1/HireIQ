@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     )
 
     const { runResumeLayoutCheck } = await import('@/lib/resume/layout-check')
-    const layout = runResumeLayoutCheck(exportData)
+    const layout = runResumeLayoutCheck(exportData, { skillsLayout: theme.skillsLayout })
     if (!layout.ok) {
       return NextResponse.json(
         {
@@ -118,7 +118,11 @@ export async function POST(request: Request) {
 
   if (type !== 'cover') {
     const { runResumeLayoutCheck } = await import('@/lib/resume/layout-check')
-    const layout = runResumeLayoutCheck(exportData)
+    const tailoredTheme = mergeResumeTheme(
+      DEFAULT_RESUME_THEME,
+      (tailored.theme_override ?? null) as ResumeThemeOverride | null
+    )
+    const layout = runResumeLayoutCheck(exportData, { skillsLayout: tailoredTheme.skillsLayout })
     if (!layout.ok) {
       return NextResponse.json(
         {

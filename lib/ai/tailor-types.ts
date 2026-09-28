@@ -61,4 +61,6 @@ export type GenerateFn = (opts: {
   model: string
   prompt: string
   maxOutputTokens: number
+  /** Free-form attribution recorded with the usage event (e.g. { tailor_run_id }). */
+  usageMetadata?: Record<string, unknown>
 }) => Promise<string>

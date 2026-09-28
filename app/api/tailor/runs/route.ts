@@ -1,8 +1,8 @@
-import { after, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createProcessLog } from '@/lib/tailor/process-log'
 import { failStaleBusyRun, getActiveTailorRun, getLatestTailorRun, insertTailorRun, listActiveTailorRuns, loadTailoredSnapshot } from '@/lib/tailor/runs'
-import { executeGapPhase } from '@/lib/tailor/execute-run'
+import { kickTailorWorker } from '@/lib/tailor/trigger-client'
 import { isActiveTailorStatus, shouldAttachToRun, shouldKickGapWorker } from '@/lib/tailor/run-types'
 
 export const runtime = 'nodejs'
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     const run = await failStaleBusyRun(supabase, existing)
     if (run.status !== 'failed' && shouldAttachToRun(run.status)) {
       if (shouldKickGapWorker(run)) {
-        after(() => executeGapPhase(run.id, user.id))
+        await kickTailorWorker(run.id, user.id, 'gap')
       }
       const tailored = await loadTailoredSnapshot(supabase, run.tailored_resume_id)
       return NextResponse.json({ run, resumed: true, tailored })
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
   const { run, created } = await insertTailorRun(supabase, user.id, jobId, log.entries)
 
   if (shouldKickGapWorker(run)) {
-    after(() => executeGapPhase(run.id, user.id))
+    await kickTailorWorker(run.id, user.id, 'gap')
   }
 
   const tailored = await loadTailoredSnapshot(supabase, run.tailored_resume_id)

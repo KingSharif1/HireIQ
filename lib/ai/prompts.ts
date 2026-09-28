@@ -1,3 +1,5 @@
+import { aiTellWordsForPrompt } from '@/lib/resume/ai-tells'
+
 export { extractJSON } from '@/lib/ai/parse-json'
 
 export const RESUME_PARSER_PROMPT = `You are an expert resume parser. Convert the resume into HireIQ markdown (not JSON). Extract EVERYTHING honest from the text — contact, summary, every role, every project, education, certifications, and skills.
@@ -276,7 +278,7 @@ RULES:
 11. Full restructure is allowed on this tailored snapshot only (not the master). Default early-career order: Summary → Skills → Experience → Projects → Education → Certifications (omit empty). Override to Projects-before-Experience when the JD thesis is portfolio-led or domain tags are hardware/embedded/controls.
 12. Mirror diction from the original bullets. Do not homogenize into generic corporate resume-speak. NEVER "upgrade" their words: if the source says "built", do not rewrite it as "architected" or "engineered"; if they say "helped", do not rewrite it as "spearheaded". Their vocabulary wins.
 13. Return HireIQ markdown ONLY — no JSON, no code fences, no commentary before/after.
-14. Sound like a person, not a generator. BANNED diction — never use: em-dashes (—), "leveraged", "utilize/utilized", "spearheaded", "synergy", "passionate", "dynamic", "cutting-edge", "delve", "tapestry", "in today's fast-paced", "game-changer", "results-driven", "thought leader". BANNED patterns: every bullet starting with the same verb shape; every bullet quantified; adjective-stuffed summaries ("innovative, detail-oriented self-starter"). Vary bullet rhythm — mix short punchy bullets with longer ones. Leave some bullets unquantified when the source has no number; a slightly uneven resume reads human, a perfectly uniform one reads generated.
+14. Sound like a person, not a generator. BANNED diction — never use: em-dashes (—), "${aiTellWordsForPrompt()}". BANNED patterns: every bullet starting with the same verb shape; every bullet quantified; adjective-stuffed summaries ("innovative, detail-oriented self-starter"). Vary bullet rhythm — mix short punchy bullets with longer ones. Leave some bullets unquantified when the source has no number; a slightly uneven resume reads human, a perfectly uniform one reads generated.
 15. REPO EVIDENCE STRENGTH — a tool/skill/concept from GitHub may only appear on the resume at the strength its evidence supports:
     - STRONG: deep-scan "Verified tool usage" with file evidence paths, or the tool is already in the project's technologies AND a bullet describes using it. May be listed as a skill and named in bullets.
     - MEDIUM: README mentions it, or language stats show it, but no verified usage. May appear in the project's technologies only — never as a headline skill, never with a proficiency claim.
@@ -328,7 +330,7 @@ export const TAILOR_CRITIQUE_PROMPT = `You are TWO judges reviewing a tailored r
 
 JUDGE 1 — ATS parser: What % of the job's success phrases and required keywords are credibly present in the resume? (0-100)
 
-JUDGE 2 — Skeptical human recruiter: Flag unsupported claims, vague bullets, generic filler, robotic phrasing. AI-TELL CHECKS (flag as "robotic"): em-dashes; "leveraged/utilized/spearheaded/synergy/passionate/cutting-edge/delve"; every bullet the same length and shape; every bullet quantified with round numbers; adjective-stuffed summary; any bullet that sounds like it could belong to any candidate. A bullet with concrete nouns (tool names, team size, real numbers from the source) passes; a polished-but-generic bullet does not.
+JUDGE 2 — Skeptical human recruiter: Flag unsupported claims, vague bullets, generic filler, robotic phrasing. AI-TELL CHECKS (flag as "robotic"): em-dashes; "${aiTellWordsForPrompt()}"; every bullet the same length and shape; every bullet quantified with round numbers; adjective-stuffed summary; any bullet that sounds like it could belong to any candidate. A bullet with concrete nouns (tool names, team size, real numbers from the source) passes; a polished-but-generic bullet does not.
 
 ORIGINAL MASTER RESUME:
 {structuredResume}

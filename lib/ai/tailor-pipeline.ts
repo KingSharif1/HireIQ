@@ -31,6 +31,8 @@ interface PipelineInput {
   resumeMarkdown?: string
   generate: GenerateFn
   models?: { strong: string; fast: string }
+  /** Free-form attribution recorded with each usage event (e.g. { tailor_run_id }). */
+  usageMetadata?: Record<string, unknown>
   /** Kept for callers; all modes are one Claude rewrite — no critique/retry. */
   fastMode?: boolean
 }
@@ -41,13 +43,14 @@ async function callGenerate(
   prompt: string,
   maxOutputTokens: number,
   aiCallsUsed: { n: number },
-  maxCalls = TAILOR_MAX_AI_CALLS
+  maxCalls = TAILOR_MAX_AI_CALLS,
+  usageMetadata?: Record<string, unknown>
 ): Promise<string> {
   if (aiCallsUsed.n >= maxCalls) {
     throw new Error('Tailor run exceeded AI call budget')
   }
   aiCallsUsed.n += 1
-  return generate({ model, prompt, maxOutputTokens })
+  return generate({ model, prompt, maxOutputTokens, usageMetadata })
 }
 
 function parseResumeMarkdown(text: string): StructuredResume {
@@ -90,6 +93,7 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
     8000,
     aiCallsUsed,
     maxGenerateCalls,
+    input.usageMetadata
   )
   let current: StructuredResume
   try {
@@ -109,6 +113,7 @@ CRITICAL RETRY: Your previous reply was not valid HireIQ markdown (or was empty)
       8000,
       aiCallsUsed,
       maxGenerateCalls,
+      input.usageMetadata
     )
     current = parseResumeMarkdown(genText)
   }

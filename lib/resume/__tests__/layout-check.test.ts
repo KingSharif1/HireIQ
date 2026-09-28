@@ -104,4 +104,45 @@ describe('runResumeLayoutCheck', () => {
       expect.arrayContaining(['body-font-size', 'name-font-size', 'line-height']),
     )
   })
+
+  it('warns on mixed date formats', () => {
+    const resume = baseResume()
+    resume.experience[0].startDate = 'Jan 2022'
+    resume.experience[0].endDate = '2024'
+    const result = runResumeLayoutCheck(resume)
+    const issue = result.issues.find(i => i.id === 'inconsistent-dates')
+    expect(issue?.severity).toBe('warning')
+    expect(result.ok).toBe(true) // warnings never block export
+  })
+
+  it('does not warn when all dates share one format', () => {
+    const resume = baseResume()
+    resume.experience[0].startDate = 'Jan 2022'
+    resume.experience[0].endDate = 'Mar 2024'
+    const result = runResumeLayoutCheck(resume)
+    expect(result.issues.map(i => i.id)).not.toContain('inconsistent-dates')
+  })
+
+  it('warns on AI-tell diction and em-dash overuse', () => {
+    const result = runResumeLayoutCheck(
+      baseResume({
+        summary: 'Passionate engineer who leveraged cutting-edge synergy — a game-changer — truly.',
+      }),
+    )
+    const issue = result.issues.find(i => i.id === 'ai-tell-diction')
+    expect(issue?.severity).toBe('warning')
+    expect(issue?.detail).toMatch(/leveraged|passionate/)
+    expect(result.ok).toBe(true)
+  })
+
+  it('does not warn on clean human diction', () => {
+    const result = runResumeLayoutCheck(baseResume())
+    expect(result.issues.map(i => i.id)).not.toContain('ai-tell-diction')
+  })
+
+  it('warns on multi-column skills layout', () => {
+    const result = runResumeLayoutCheck(baseResume(), { skillsLayout: 'columns' })
+    expect(result.issues.map(i => i.id)).toContain('skills-columns')
+    expect(result.ok).toBe(true)
+  })
 })

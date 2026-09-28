@@ -104,6 +104,32 @@ export type UsageSummary = {
   }
 }
 
+export type RunUsageTotals = {
+  requests: number
+  inputTokens: number
+  outputTokens: number
+  estimatedCostUsd: number
+}
+
+/** Sum AI usage attributed to one tailor run (via usageMetadata.tailor_run_id). */
+export async function sumUsageForTailorRun(runId: string): Promise<RunUsageTotals> {
+  const admin = createAdminClient()
+  const { data: events } = await admin
+    .from('ai_usage_events')
+    .select('input_tokens, output_tokens, estimated_cost_usd, metadata')
+    .filter('metadata->>tailor_run_id', 'eq', runId)
+  const rows = events ?? []
+  return rows.reduce<RunUsageTotals>(
+    (acc, row) => ({
+      requests: acc.requests + 1,
+      inputTokens: acc.inputTokens + (row.input_tokens ?? 0),
+      outputTokens: acc.outputTokens + (row.output_tokens ?? 0),
+      estimatedCostUsd: acc.estimatedCostUsd + Number(row.estimated_cost_usd ?? 0),
+    }),
+    { requests: 0, inputTokens: 0, outputTokens: 0, estimatedCostUsd: 0 }
+  )
+}
+
 export async function loadUsageSummary(
   userId: string,
   models: { strong: string; fast: string } = AI_MODELS,

@@ -166,6 +166,18 @@ directions), explicit-URL match first, legacy suffix check kept as a gated fallb
 correctly optional in the project type. Regression tests added; full suite green
 (410 passed, 11 skipped), `tsc` clean.
 
+**Export ATS safeguards (2026-09-28).** `runResumeLayoutCheck` (the pre-export gate
+in both PDF/DOCX routes) now also warns on: mixed date formats across
+experience/education (ATS parsers want one format like "Jan 2024"), AI-tell
+diction slipping into the text (shared list in `lib/resume/ai-tells.ts` — the same
+list the tailor prompt and critique judge now import, so prompt and checker can't
+drift apart), and the multi-column skills layout (some parsers read columns out of
+order; the PDF route passes the merged theme's `skillsLayout` into the check).
+All three are warnings — they never block export. Inherent ATS properties verified,
+not checked: single-column body, fixed standard section headers
+(Experience / Technical Skills / Education / Projects), real selectable text
+(react-pdf, never scanned images), no text boxes.
+
 ---
 
 ## Related docs

@@ -233,6 +233,7 @@ export async function executeGeneratePhase(
       prompt,
       maxOutputTokens,
       modelOverride: model,
+      usageMetadata: { tailor_run_id: runId },
       partialEveryMs: 1000,
       onPartial: async text => {
         const last = log.entries[log.entries.length - 1]
@@ -267,6 +268,7 @@ export async function executeGeneratePhase(
           resumeMarkdown,
           generate: generateFn,
           models: ai.models,
+          usageMetadata: { tailor_run_id: runId },
         }),
     )
 
