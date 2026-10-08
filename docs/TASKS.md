@@ -13,6 +13,15 @@ Files changed: [list]
 
 ---
 
+## Task 172 — v1 core reliability
+Status: DONE
+Owner: this session
+Scope: tailor dispatch + failure states, broken-JSON retry, output polish, ATS password encryption, prod hardening, CI, eslint
+Result: Production tailoring uses a `tr_prod_` Trigger.dev key when one is set; a `tr_dev_` key on Vercel runs in-process under `maxDuration` 300 and a failed kick is written onto the run row. Rewrite retries once on unusable markdown/JSON. New-grad roles stay `new_grad`, Greenhouse company names prefer the real name over the board slug, export strips literal `**`, and education dates drop a dangling dash. `ats_account_password` is AES-256-GCM with plaintext read-through. `/dev` 404s in production. Gmail cron is a quiet skip without `CRON_SECRET`. Migrations 025–026 document ciphertext + storage buckets. GitHub Actions runs typecheck, lint, vitest, and build.
+Files changed: see CHANGELOG 2026-10-08
+
+---
+
 ## Task 171 — TailorDiff clarity (what/why + expand + edit score impact)
 Status: DONE
 Owner: this session

@@ -1,13 +1,30 @@
 import type { ResumeEducation, ResumeSkills, StructuredResume } from '@/types'
 import { uniqueSkillLabels } from '@/lib/profile/skills'
 
+const SEPARATOR_ONLY = /^[\s\-–—·.|]+$/
+
+/** Drop a leading or trailing dash, bullet, or pipe left by a sparse model line. */
+export function stripEdgeSeparators(value: string | null | undefined): string {
+  return (value ?? '')
+    .replace(/^[\s\-–—·|]+/, '')
+    .replace(/[\s\-–—·|]+$/, '')
+    .trim()
+}
+
+/** A date token, or empty when the model stored only a separator. */
+export function cleanDateToken(value: string | null | undefined): string {
+  const text = stripEdgeSeparators(value)
+  if (!text || SEPARATOR_ONLY.test(text)) return ''
+  return text
+}
+
 /** Avoid "B.S. in Computer Science in Computer Science" when degree already includes the field. */
 export function formatDegreeField(degree: string, field: string): string {
-  const d = (degree ?? '').trim()
-  const f = (field ?? '').trim()
+  const d = stripEdgeSeparators(degree)
+  const f = stripEdgeSeparators(field)
   if (!d && !f) return ''
-  if (!f) return d
-  if (!d) return f
+  if (!f || SEPARATOR_ONLY.test(f)) return d
+  if (!d || SEPARATOR_ONLY.test(d)) return f
   const dLower = d.toLowerCase()
   const fLower = f.toLowerCase()
   if (dLower.includes(fLower)) return d
@@ -21,12 +38,12 @@ export function formatEducationLine(edu: Pick<ResumeEducation, 'degree' | 'field
   return formatDegreeField(edu.degree ?? '', edu.field ?? '')
 }
 
-/** Join a date range without a dangling separator when one side is empty. */
+/** Join a date range without a dangling separator when one side is empty or only a dash. */
 export function formatDateRange(
   startDate: string | null | undefined,
   endDate: string | null | undefined,
 ): string {
-  return [startDate?.trim(), endDate?.trim()].filter(Boolean).join(' – ')
+  return [cleanDateToken(startDate), cleanDateToken(endDate)].filter(Boolean).join(' – ')
 }
 
 /**
@@ -35,9 +52,11 @@ export function formatDateRange(
  */
 export function stripMarkdownInline(text: string | null | undefined): string {
   return (text ?? '')
-    .replace(/\*\*(.+?)\*\*/g, '$1')
-    .replace(/__(.+?)__/g, '$1')
-    .replace(/`(.+?)`/g, '$1')
+    .replace(/\*\*([\s\S]+?)\*\*/g, '$1')
+    .replace(/__([\s\S]+?)__/g, '$1')
+    .replace(/`([\s\S]+?)`/g, '$1')
+    .replace(/\*\*/g, '')
+    .replace(/__/g, '')
 }
 
 /** Deduplicate across technical / tools / languages (case-insensitive). Soft stays separate.
@@ -101,28 +120,48 @@ export function flattenSkillsForAts(skills: ResumeSkills): string[] {
   ])
 }
 
+function cleanLine(value: string | null | undefined): string {
+  return stripMarkdownInline(value).replace(/[ \t]+\n/g, '\n').trim()
+}
+
 /** Deterministic polish before PDF/preview — never invents content. */
 export function polishStructuredForExport(data: StructuredResume): StructuredResume {
   return {
     ...data,
-    skills: dedupeResumeSkills(data.skills ?? {
-      technical: [],
-      soft: [],
-      tools: [],
-      languages: [],
+    summary: cleanLine(data.summary),
+    skills: dedupeResumeSkills({
+      technical: (data.skills?.technical ?? []).map(s => cleanLine(s)).filter(Boolean),
+      soft: (data.skills?.soft ?? []).map(s => cleanLine(s)).filter(Boolean),
+      tools: (data.skills?.tools ?? []).map(s => cleanLine(s)).filter(Boolean),
+      languages: (data.skills?.languages ?? []).map(s => cleanLine(s)).filter(Boolean),
     }),
+    experience: (data.experience ?? []).map(exp => ({
+      ...exp,
+      bullets: (exp.bullets ?? []).map(b => cleanLine(b)).filter(Boolean),
+      startDate: cleanDateToken(exp.startDate),
+      endDate: cleanDateToken(exp.endDate),
+    })),
+    projects: (data.projects ?? []).map(proj => ({
+      ...proj,
+      description: cleanLine(proj.description),
+      bullets: (proj.bullets ?? []).map(b => cleanLine(b)).filter(Boolean),
+    })),
     education: (data.education ?? []).map(edu => {
-      const line = formatEducationLine(edu)
-      // If degree already contained the field, clear field so renderers don't double-append.
-      const field = (edu.field ?? '').trim()
-      const degree = (edu.degree ?? '').trim()
-      if (field && degree.toLowerCase().includes(field.toLowerCase())) {
-        return { ...edu, degree: line || degree, field: '' }
+      const degree = stripEdgeSeparators(cleanLine(edu.degree))
+      const field = stripEdgeSeparators(cleanLine(edu.field))
+      const institution = stripEdgeSeparators(cleanLine(edu.institution))
+      const line = formatDegreeField(degree, field)
+      const fieldRedundant =
+        Boolean(field) &&
+        (degree.toLowerCase().includes(field.toLowerCase()) || /\bin\b/i.test(degree))
+      return {
+        ...edu,
+        degree: line || degree,
+        field: fieldRedundant ? '' : field,
+        institution,
+        startDate: cleanDateToken(edu.startDate),
+        endDate: cleanDateToken(edu.endDate),
       }
-      if (/\bin\b/i.test(degree) && field) {
-        return { ...edu, field: '' }
-      }
-      return edu
     }),
   }
 }

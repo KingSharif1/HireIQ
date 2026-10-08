@@ -18,6 +18,11 @@ function clearAuthCookies(response: NextResponse, cookieNames: string[]) {
 
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname
+
+  // Dev-only pages (apply-progress demo and anything else under /dev).
+  if ((path === '/dev' || path.startsWith('/dev/')) && process.env.NODE_ENV === 'production') {
+    return new NextResponse(null, { status: 404 })
+  }
   const authCookieNames = request.cookies
     .getAll()
     .filter((c) => isAuthCookie(c.name))

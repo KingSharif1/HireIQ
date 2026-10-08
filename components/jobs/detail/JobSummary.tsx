@@ -26,6 +26,7 @@ import {
 
 import { Button } from '@/components/ui/button'
 import { buildJobDescriptionView } from '@/lib/jobs/description'
+import { resolveSeniority } from '@/lib/jobs/seniority'
 import {
   applicationStatusClasses,
   applicationStatusLabel,
@@ -63,6 +64,7 @@ export interface JobSummaryActivityItem {
 export interface JobFactsRailProps {
   company: string
   title: string
+  description?: string | null
   location?: string | null
   remoteType?: string | null
   applyUrl?: string | null
@@ -289,6 +291,7 @@ export function JobSummaryDescription({
 export function JobFactsRail({
   company,
   title,
+  description,
   location,
   remoteType,
   applyUrl,
@@ -305,7 +308,7 @@ export function JobFactsRail({
   const [isOpen, setIsOpen] = useState(defaultOpen)
   const safeApplyUrl = getSafeHttpUrl(applyUrl)
   const posting = getPostingIdentity(applyUrl)
-  const facts = buildJobFacts(location, remoteType, extracted)
+  const facts = buildJobFacts(location, remoteType, extracted, title, description)
 
   return (
     <section
@@ -546,7 +549,9 @@ function getSafeHttpUrl(value: string | null | undefined): string | null {
 function buildJobFacts(
   location: string | null | undefined,
   remoteType: string | null | undefined,
-  extracted: JobExtractedData | null | undefined
+  extracted: JobExtractedData | null | undefined,
+  title?: string | null,
+  description?: string | null,
 ): JobFact[] {
   const facts: JobFact[] = []
   const workType = extracted?.work_type || remoteType
@@ -554,8 +559,14 @@ function buildJobFacts(
   if (workType) {
     facts.push({ label: 'Work type', value: titleCase(workType), icon: BriefcaseBusiness })
   }
-  if (extracted?.seniority) {
-    facts.push({ label: 'Level', value: titleCase(extracted.seniority), icon: Building2 })
+  const level = resolveSeniority({
+    seniority: extracted?.seniority,
+    title: title || extracted?.title,
+    summary: extracted?.summary,
+    description,
+  })
+  if (level) {
+    facts.push({ label: 'Level', value: titleCase(level), icon: Building2 })
   }
 
   const compensation = formatCompensation(extracted)

@@ -195,7 +195,7 @@ export async function claimGeneratePhase(
 
 /**
  * User-initiated post-draft weave (Task 162). CAS from needs_review only.
- * Caps at TAILOR_RUN_CLAUDE.total — no silent retries.
+ * Caps at TAILOR_RUN_CLAUDE.total — one parse retry is allowed, no critique loop.
  */
 export async function claimWeavePhase(
   supabase: SupabaseClient,
@@ -219,7 +219,7 @@ export async function claimWeavePhase(
 }
 
 const STALE_FAIL_MESSAGE =
-  'This took too long. We stopped waiting so you aren’t stuck. Try again when you’re ready.'
+  'This tailor stopped before it finished. Try again — your profile wasn’t changed.'
 
 export async function failStaleBusyRun(
   supabase: SupabaseClient,

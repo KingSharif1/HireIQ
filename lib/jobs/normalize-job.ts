@@ -1,5 +1,6 @@
 import type { JobExtractedData } from '@/types'
 import { stripAtsChrome } from '@/lib/jobs/description'
+import { resolveSeniority } from '@/lib/jobs/seniority'
 
 const MAX_SUMMARY = 600
 const MAX_RESP = 280
@@ -36,10 +37,12 @@ function cleanResponsibilityLines(values: readonly string[] | undefined): string
 
 /** Ensure job fields exist so ATS scoring never produces NaN; strip ATS form chrome. */
 export function normalizeJobExtractedData(
-  raw: Partial<JobExtractedData> | null | undefined
+  raw: Partial<JobExtractedData> | null | undefined,
+  context?: { description?: string | null; title?: string | null },
 ): JobExtractedData {
+  const title = context?.title?.trim() || raw?.title || ''
   return {
-    title: raw?.title ?? '',
+    title,
     company: raw?.company ?? '',
     required_skills: raw?.required_skills ?? [],
     preferred_skills: raw?.preferred_skills ?? [],
@@ -57,7 +60,12 @@ export function normalizeJobExtractedData(
       period: 'year',
     },
     work_type: raw?.work_type ?? '',
-    seniority: raw?.seniority ?? '',
+    seniority: resolveSeniority({
+      seniority: raw?.seniority,
+      title,
+      summary: raw?.summary,
+      description: context?.description,
+    }),
     summary: cleanSummary(raw?.summary ?? ''),
     role_thesis: raw?.role_thesis?.trim() || undefined,
     domain_tags: normalizeDomainTags(raw?.domain_tags),

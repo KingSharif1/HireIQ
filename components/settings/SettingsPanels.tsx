@@ -82,7 +82,7 @@ export function SettingsIntegrations() {
     setInfo(null)
     try {
       if (mode === 'gmail' && !status?.gmailConnected) {
-        window.location.href = '/api/google/connect'
+        window.location.assign('/api/google/connect')
         return
       }
       if (mode === 'masked' && !status?.maskedEmail) {

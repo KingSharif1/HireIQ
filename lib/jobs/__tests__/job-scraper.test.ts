@@ -5,6 +5,7 @@ import {
   isOracleCloudJobUrl,
   extractCompanyFromGreenhouseHtml,
   humanizeBoardToken,
+  resolveGreenhouseCompany,
 } from '../job-scraper'
 
 describe('isOracleCloudJobUrl', () => {
@@ -183,6 +184,76 @@ describe('extractCompanyFromGreenhouseHtml', () => {
     expect(extractCompanyFromGreenhouseHtml('<html><head><title>Jobs</title></head></html>')).toBe(
       null,
     )
+  })
+})
+
+describe('resolveGreenhouseCompany', () => {
+  it('prefers the boards API company over the slug', () => {
+    expect(
+      resolveGreenhouseCompany({
+        companyName: 'Freeform',
+        boardToken: 'freeformfuturecorp',
+      }),
+    ).toBe('Freeform')
+  })
+
+  it('rejects the slug even when it is title-cased', () => {
+    expect(
+      resolveGreenhouseCompany({
+        companyName: 'Freeformfuturecorp',
+        pageName: 'Freeform',
+        boardToken: 'freeformfuturecorp',
+      }),
+    ).toBe('Freeform')
+  })
+})
+
+describe('scrapeJobUrl — Greenhouse', () => {
+  const url = 'https://job-boards.greenhouse.io/freeformfuturecorp/jobs/8013423003'
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('uses company_name from the job API instead of the board slug', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          title: 'Software Engineer (New Grad)',
+          company_name: 'Freeform',
+          content: `<p>${'Build manufacturing software. '.repeat(8)}</p>`,
+        }),
+      }),
+    )
+
+    const result = await scrapeJobUrl(url)
+    expect(result.company).toBe('Freeform')
+    expect(result.company.toLowerCase()).not.toBe('freeformfuturecorp')
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('falls back to the board name when the job payload has no company', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            title: 'Software Engineer',
+            content: `<p>${'Build manufacturing software. '.repeat(8)}</p>`,
+          }),
+        })
+        .mockResolvedValueOnce({ ok: false, text: async () => '' })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ name: 'Freeform' }),
+        }),
+    )
+
+    const result = await scrapeJobUrl(url)
+    expect(result.company).toBe('Freeform')
   })
 })
 

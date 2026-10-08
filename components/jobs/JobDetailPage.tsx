@@ -19,6 +19,7 @@ import {
   JobSummaryOverview,
 } from '@/components/jobs/detail/JobSummary'
 import { canHostedAutoApply } from '@/lib/apply/ease'
+import { resolveSeniority } from '@/lib/jobs/seniority'
 import { ApplyEaseBadge } from '@/components/jobs/ApplyEaseBadge'
 import { AutoApplyWithHireIQ } from '@/components/jobs/detail/AutoApplyWithHireIQ'
 import { QuestionsPanel } from '@/components/jobs/detail/QuestionsPanel'
@@ -218,7 +219,12 @@ export function JobDetailPage({
     location: item.job.location,
     remoteType: item.job.remote_type,
     workType: item.job.extracted_data?.work_type,
-    seniority: item.job.extracted_data?.seniority,
+    seniority: resolveSeniority({
+      seniority: item.job.extracted_data?.seniority,
+      title: item.job.title || item.job.extracted_data?.title,
+      summary: item.job.extracted_data?.summary,
+      description: item.job.description,
+    }),
     sourceDomain,
   })
 
@@ -568,6 +574,7 @@ export function JobDetailPage({
                 defaultOpen={false}
                 company={item.job.company}
                 title={item.job.title}
+                description={item.job.description}
                 location={item.job.location}
                 remoteType={item.job.remote_type}
                 applyUrl={safeApplyUrl}
@@ -647,6 +654,7 @@ export function JobDetailPage({
               <JobFactsRail
                 company={item.job.company}
                 title={item.job.title}
+                description={item.job.description}
                 location={item.job.location}
                 remoteType={item.job.remote_type}
                 applyUrl={safeApplyUrl}

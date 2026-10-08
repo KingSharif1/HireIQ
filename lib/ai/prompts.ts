@@ -122,7 +122,9 @@ Return ONLY valid JSON:
   "summary": "",
   "role_thesis": "One sentence: what success looks like in THIS role (domain + outcome), not a generic software-engineer blurb",
   "domain_tags": ["embedded|hardware|controls|web|cloud|data|mobile — pick 1–3 that fit; omit unknown"]
-}`
+}
+
+SENIORITY: use intern ONLY when the role is an internship (the title or posting says intern or internship). New grad, new graduate, early career, university/campus hire, and entry-level full-time roles are new_grad — never intern.`
 
 export const GAP_ANALYSIS_PROMPT = `You are a rigorous career analyst comparing a candidate's profile to a job description.
 

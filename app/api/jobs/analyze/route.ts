@@ -9,6 +9,7 @@ import { ndjsonResponse, streamingJobProgress } from '@/lib/ai/ndjson-stream'
 import { parseModelJson } from '@/lib/ai/parse-json'
 import { tierForFeature } from '@/lib/ai/models'
 import { classifyApplyEase, type ApplyEaseResult } from '@/lib/apply/ease'
+import { normalizeJobExtractedData } from '@/lib/jobs/normalize-job'
 import type { JobExtractedData } from '@/types'
 
 export const runtime = 'nodejs'
@@ -76,11 +77,16 @@ export async function POST(request: Request) {
         ? applyEase
         : classifyApplyEase({ url: applyUrl })
     const resolvedApplyUrl = ease.detectedApplyUrl || applyUrl || null
-    const extractedData: JobExtractedData = {
-      ...extractedBase,
-      apply_ease: ease.ease,
-      apply_ease_reason: ease.reason,
-    }
+    const extractedData: JobExtractedData = normalizeJobExtractedData(
+      {
+        ...extractedBase,
+        title: title || extractedBase.title,
+        company: company || extractedBase.company,
+        apply_ease: ease.ease,
+        apply_ease_reason: ease.reason,
+      },
+      { description, title: title || extractedBase.title },
+    )
 
     const { data: jobRow, error: dbErr } = await supabase
       .from('jobs')

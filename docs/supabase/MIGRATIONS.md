@@ -11,6 +11,30 @@ Apply in numeric order on the remote project (`wsbbgznobxhjefaqbniv`). Use Supab
 | **022** | `022_ai_byok_and_usage.sql` | **Applied** | BYOK + `ai_usage_events` (Task 149) |
 | **023** | `023_tailor_runs.sql` | **Applied** (2026-08-14 via Supabase MCP) | Durable AI tailor session — one in-flight run per job, max 2 Claude calls |
 | **024** | `024_repo_intelligence.sql` | **Applied** (2026-09-17 via HireIQ Supabase MCP) | Per-commit GitHub repository intelligence cache with owner-only RLS |
+| **025** | `025_ats_password_ciphertext.sql` | **Pending** — run on the remote project | Comment only. App encrypts `applications.ats_account_password` (AES-256-GCM). Column stays TEXT so old plaintext rows still read. |
+| **026** | `026_storage_buckets.sql` | **Pending** — run on the remote project | Idempotent private `resumes` and `exports` buckets plus owner-folder RLS (`{userId}/…`). Safe if the buckets already exist. |
+
+## Apply 026
+
+```sql
+-- docs/supabase/migrations/026_storage_buckets.sql
+-- Private resumes + exports buckets and owner-folder policies. Idempotent.
+```
+
+Verify:
+
+```sql
+SELECT id, public FROM storage.buckets WHERE id IN ('resumes', 'exports');
+```
+
+## Apply 025
+
+```sql
+-- docs/supabase/migrations/025_ats_password_ciphertext.sql
+-- Documents ciphertext-at-rest. Does not rewrite existing plaintext rows.
+```
+
+No schema change. New writes from the extension ATS-account route store ciphertext. Readers use `readStoredSecret()`.
 
 ## Apply 024
 

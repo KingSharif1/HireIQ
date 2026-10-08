@@ -102,6 +102,22 @@ Tailored summary.
     expect(parsed.tailoring_notes?.[0].reason).toContain('APIs')
   })
 
+  it('does not keep a dangling dash on an education date or degree line', () => {
+    const md = `# Jane
+jane@example.com
+
+## Education
+### B.S. Computer Science – · · State University <!-- id:edu_1 -->
+2021 –
+`
+    const parsed = markdownToStructuredResume(md)
+    expect(parsed.education[0]?.degree).toBe('B.S. Computer Science')
+    expect(parsed.education[0]?.institution).toBe('State University')
+    expect(parsed.education[0]?.startDate).toBe('2021')
+    expect(parsed.education[0]?.endDate).toBe('')
+    expect(`${parsed.education[0]?.degree} ${parsed.education[0]?.endDate}`).not.toMatch(/[–—]\s*$/)
+  })
+
   it('strips fences and reports streaming progress', () => {
     const fenced = 'Here you go\n```markdown\n# A\n\n## Summary\nHi\n```'
     expect(extractResumeMarkdown(fenced)).toContain('# A')

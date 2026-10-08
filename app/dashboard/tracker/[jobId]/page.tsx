@@ -5,6 +5,7 @@ import {
   JobDetailPage,
   type JobDetailTailoredVersion,
 } from '@/components/jobs/JobDetailPage'
+import { readStoredSecret } from '@/lib/crypto/secret'
 import { emptyProfileData } from '@/lib/profile/data'
 import { normalizeProfileData } from '@/lib/profile/provenance'
 import type {
@@ -122,6 +123,9 @@ export default async function TrackerJobDetailPage({
 
   const item: ApplicationTrackerItem = {
     ...app,
+    ats_account_password: app.ats_account_password
+      ? readStoredSecret(app.ats_account_password)
+      : app.ats_account_password,
     job: app.job,
     score,
     tailored: rawVersions.length > 0,

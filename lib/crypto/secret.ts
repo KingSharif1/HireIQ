@@ -17,6 +17,20 @@ export function encryptSecret(plain: string): string {
   return Buffer.concat([iv, tag, enc]).toString('base64')
 }
 
+/**
+ * Decrypt a stored secret. Values written before encryption (plain passwords)
+ * are returned unchanged when they are not a valid AES-GCM payload.
+ */
+export function readStoredSecret(payload: string | null | undefined): string {
+  const value = payload ?? ''
+  if (!value) return ''
+  try {
+    return decryptSecret(value)
+  } catch {
+    return value
+  }
+}
+
 export function decryptSecret(payload: string): string {
   const buf = Buffer.from(payload, 'base64')
   if (buf.length < 29) throw new Error('Invalid encrypted payload')

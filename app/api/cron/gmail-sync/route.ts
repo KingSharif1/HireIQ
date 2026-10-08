@@ -9,7 +9,8 @@ import { isGoogleOAuthConfigured } from '@/lib/google/oauth'
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET?.trim()
   if (!secret) {
-    return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 503 })
+    // Quiet no-op until the owner sets CRON_SECRET. Not an error the cron monitor should page on.
+    return NextResponse.json({ ok: true, skipped: true, reason: 'CRON_SECRET not configured' })
   }
 
   const auth = request.headers.get('authorization') ?? ''
