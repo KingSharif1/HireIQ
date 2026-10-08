@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { readStoredSecret } from '@/lib/crypto/secret'
 import { createClient } from '@/lib/supabase/server'
 import { ApplicationsTracker } from '@/components/jobs/ApplicationsTracker'
 import type { Application, ApplicationTrackerItem, Job } from '@/types'
@@ -82,6 +83,9 @@ export default async function TrackerPage({
       const latest = latestByJob.get(a.job_id)
       return {
         ...a,
+        ats_account_password: a.ats_account_password
+          ? readStoredSecret(a.ats_account_password)
+          : a.ats_account_password,
         job: a.job,
         score: latest?.tailored_score ?? latest?.match_score ?? null,
         tailored: Boolean(latest),

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { encryptSecret } from '@/lib/crypto/secret'
 import { resolveExtensionUserId } from '@/lib/extension/tokens'
 
 export const runtime = 'nodejs'
@@ -63,6 +64,18 @@ export async function PATCH(
     typeof body.password === 'string' && body.password.trim()
       ? body.password.trim().slice(0, 200)
       : null
+  let storedPassword: string | null = null
+  if (password) {
+    try {
+      storedPassword = encryptSecret(password)
+    } catch (err) {
+      console.error('[ats-account] password encryption failed', err)
+      return NextResponse.json(
+        { error: 'Could not store that password securely' },
+        { status: 503, headers },
+      )
+    }
+  }
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: 'Valid email is required' }, { status: 400, headers })
   }
@@ -73,7 +86,7 @@ export async function PATCH(
     .update({
       ats_account_email: email,
       ats_account_note: note || null,
-      ...(password ? { ats_account_password: password } : {}),
+      ...(storedPassword ? { ats_account_password: storedPassword } : {}),
       updated_at: new Date().toISOString(),
     })
     .eq('job_id', jobId)

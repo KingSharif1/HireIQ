@@ -66,6 +66,43 @@ describe('runTailorPipeline', () => {
     expect(generate.mock.calls[1][0].prompt).toContain('CRITICAL RETRY')
   })
 
+  it('retries once when the model returns broken JSON instead of markdown', async () => {
+    const generate = vi
+      .fn()
+      .mockResolvedValueOnce('{"experience":[ { "title": "Eng" {')
+      .mockResolvedValueOnce(tailoredMd)
+
+    const result = await runTailorPipeline({
+      resume: base,
+      job,
+      answers: {},
+      generate,
+    })
+
+    expect(generate).toHaveBeenCalledTimes(2)
+    expect(result.meta.aiCallsUsed).toBe(2)
+    expect(result.tailoredResume.summary).toContain('Tailored')
+    expect(generate.mock.calls[1][0].prompt).toContain('CRITICAL RETRY')
+    expect(generate.mock.calls[1][0].prompt).toContain('No JSON')
+  })
+
+  it('strips literal markdown from bullets before the draft is saved', async () => {
+    const messy = tailoredMd.replace(
+      'Built APIs with Node.js',
+      '**Built APIs** with Node.js and **unclosed',
+    )
+    const generate = vi.fn().mockResolvedValueOnce(messy)
+    const result = await runTailorPipeline({
+      resume: base,
+      job,
+      answers: {},
+      generate,
+    })
+    const bullet = result.tailoredResume.experience[0]?.bullets[0] ?? ''
+    expect(bullet).not.toContain('**')
+    expect(bullet).toContain('Built APIs')
+  })
+
   it('does not call Claude again when the draft is fine', async () => {
     const generate = vi.fn().mockResolvedValueOnce(tailoredMd)
     await runTailorPipeline({

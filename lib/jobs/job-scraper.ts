@@ -106,7 +106,7 @@ async function scrapeWorkday(url: string): Promise<{ text: string; company: stri
 
 /** Pure HTML → company-name extraction for a Greenhouse job board page. */
 export function extractCompanyFromGreenhouseHtml(html: string): string | null {
-  const jsonLd = html.match(/"hiringOrganization"\s*:\s*\{[^}]*"name"\s*:\s*"([^"]+)"/)
+  const jsonLd = html.match(/"hiringOrganization"[\s\S]{0,500}?"name"\s*:\s*"([^"]+)"/)
   if (jsonLd?.[1]?.trim()) return jsonLd[1].trim()
 
   const og =
@@ -133,6 +133,35 @@ async function greenhouseCompanyFromPage(boardToken: string, jobId: string): Pro
   }
 }
 
+const GENERIC_BOARD_NAMES = new Set(['greenhouse', 'jobs', 'job', 'careers', 'boards', 'job board'])
+
+/** True when a Greenhouse name is a real company, not the board slug or a generic label. */
+export function isUsableCompanyName(name: string | null | undefined, boardToken: string): boolean {
+  const trimmed = name?.replace(/\s+/g, ' ').trim() ?? ''
+  if (trimmed.length < 2) return false
+  const lower = trimmed.toLowerCase()
+  if (GENERIC_BOARD_NAMES.has(lower)) return false
+  const compact = lower.replace(/[^a-z0-9]/g, '')
+  const token = boardToken.toLowerCase().replace(/[^a-z0-9]/g, '')
+  if (compact && token && compact === token) return false
+  return true
+}
+
+/** Prefer the boards API company, then the page, then a title-cased token. */
+export function resolveGreenhouseCompany(input: {
+  companyName?: string | null
+  pageName?: string | null
+  boardName?: string | null
+  boardToken: string
+}): string {
+  for (const candidate of [input.companyName, input.pageName, input.boardName]) {
+    if (isUsableCompanyName(candidate, input.boardToken)) {
+      return candidate!.replace(/\s+/g, ' ').trim()
+    }
+  }
+  return humanizeBoardToken(input.boardToken)
+}
+
 /** Last-resort prettifier for a Greenhouse board token like "freeformfuturecorp". */
 export function humanizeBoardToken(token: string): string {
   const spaced = token
@@ -142,25 +171,45 @@ export function humanizeBoardToken(token: string): string {
   return spaced.replace(/\b\w/g, c => c.toUpperCase())
 }
 
+async function greenhouseCompanyFromBoard(boardToken: string): Promise<string | null> {
+  try {
+    const res = await fetch(`https://boards-api.greenhouse.io/v1/boards/${boardToken}`, {
+      headers: { 'User-Agent': 'HireIQ/1.0' },
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as { name?: string }
+    return data.name?.trim() || null
+  } catch {
+    return null
+  }
+}
+
 async function scrapeGreenhouse(url: string): Promise<{ text: string; company: string; title: string }> {
   const parsed = parseGreenhouseUrl(url)
   if (!parsed) throw new Error('Could not parse Greenhouse URL')
 
   const { boardToken, jobId } = parsed
   const apiUrl = `https://boards-api.greenhouse.io/v1/boards/${boardToken}/jobs/${jobId}`
-  const [apiRes, companyFromPage] = await Promise.all([
-    fetch(apiUrl, { headers: { 'User-Agent': 'HireIQ/1.0' } }),
-    greenhouseCompanyFromPage(boardToken, jobId),
-  ])
+  const apiRes = await fetch(apiUrl, { headers: { 'User-Agent': 'HireIQ/1.0' } })
   if (!apiRes.ok) throw new Error('Failed to fetch Greenhouse job')
 
-  const data = await apiRes.json()
+  const data = (await apiRes.json()) as { title?: string; content?: string; company_name?: string }
   const rawHtml = data.content || ''
   const text = stripHtml(rawHtml)
+  const companyName = data.company_name?.trim() || ''
+
+  let pageName: string | null = null
+  let boardName: string | null = null
+  if (!isUsableCompanyName(companyName, boardToken)) {
+    pageName = await greenhouseCompanyFromPage(boardToken, jobId)
+  }
+  if (!isUsableCompanyName(companyName, boardToken) && !isUsableCompanyName(pageName, boardToken)) {
+    boardName = await greenhouseCompanyFromBoard(boardToken)
+  }
 
   return {
-    text: `${data.title}\n\n${text}`,
-    company: companyFromPage ?? humanizeBoardToken(boardToken),
+    text: `${data.title ?? ''}\n\n${text}`,
+    company: resolveGreenhouseCompany({ companyName, pageName, boardName, boardToken }),
     title: data.title || '',
   }
 }

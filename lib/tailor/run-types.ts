@@ -1,16 +1,25 @@
 import type { GapAnalysis, GapQuestion } from '@/types'
 import type { TailorProcessLogEntry } from '@/lib/tailor/process-log'
 
-/** Paid Claude calls for one tailor session. Draft-first: rewrite (+ optional weave). No pre-draft gap call. */
+/**
+ * Paid Claude calls for one tailor session.
+ * Draft-first: one rewrite, plus one retry if the reply is unusable, plus an optional weave.
+ * No pre-draft gap call and no critique loop.
+ */
 export const TAILOR_RUN_CLAUDE = {
   gap: 0,
-  generate: 1,
-  weave: 2,
-  total: 2,
+  /** Rewrite + one parse retry. The success path still uses 1. */
+  generate: 2,
+  weave: 1,
+  total: 3,
 } as const
 
-/** Longer than route `maxDuration` (120s) so we only fail after the worker is gone. */
-export const TAILOR_RUN_STALE_MS = 3 * 60 * 1000
+/**
+ * Longer than the tailor route `maxDuration` (300s) so a live request is not
+ * marked failed before the platform stops it. Silence after that means the
+ * worker is gone.
+ */
+export const TAILOR_RUN_STALE_MS = 330_000
 
 export const TAILOR_RUN_ACTIVE_STATUSES = [
   'analyzing_gaps',

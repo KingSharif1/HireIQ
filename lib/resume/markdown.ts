@@ -7,6 +7,7 @@ import type {
   TailoringNote,
 } from '@/types'
 import { normalizeStructuredResume } from '@/lib/ai/tailor-engine'
+import { cleanDateToken, stripEdgeSeparators } from '@/lib/export/format'
 
 /** Stable HireIQ resume markdown — model wire format, not storage. */
 
@@ -225,17 +226,20 @@ function parseEducationBlock(block: string, index: number): ResumeEducation {
   const head = lines[0] ?? ''
   const id = head.match(ID_RE)?.[1] || `edu_${index + 1}`
   const headClean = head.replace(ID_RE, '').replace(/^###\s*/, '').trim()
-  const bits = headClean.split('·').map(s => s.trim())
+  const bits = headClean.split('·').map(s => stripEdgeSeparators(s))
   const dates = lines.find(l => /\d{4}/.test(l) && !/^gpa:/i.test(l) && !l.startsWith('###'))
-  const [startDate, endDate] = (dates || '').split(/[–-]/).map(s => s.trim())
+  const dateParts = (dates || '')
+    .split(/\s*(?:–|—)\s*|\s+-\s+/)
+    .map(part => cleanDateToken(part))
+    .filter(Boolean)
   const gpa = lines.find(l => /^gpa:/i.test(l))?.replace(/^gpa:\s*/i, '') || ''
   return {
     id,
     degree: bits[0] || '',
     field: bits[1] || '',
     institution: bits[2] || bits[1] || '',
-    startDate: startDate || '',
-    endDate: endDate || '',
+    startDate: dateParts[0] || '',
+    endDate: dateParts[1] || '',
     gpa,
     relevant_courses: [],
     honors: [],

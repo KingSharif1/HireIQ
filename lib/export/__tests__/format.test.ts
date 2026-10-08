@@ -103,6 +103,12 @@ describe('formatDateRange', () => {
     expect(formatDateRange('2025', '')).toBe('2025')
   })
 
+  it('drops a separator-only end date instead of rendering a dangling dash', () => {
+    expect(formatDateRange('2021', '–')).toBe('2021')
+    expect(formatDateRange('2021', '—')).toBe('2021')
+    expect(formatDateRange('May 2021 –', '')).toBe('May 2021')
+  })
+
   it('omits the dangling separator when the start date is empty', () => {
     expect(formatDateRange('', '2025')).toBe('2025')
   })
@@ -126,6 +132,19 @@ describe('stripMarkdownInline', () => {
   it('leaves plain text untouched', () => {
     expect(stripMarkdownInline('Streamlined technical workflows by 20%')).toBe(
       'Streamlined technical workflows by 20%',
+    )
+  })
+
+  it('strips an unclosed ** marker', () => {
+    expect(stripMarkdownInline('**Led the billing migration')).toBe('Led the billing migration')
+  })
+})
+
+describe('education polish', () => {
+  it('does not append a dash-only field or date', () => {
+    expect(formatDegreeField('B.S.', '–')).toBe('B.S.')
+    expect(formatEducationLine({ degree: 'B.S. Computer Science –', field: '' })).toBe(
+      'B.S. Computer Science',
     )
   })
 })

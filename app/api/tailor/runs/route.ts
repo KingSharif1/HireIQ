@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createProcessLog } from '@/lib/tailor/process-log'
-import { failStaleBusyRun, getActiveTailorRun, getLatestTailorRun, insertTailorRun, listActiveTailorRuns, loadTailoredSnapshot } from '@/lib/tailor/runs'
+import { failStaleBusyRun, getActiveTailorRun, getLatestTailorRun, getTailorRun, insertTailorRun, listActiveTailorRuns, loadTailoredSnapshot } from '@/lib/tailor/runs'
 import { kickTailorWorker } from '@/lib/tailor/trigger-client'
 import { isActiveTailorStatus, shouldAttachToRun, shouldKickGapWorker } from '@/lib/tailor/run-types'
 
 export const runtime = 'nodejs'
-export const maxDuration = 120
+/** In-process fallback ceiling. Trigger.dev prod is unbounded by this. */
+export const maxDuration = 300
 
 export async function GET(request: Request) {
   const supabase = await createClient()
@@ -43,7 +44,8 @@ export async function POST(request: Request) {
     const run = await failStaleBusyRun(supabase, existing)
     if (run.status !== 'failed' && shouldAttachToRun(run.status)) {
       if (shouldKickGapWorker(run)) {
-        await kickTailorWorker(run.id, user.id, 'gap')
+        const failed = await kickGapOrFail(supabase, user.id, run)
+        if (failed) return failed
       }
       const tailored = await loadTailoredSnapshot(supabase, run.tailored_resume_id)
       return NextResponse.json({ run, resumed: true, tailored })
@@ -55,9 +57,24 @@ export async function POST(request: Request) {
   const { run, created } = await insertTailorRun(supabase, user.id, jobId, log.entries)
 
   if (shouldKickGapWorker(run)) {
-    await kickTailorWorker(run.id, user.id, 'gap')
+    const failed = await kickGapOrFail(supabase, user.id, run)
+    if (failed) return failed
   }
 
   const tailored = await loadTailoredSnapshot(supabase, run.tailored_resume_id)
   return NextResponse.json({ run, resumed: !created, tailored }, { status: created ? 202 : 200 })
+}
+
+async function kickGapOrFail(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  run: { id: string },
+) {
+  const kicked = await kickTailorWorker(run.id, userId, 'gap')
+  if (kicked.via !== 'failed') return null
+  const failed = await getTailorRun(supabase, userId, run.id)
+  return NextResponse.json(
+    { error: kicked.error, run: failed ?? { ...run, status: 'failed', error: kicked.error } },
+    { status: 502 },
+  )
 }

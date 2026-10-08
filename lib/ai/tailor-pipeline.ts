@@ -105,7 +105,7 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
     console.error('[tailor] rewrite markdown unusable, retrying once', firstErr)
     const retryPrompt = `${generatePrompt}
 
-CRITICAL RETRY: Your previous reply was not valid HireIQ markdown (or was empty). Return ONLY the markdown resume in the exact section order. Keep <!-- id:... --> markers. No JSON. No code fences.`
+CRITICAL RETRY: Your previous reply was not usable (empty, broken markdown, or JSON). Return ONLY the markdown resume in the exact section order. Keep <!-- id:... --> markers. No JSON. No code fences.`
     genText = await callGenerate(
       generate,
       models.strong,

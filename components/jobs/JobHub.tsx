@@ -18,6 +18,7 @@ import {
   ExternalLink, MapPin, Building2, CheckCircle2, Copy, Check, HelpCircle,
 } from 'lucide-react'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
+import { resolveSeniority } from '@/lib/jobs/seniority'
 import { AiModelHint } from '@/components/ai/AiModelHint'
 import {
   APPLICATION_STATUSES, applicationStatusClasses, tailoringStatusLabel,
@@ -293,7 +294,17 @@ export function JobHub({ job, versions }: JobHubProps) {
       <div className="space-y-2 pt-2 border-t border-border">
         <DetailRow icon={Building2} text={job.company || '—'} />
         {job.location && <DetailRow icon={MapPin} text={job.location} />}
-        {job.extracted_data?.seniority && <DetailRow icon={FileText} text={job.extracted_data.seniority} />}
+        {job.extracted_data?.seniority && (
+          <DetailRow
+            icon={FileText}
+            text={resolveSeniority({
+              seniority: job.extracted_data.seniority,
+              title: job.title || job.extracted_data.title,
+              summary: job.extracted_data.summary,
+              description: job.description,
+            }).replace(/_/g, ' ')}
+          />
+        )}
         {job.apply_url && (
           <a
             href={job.apply_url}

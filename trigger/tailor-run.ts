@@ -5,11 +5,11 @@ import { sumUsageForTailorRun } from '@/lib/ai/usage'
 /**
  * Durable tailor worker — the fix for "Tailor with AI" dying in production.
  *
- * The generate phase used to run inside Next.js `after()`, where Vercel caps
- * the function (background work included) at maxDuration=120s. A full Sonnet 5
- * rewrite routinely exceeds that, so the platform killed the run mid-stream
- * with no error recorded. This task runs on Trigger.dev infra instead: no
- * 120s ceiling, automatic retries, and full observability.
+ * Preferred path: this task on Trigger.dev (10 minute ceiling, retries, logs).
+ * The Next.js routes fall back to in-process `after()` only when there is no
+ * production key (or enqueue throws). That fallback is capped at the route
+ * `maxDuration` of 300s. A `tr_dev_` key on Vercel is ignored so the run is
+ * not left Queued waiting for a worker that is not there.
  *
  * Payload is small on purpose — the task re-reads job + profile from Supabase.
  *

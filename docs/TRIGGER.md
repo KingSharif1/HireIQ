@@ -2,12 +2,19 @@
 
 ## Why
 
-"Tailor with AI" runs its generate phase inside Next.js `after()` on Vercel, where
-the function (background work included) is capped at `maxDuration = 120s`. A full
-Sonnet 5 rewrite (~22k input tokens, up to 8k output) routinely exceeds that, so the
-platform kills the run mid-generation — no error is recorded, and the stale-sweeper
-marks it failed minutes later. This is a durable-execution problem, not a prompt
-problem.
+"Tailor with AI" is a 2–4 minute Claude rewrite. The durable home is the
+`tailor-run` task on Trigger.dev. The Next.js routes can also run the same
+phases in-process (`after()`), but only inside the route `maxDuration` of
+**300 seconds** (`POST /api/tailor/runs` and `POST /api/tailor/runs/[id]/continue`).
+
+A development key (`tr_dev_…`) only works when `npm run trigger:dev` is listening.
+On Vercel that worker does not exist. Enqueueing with a dev key leaves the run
+in Queued until the stale check (330s) marks it failed. `tailorDispatchPlan()`
+therefore **ignores `tr_dev_` keys when `VERCEL` or `NODE_ENV=production`** and
+runs in-process instead. A production or staging key (`tr_prod_…`, `tr_stg_…`)
+always enqueues. If `tailorRun.trigger()` throws, the route falls back to
+in-process. If that cannot be scheduled either, `recordTailorKickFailure` writes
+`status: failed` and a user-facing error so the row never stays Queued.
 
 Trigger.dev runs tasks on its own infra with **no timeouts** (runs can last up to
 14 days), automatic retries, and full observability. It is the same stack Sprout
@@ -52,8 +59,9 @@ alert in the Trigger.dev dashboard.
 - `trigger/healthcheck.ts`: smoke-test task for the dev → deploy → dashboard
   pipeline. Kept (cheap, useful for future pipeline verification).
 - `trigger/tailor-run.ts`: the durable tailor worker (see below).
-- `lib/tailor/trigger-client.ts`: `kickTailorWorker()` — Trigger.dev enqueue with
-  `after()` dev fallback.
+- `lib/tailor/trigger-client.ts`: `kickTailorWorker()` — enqueue when the key can
+  reach a worker; otherwise `after()` inside the 300s route budget.
+- `lib/tailor/kick-failure.ts`: marks the run failed when nothing can be scheduled.
 - `npm run trigger:dev` / `npm run trigger:deploy` scripts (fixed 2026-09-28:
   v4 CLI binary is `trigger`, not `trigger.dev`).
 - `.trigger/` added to `.gitignore`; `TRIGGER_SECRET_KEY` added to `.env.example`.
@@ -83,13 +91,12 @@ alert in the Trigger.dev dashboard.
   the task re-reads job + profile from Supabase. `'gap'` runs gap analysis then
   chains into generate (draft-first flow); `'generate'` is the weave/legacy path.
 - **Call sites:** `POST /api/tailor/runs` and `POST /api/tailor/runs/[id]/continue`
-  call `kickTailorWorker()` (`lib/tailor/trigger-client.ts`) instead of `after()`.
-  When `TRIGGER_SECRET_KEY` is set (Vercel Production/Preview/Development) the
-  task is enqueued with an idempotency key
+  call `kickTailorWorker()` (`lib/tailor/trigger-client.ts`).
+  A production/staging key enqueues `tailor-run` with an idempotency key
   (`tailor:{runId}:{phase}:{answersHash}`) so network retries don't duplicate
-  runs. When the key is missing (local dev without `trigger:dev`), it falls back
-  to in-process `after()` with a console warning — fine on localhost, never in
-  production.
+  runs. A missing key, or a `tr_dev_` key on Vercel, falls back to in-process
+  `after()` (300s). Localhost with a dev key still enqueues, which requires
+  `npm run trigger:dev`.
 - **Progress:** the phases patch `process_log` on the tailor run row as they go,
   which the existing `TailorProcessLog` UI already polls — no UI changes. Those
   patches also keep `updated_at` fresh so the stale-sweeper (3 min) doesn't mark
@@ -129,24 +136,40 @@ in the Trigger.dev dashboard (Project → Environment Variables):
 
 Local `trigger:dev` reads `.env.local` for the worker process.
 
+### Production setup (owner)
+
+Do these in order. A dev key on Vercel is not enough — the app will tailor
+in-process (300s) and log a warning until a production key is deployed.
+
+1. Trigger.dev dashboard → API Keys → create a **Production** secret key (`tr_prod_…`).
+2. Vercel → Project `hireiq` → Settings → Environment Variables:
+   set `TRIGGER_SECRET_KEY` to that production key for **Production**
+   (Preview can keep a staging key). Redeploy so the new value is live.
+3. Trigger.dev dashboard → Environment Variables for the **prod** environment
+   (tasks do not see Vercel env):
+   - `ANTHROPIC_API_KEY`
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `AI_KEY_ENCRYPTION_SECRET` if you set one on Vercel (BYOK + portal passwords)
+4. From a machine logged into the CLI: `npm run trigger:deploy`
+   (deploys `trigger/tailor-run.ts` and `trigger/healthcheck.ts` for project
+   `proj_pxpzhbzddvrliudcyiys`).
+5. Dashboard → confirm a `healthcheck` or a real tailor run leaves Queued and
+   finishes. The run row should reach `needs_review`, not `failed` after 330s.
+
+Local: put a Development key (`tr_dev_…`) in `.env.local` and run
+`npm run trigger:dev` in another terminal. Without that process, local kicks
+still enqueue and nothing listens — unset the key to use the in-process path.
+
 ### Setup checklist
 
 1. ✅ Project ref `proj_pxpzhbzddvrliudcyiys` in `trigger.config.ts`.
-2. ✅ Development API key in local `.env.local` and Vercel `hireiq` project
-   (Production, Preview, Development).
+2. ✅ Development API key can live in local `.env.local`.
 3. ✅ `trigger/tailor-run.ts` implemented; routes call it via `kickTailorWorker()`.
-4. ✅ npm scripts fixed: v4 CLI binary is `trigger`, not `trigger.dev`
-   (`trigger:dev` → `trigger dev`, `trigger:deploy` → `trigger deploy`).
-5. ⬜ **Human step:** `trigger login` (one-time, opens browser) on the dev machine,
-   then `npm run trigger:dev`, then fire the `healthcheck` task from the
-   Trigger.dev dashboard and confirm the run. The CLI could not be authenticated
-   non-interactively.
-6. ⬜ Add `ANTHROPIC_API_KEY` + Supabase keys as environment variables in the
-   Trigger.dev dashboard before any deployed task runs.
-7. ⬜ Production cutover: create a Production API key in the dashboard and swap it
-   into Vercel's Production env (current key is a Development key).
-8. ⬜ Re-run the Freeform production tailor test after merge + deploy (blocked on
-   human merge/deploy — Vercel auto-deploys on main).
+4. ✅ npm scripts: `trigger:dev` → `trigger dev`, `trigger:deploy` → `trigger deploy`.
+5. ⬜ **Owner:** production key on Vercel, task env vars in the Trigger.dev
+   dashboard, `npm run trigger:deploy`, then redeploy Vercel.
+6. ⬜ Re-run a production tailor (new-grad Greenhouse URL) after that deploy.
 
 The existing Cloud Run worker pattern (`services/apply-worker/`, docs in
 `CLOUD-RUN-APPLY.md`) remains the fallback if Trigger.dev ever becomes a

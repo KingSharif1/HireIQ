@@ -17,11 +17,10 @@ import { defineConfig } from '@trigger.dev/sdk'
  * Deploy:     npm run trigger:deploy
  */
 export default defineConfig({
-  // TODO: replace with your real project ref from the Trigger.dev dashboard.
+  // HireIQ project (Trigger.dev dashboard). Prod deploys: `npm run trigger:deploy`.
   project: 'proj_pxpzhbzddvrliudcyiys',
 
-  // Task files live in ./trigger — the durable tailor worker will go here
-  // (see docs/TRIGGER.md for the planned tailor-run task).
+  // Durable tasks: trigger/tailor-run.ts (tailor) and trigger/healthcheck.ts.
   dirs: ['trigger'],
 
   runtime: 'node',

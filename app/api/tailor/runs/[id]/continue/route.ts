@@ -7,7 +7,8 @@ import { TAILOR_RUN_CLAUDE } from '@/lib/tailor/run-types'
 import { AI_IN_FLIGHT_MESSAGE } from '@/lib/ai/once'
 
 export const runtime = 'nodejs'
-export const maxDuration = 120
+/** In-process fallback ceiling. Trigger.dev prod is unbounded by this. */
+export const maxDuration = 300
 
 export async function POST(
   request: Request,
@@ -33,7 +34,14 @@ export async function POST(
     if (run.generate_reserved) {
       return NextResponse.json({ run, resumed: true })
     }
-    await kickTailorWorker(run.id, user.id, 'generate', answers)
+    const kicked = await kickTailorWorker(run.id, user.id, 'generate', answers)
+    if (kicked.via === 'failed') {
+      const failed = await getTailorRun(supabase, user.id, run.id)
+      return NextResponse.json(
+        { error: kicked.error, run: failed ?? { ...run, status: 'failed', error: kicked.error } },
+        { status: 502 },
+      )
+    }
     return NextResponse.json(
       { run: { ...run, status: 'generating', answers }, resumed: false },
       { status: 202 },
@@ -69,7 +77,14 @@ export async function POST(
       )
     }
 
-    await kickTailorWorker(run.id, user.id, 'generate', answers)
+    const kicked = await kickTailorWorker(run.id, user.id, 'generate', answers)
+    if (kicked.via === 'failed') {
+      const failed = await getTailorRun(supabase, user.id, run.id)
+      return NextResponse.json(
+        { error: kicked.error, run: failed ?? { ...run, status: 'failed', error: kicked.error } },
+        { status: 502 },
+      )
+    }
     return NextResponse.json(
       { run: { ...run, status: 'generating', answers }, resumed: false },
       { status: 202 },

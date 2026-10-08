@@ -19,6 +19,14 @@ describe('userFacingTailorError', () => {
     expect(err.canRetry).toBe(true)
   })
 
+  it('maps a failed worker start to a retryable message', () => {
+    const err = userFacingTailorError('Could not start the tailor worker: Trigger.dev rejected the enqueue')
+    expect(err.title).toMatch(/Couldn’t start tailoring/i)
+    expect(err.message).toMatch(/didn’t start/i)
+    expect(err.message).not.toMatch(/fetch failed/)
+    expect(err.canRetry).toBe(true)
+  })
+
   it('maps credit errors without mentioning the model vendor', () => {
     const err = userFacingTailorError('Your credit balance is too low to access this model')
     expect(err.title).toMatch(/credits/i)

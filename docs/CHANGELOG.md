@@ -1,5 +1,17 @@
 # HireIQ Changelog
 
+## 2026-10-08 — v1 core reliability
+
+**What:** Tailor runs no longer sit in Queued when Vercel only has a Trigger.dev development key. `kickTailorWorker` enqueues only when the key can reach a worker (`tr_prod_` / `tr_stg_` anywhere, or `tr_dev_` off Vercel with `npm run trigger:dev`). Otherwise the phase runs in-process with route `maxDuration` 300. If enqueue throws, the same in-process fallback runs; if that cannot be scheduled, the run row is marked failed with a user-facing message. A rewrite that comes back empty, broken markdown, or JSON is retried once. New-grad and early-career postings are not labeled Intern. Greenhouse scrapes prefer a real company name over the board slug. Export polish strips literal `**` and drops dash-only education dates. Portal passwords are encrypted with the existing AES-256-GCM helper; old plaintext rows still read. `/dev` returns 404 in production. Unset `CRON_SECRET` makes `/api/cron/gmail-sync` a 200 skip. Migrations 025 (column comment) and 026 (resumes + exports buckets) are in the repo. GitHub Actions runs typecheck, lint, vitest, and build. React Compiler hook lints that would force behavior changes are off so `npm run lint` passes.
+
+**Files:** `lib/tailor/trigger-client.ts`, `lib/tailor/kick-failure.ts`, `lib/tailor/run-types.ts`, `lib/tailor/runs.ts`, `lib/tailor/user-error.ts`, `app/api/tailor/runs/route.ts`, `app/api/tailor/runs/[id]/continue/route.ts`, `lib/ai/parse-json.ts`, `lib/ai/tailor-pipeline.ts`, `lib/ai/prompts.ts`, `lib/jobs/seniority.ts`, `lib/jobs/normalize-job.ts`, `lib/jobs/job-scraper.ts`, `lib/export/format.ts`, `lib/resume/markdown.ts`, `lib/crypto/secret.ts`, `app/api/extension/jobs/[id]/ats-account/route.ts`, tracker pages, `proxy.ts`, `app/dev/layout.tsx`, `app/api/cron/gmail-sync/route.ts`, `docs/supabase/migrations/025_ats_password_ciphertext.sql`, `docs/supabase/migrations/026_storage_buckets.sql`, `trigger.config.ts`, `trigger/tailor-run.ts`, `.github/workflows/ci.yml`, `eslint.config.mjs`, tests under `lib/**/__tests__`, `docs/STATUS.md`, `docs/TRIGGER.md`, `docs/supabase/MIGRATIONS.md`
+
+**Why:** Production tailors were dying silently (dev key, 120s kill, no failure row), and the Freeform new-grad export showed the wrong level, the board slug, literal markdown, and a dangling dash.
+
+**Next:** Owner sets a production Trigger.dev key on Vercel, deploys the task, and applies migrations 025 and 026. Then smoke the checklist in the PR.
+
+---
+
 ## 2026-09-26 — Trigger.dev scaffold (merged into `v1-honesty-fixes` 2026-09-26)
 
 **What:** Wired Trigger.dev v4 (SDK 4.6.4 + CLI 4.6.4, pinned together) as the durable-execution home for the tailor worker: `trigger.config.ts` (dirs `["trigger"]`, node runtime, project `maxDuration: 600`, 3-attempt backoff retries — `project` field still needs the real `proj_…` ref from the dashboard), a `trigger/healthcheck.ts` smoke-test placeholder to verify the pipeline before the real worker lands, `npm run trigger:dev` / `trigger:deploy` scripts, `.trigger/` in `.gitignore`, `TRIGGER_SECRET_KEY` in `.env.example`. New doc `docs/TRIGGER.md` covers why (Vercel `after()` 120s cap kills the generate phase), current pricing/limits (free tier's $5 credit ≈ hundreds of tailor runs/month — no need to pay $10 until real volume; the Anthropic token bill, not Trigger.dev, is the cost to watch), the human setup checklist, and the planned `tailor-run` task shape. Cloud Run worker pattern kept as fallback.

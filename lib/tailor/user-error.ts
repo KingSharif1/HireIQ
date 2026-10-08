@@ -60,10 +60,18 @@ export function userFacingTailorError(raw: string | null | undefined): TailorUse
     }
   }
 
-  if (/did not finish|stale|took too long/i.test(text)) {
+  if (/did not finish|stale|took too long|stopped before it finished/i.test(text)) {
     return {
       title: 'This took too long',
-      message: 'We stopped waiting so you aren’t stuck. Try again when you’re ready.',
+      message: 'This tailor stopped before it finished. Try again — your profile wasn’t changed.',
+      canRetry: true,
+    }
+  }
+
+  if (/could not start|didn.t start|enqueue|trigger\.dev|TRIGGER_SECRET/i.test(text)) {
+    return {
+      title: 'Couldn’t start tailoring',
+      message: 'The tailor worker didn’t start. Try again — your profile wasn’t changed.',
       canRetry: true,
     }
   }
