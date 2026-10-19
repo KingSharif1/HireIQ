@@ -119,6 +119,7 @@ export function profileDataToStructuredResume(data: ProfileData): StructuredResu
   return {
     contact: {
       name: [p.firstName, p.lastName].filter(Boolean).join(' '),
+      ...(p.headline?.trim() ? { title: p.headline.trim() } : {}),
       email: p.email,
       phone: p.phone,
       location: p.location,
@@ -155,7 +156,7 @@ export function structuredResumeToProfileData(resume: StructuredResume): Profile
     personal: {
       firstName: first ?? '',
       lastName: rest.join(' '),
-      headline: '',
+      headline: c.title ?? '',
       email: c.email ?? '',
       phone: c.phone ?? '',
       location: c.location ?? '',

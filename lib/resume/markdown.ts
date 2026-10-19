@@ -36,6 +36,7 @@ export function structuredResumeToMarkdown(resume: StructuredResume): string {
 
   const c = r.contact
   lines.push(`# ${c.name || 'Candidate'}`)
+  if (c.title?.trim()) lines.push(`Title: ${c.title.trim()}`)
   const meta = [c.email, c.phone, c.location, c.linkedin, c.github, c.portfolio || c.website]
     .filter(Boolean)
     .join(' · ')
@@ -259,7 +260,14 @@ function parseNotes(body: string): TailoringNote[] {
 function parseContact(md: string): StructuredResume['contact'] {
   const lines = md.trim().split('\n')
   const name = (lines[0] || '').replace(/^#\s+/, '').trim()
-  const metaLine = lines.slice(1).find(l => l.includes('@') || l.includes('·') || l.includes('|')) || ''
+  // Header lines only: everything before the first "## Section".
+  const firstSection = lines.findIndex((l, i) => i > 0 && /^##\s+/.test(l))
+  const header = lines.slice(1, firstSection === -1 ? undefined : firstSection)
+  const titleLine = header.find(l => /^title:\s*\S/i.test(l.trim()))
+  const title = titleLine ? titleLine.trim().replace(/^title:\s*/i, '').trim() : ''
+  // A title like "Software Engineer | Full-Stack" contains "|" — keep it out of the contact search.
+  const metaLine =
+    header.find(l => l !== titleLine && (l.includes('@') || l.includes('·') || l.includes('|'))) || ''
   const parts = metaLine.split(/[·|]/).map(s => s.trim()).filter(Boolean)
   const email = parts.find(p => p.includes('@')) || ''
   const phone = parts.find(p => /[\d()+.-]{7,}/.test(p) && !p.includes('@')) || ''
@@ -272,6 +280,7 @@ function parseContact(md: string): StructuredResume['contact'] {
     ) || ''
   return {
     name,
+    ...(title ? { title } : {}),
     email,
     phone,
     location,

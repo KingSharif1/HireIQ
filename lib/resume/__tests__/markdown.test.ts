@@ -124,3 +124,40 @@ jane@example.com
     expect(streamingResumeProgress('# A\n\n## Experience\n')).toMatch(/experience/i)
   })
 })
+
+describe('resume title line', () => {
+  it('round-trips contact.title through markdown', () => {
+    const original = sampleStructuredResume({})
+    original.contact.title = 'Full-Stack Software Engineer'
+    const parsed = markdownToStructuredResume(structuredResumeToMarkdown(original))
+    expect(parsed.contact.title).toBe('Full-Stack Software Engineer')
+    expect(parsed.contact.email).toBe(original.contact.email)
+  })
+
+  it('does not mistake a title containing | or · for the contact line', () => {
+    const md = [
+      '# Jane Doe',
+      'Title: Software Engineer | Automation · QA',
+      'jane@example.com · (555) 123-4567 · Austin, TX',
+      '',
+      '## Summary',
+      'Builds things.',
+    ].join('\n')
+    const parsed = markdownToStructuredResume(md)
+    expect(parsed.contact.title).toBe('Software Engineer | Automation · QA')
+    expect(parsed.contact.email).toBe('jane@example.com')
+    expect(parsed.contact.location).toBe('Austin, TX')
+  })
+
+  it('leaves title unset when the line is absent', () => {
+    const md = '# Jane Doe\njane@example.com · Austin, TX\n\n## Summary\nHi.'
+    const parsed = markdownToStructuredResume(md)
+    expect(parsed.contact.title).toBeUndefined()
+    expect(parsed.contact.email).toBe('jane@example.com')
+  })
+
+  it('does not read a "Title:" line from inside a section as the headline', () => {
+    const md = '# Jane Doe\njane@example.com\n\n## Summary\nTitle: not a headline'
+    expect(markdownToStructuredResume(md).contact.title).toBeUndefined()
+  })
+})

@@ -3,6 +3,8 @@ import type { ResumeTheme, ResumeThemeOverride } from '@/lib/export/theme'
 
 export interface ResumeContact {
   name: string
+  /** One-line headline under the name (e.g. "Full-Stack Software Engineer"). Optional. */
+  title?: string
   email: string
   phone: string
   location: string
