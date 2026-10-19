@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  contactHeaderLines,
   dedupeResumeSkills,
   formatDateRange,
   formatDegreeField,
@@ -146,5 +147,26 @@ describe('education polish', () => {
     expect(formatEducationLine({ degree: 'B.S. Computer Science –', field: '' })).toBe(
       'B.S. Computer Science',
     )
+  })
+})
+
+describe('contactHeaderLines', () => {
+  const base = {
+    name: 'Jane', email: 'jane@example.com', phone: '(555) 123-4567', location: 'Austin, TX',
+    linkedin: 'https://www.linkedin.com/in/jane/', github: 'github.com/jane', portfolio: '', website: 'https://jane-dev.com/',
+  }
+
+  it('puts details on line 1 and bare links on line 2', () => {
+    expect(contactHeaderLines(base)).toEqual([
+      'jane@example.com  ·  (555) 123-4567  ·  Austin, TX',
+      'linkedin.com/in/jane  ·  github.com/jane  ·  jane-dev.com',
+    ])
+  })
+
+  it('omits an empty row', () => {
+    expect(contactHeaderLines({ ...base, linkedin: '', github: '', website: '' })).toEqual([
+      'jane@example.com  ·  (555) 123-4567  ·  Austin, TX',
+    ])
+    expect(contactHeaderLines(null)).toEqual([])
   })
 })

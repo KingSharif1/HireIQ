@@ -22,6 +22,7 @@ Rules:
 6. If a section is missing from the source, omit that heading entirely.
 
 # Full Name
+Title: headline under the name, only if the source resume has one (omit the line otherwise)
 email · phone · location · links
 
 ## Summary
@@ -287,11 +288,14 @@ RULES:
     - WEAK: inferred or mentioned once in passing. Leave it off; surface it as a leftover chip at most.
     When the job asks for a tool the master resume lacks but a STRONG repo signal exists, you may add it to that project's technologies with honest framing — that is evidence, not invention. Never promote MEDIUM/WEAK signals to close an ATS gap.
 
+16. TITLE LINE: write one "Title:" line under the name, 2 to 5 words plus an optional second focus, max 60 characters (e.g. "Full-Stack Software Engineer" or "Software Engineer · Automation & QA"). Describe what the candidate honestly is, in the vocabulary of this posting's domain. Never use a job title the candidate has not held at an employer, never add seniority (Senior, Lead, Staff), and never copy the posting's exact title if it overstates them. No em-dashes, no taglines.
+
 TARGET ATS: {atsSystem}
 SENIORITY: {seniority}
 
 OUTPUT FORMAT (exact section order):
 # Full Name
+Title: Full-Stack Software Engineer
 email · phone · location · links
 
 ## Summary

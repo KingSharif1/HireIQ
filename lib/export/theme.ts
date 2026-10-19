@@ -99,7 +99,7 @@ export const DEFAULT_RESUME_THEME: ResumeTheme = {
   bodyFontSize: 10,
   lineHeight: 1.4,
   listLineHeight: 1.4,
-  accentColor: '#333333',
+  accentColor: '#1e3a5f',
   dateFormat: 'MM/YYYY',
   headerAlign: 'center',
   dateAlign: 'right',

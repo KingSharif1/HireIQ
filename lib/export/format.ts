@@ -3,6 +3,23 @@ import { uniqueSkillLabels } from '@/lib/profile/skills'
 
 const SEPARATOR_ONLY = /^[\s\-–—·.|]+$/
 
+const JOIN = '  ·  '
+
+function bareUrl(value: string | null | undefined): string {
+  return (value ?? '').trim().replace(/^https?:\/\/(www\.)?/i, '').replace(/\/+$/, '')
+}
+
+/**
+ * Resume header contact rows: personal details on line 1, links on line 2.
+ * Keeping links on their own line stops a long address from breaking mid-word ("king-/sharif.com").
+ */
+export function contactHeaderLines(contact: Partial<StructuredResume['contact']> | null | undefined): string[] {
+  const c = contact ?? {}
+  const details = [c.email, c.phone, c.location].map(v => (v ?? '').trim()).filter(Boolean)
+  const links = [c.linkedin, c.github, c.portfolio || c.website].map(bareUrl).filter(Boolean)
+  return [details.join(JOIN), links.join(JOIN)].filter(Boolean)
+}
+
 /** Drop a leading or trailing dash, bullet, or pipe left by a sparse model line. */
 export function stripEdgeSeparators(value: string | null | undefined): string {
   return (value ?? '')

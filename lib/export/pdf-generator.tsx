@@ -7,6 +7,7 @@ import { normalizeResumeForDisplay } from '@/lib/format/normalize'
 import {
   formatDateRange,
   formatEducationLine,
+  contactHeaderLines,
   polishStructuredForExport,
   skillCategoryLines,
   stripMarkdownInline,
@@ -38,14 +39,31 @@ function createResumePdfStyles(theme: ResumeTheme) {
     name: {
       fontSize: theme.nameFontSize,
       fontFamily: 'Helvetica-Bold',
-      marginBottom: theme.contentSpacing.subheading,
+      letterSpacing: 0.4,
+      // Page lineHeight is sized for body text; without an explicit one the big name's line box is
+      // too short and it prints on top of the next line.
+      lineHeight: 1.15,
+      marginBottom: 2,
       textAlign: headerTextAlign,
+    },
+    titleLine: {
+      fontSize: theme.bodyFontSize + 1.5,
+      color: theme.accentColor,
+      letterSpacing: 0.3,
+      lineHeight: 1.2,
+      textAlign: headerTextAlign,
+      marginBottom: theme.contentSpacing.subheading + 1,
+    },
+    contactBlock: {
+      paddingBottom: theme.entrySpacing.section / 2,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.accentColor,
+      marginBottom: theme.entrySpacing.section / 2,
     },
     contactLine: {
       fontSize: theme.bodyFontSize - 1,
       color: '#555555',
       textAlign: headerTextAlign,
-      marginBottom: theme.entrySpacing.section,
     },
     sectionTitle: {
       fontSize: theme.bodyFontSize,
@@ -146,14 +164,7 @@ export function ResumePDF({ data: rawData, theme, themeOverride }: ResumePDFProp
   const resolvedTheme = mergeResumeTheme(theme ?? DEFAULT_RESUME_THEME, themeOverride)
   const styles = createResumePdfStyles(resolvedTheme)
   const data = polishStructuredForExport(normalizeResumeForDisplay(rawData))
-  const contactLine = [
-    data.contact.email,
-    data.contact.phone,
-    data.contact.location,
-    data.contact.linkedin,
-    data.contact.github,
-    data.contact.portfolio || data.contact.website,
-  ].filter(Boolean).join('  ·  ')
+  const contactLines = contactHeaderLines(data.contact)
 
   const skillLines = skillCategoryLines(data.skills)
   const flatSkills = skillLines.flatMap(l => l.items)
@@ -239,7 +250,12 @@ export function ResumePDF({ data: rawData, theme, themeOverride }: ResumePDFProp
     <Document>
       <Page size="LETTER" style={styles.page}>
         <Text style={styles.name}>{data.contact.name || ''}</Text>
-        <Text style={styles.contactLine}>{contactLine}</Text>
+        {data.contact.title ? <Text style={styles.titleLine}>{data.contact.title}</Text> : null}
+        <View style={styles.contactBlock}>
+          {contactLines.map((line, i) => (
+            <Text key={i} style={styles.contactLine}>{line}</Text>
+          ))}
+        </View>
 
         {resolvedTheme.sectionOrder.map(key => {
           const render = sectionRenderers[key]

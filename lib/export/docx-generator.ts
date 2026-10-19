@@ -34,8 +34,17 @@ export async function generateDocx(rawData: StructuredResume): Promise<Buffer> {
   children.push(new Paragraph({
     children: [new TextRun({ text: data.contact.name || '', bold: true, size: 36 })],
     alignment: AlignmentType.CENTER,
-    spacing: { after: 80 },
+    spacing: { after: data.contact.title ? 20 : 80 },
   }))
+
+  // Title line
+  if (data.contact.title) {
+    children.push(new Paragraph({
+      children: [new TextRun({ text: data.contact.title, size: 22, color: '1E3A5F' })],
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 80 },
+    }))
+  }
 
   // Contact line
   const contactParts = [

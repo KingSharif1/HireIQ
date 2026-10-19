@@ -104,6 +104,7 @@ export function ChoiceCards<T extends string>({
 }
 
 export const ACCENT_SWATCHES = [
+  '#1e3a5f',
   '#333333',
   '#1a1a1a',
   '#0f766e',

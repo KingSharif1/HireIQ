@@ -7,6 +7,7 @@ import { normalizeResumeForDisplay } from '@/lib/format/normalize'
 import { checkResumeHealth, healthScore, type HealthSeverity } from '@/lib/resume/health'
 import { resumeSkillLabels } from '@/lib/profile/skills'
 import {
+  contactHeaderLines,
   formatDateRange,
   formatEducationLine,
   polishStructuredForExport,
@@ -413,14 +414,7 @@ function ResumeBody({
   theme: ResumeTheme
   highlights: PreviewHighlights | null
 }) {
-  const contactLine = [
-    data.contact?.email,
-    data.contact?.phone,
-    data.contact?.location,
-    data.contact?.linkedin,
-    data.contact?.github,
-    data.contact?.portfolio || data.contact?.website,
-  ].filter(Boolean).join('  ·  ')
+  const contactLines = contactHeaderLines(data.contact)
 
   const skillLines = skillCategoryLines(data.skills)
   const allSkills = skillLines.flatMap(l => l.items).length
@@ -521,21 +515,39 @@ function ResumeBody({
         style={{
           fontSize: theme.nameFontSize,
           fontWeight: 700,
+          letterSpacing: 0.4,
           textAlign: theme.headerAlign,
-          marginBottom: theme.contentSpacing.subheading,
+          marginBottom: 2,
         }}
       >
         {data.contact?.name || ''}
       </div>
+      {data.contact?.title ? (
+        <div
+          style={{
+            fontSize: theme.bodyFontSize + 1.5,
+            color: theme.accentColor,
+            letterSpacing: 0.3,
+            textAlign: theme.headerAlign,
+            marginBottom: theme.contentSpacing.subheading + 1,
+          }}
+        >
+          {data.contact.title}
+        </div>
+      ) : null}
       <div
         style={{
           fontSize: theme.bodyFontSize - 1,
           color: '#555',
           textAlign: theme.headerAlign,
-          marginBottom: theme.entrySpacing.section,
+          paddingBottom: theme.entrySpacing.section / 2,
+          borderBottom: `1px solid ${theme.accentColor}`,
+          marginBottom: theme.entrySpacing.section / 2,
         }}
       >
-        {contactLine}
+        {contactLines.map((line, i) => (
+          <div key={i}>{line}</div>
+        ))}
       </div>
 
       {theme.sectionOrder.map(key => {
