@@ -2,6 +2,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { extractSavableJobUrl } from '@/lib/email/extract-job-urls'
 import { normalizeMaskedRecipient } from '@/lib/email/masked-address'
 import { saveJobFromUrl, UnsavableJobUrlError } from '@/lib/jobs/save-from-url'
+import { parseJobAlertEmail } from '@/lib/scout/job-alert-email'
+import { ingestLeads } from '@/lib/scout/leads'
 import type { NotificationInsert } from '@/lib/notifications'
 
 export async function processForwardedJobEmail(opts: {
@@ -19,6 +21,61 @@ export async function processForwardedJobEmail(opts: {
 }): Promise<{ ok: boolean; reason: string; eventId?: string; jobId?: string }> {
   const admin = createAdminClient()
   const mailbox = normalizeMaskedRecipient(opts.mailbox)
+
+  // Indeed / LinkedIn job-alert digests: several jobs in one email go to the
+  // scout inbox for swiping instead of being saved one by one.
+  const alertLeads = parseJobAlertEmail(opts.html)
+  if (alertLeads.length >= 2) {
+    const ingested = await ingestLeads(
+      opts.userId,
+      alertLeads.map(l => ({
+        url: l.url,
+        title: l.title,
+        company: l.company,
+        location: l.location,
+        source: l.source,
+      })),
+    )
+    const { data: alertEvent, error: alertError } = await admin
+      .from('inbound_email_events')
+      .insert({
+        user_id: opts.userId,
+        application_id: null,
+        job_id: null,
+        masked_email: mailbox,
+        resend_email_id: opts.emailId,
+        provider: 'resend',
+        provider_message_id: opts.emailId,
+        message_id: opts.messageId ?? null,
+        from_address: opts.fromAddress,
+        to_addresses: opts.toAddresses,
+        subject: opts.subject,
+        body_preview: opts.bodyPreview,
+        parsed_status: null,
+        confidence: null,
+        raw_meta: { kind: 'forward_save', reason: 'alert_leads', leads: alertLeads.length, ...ingested },
+        created_at: opts.at,
+      })
+      .select('id')
+      .single()
+    if (alertError) {
+      if (alertError.code === '23505') return { ok: true, reason: 'duplicate' }
+      throw alertError
+    }
+    if (ingested.added > 0) {
+      const notification: NotificationInsert = {
+        user_id: opts.userId,
+        type: 'email_status',
+        title: `${ingested.added} new job${ingested.added === 1 ? '' : 's'} to review`,
+        body: 'From your forwarded job alert. Swipe to keep or skip.',
+        link: '/dashboard/scout',
+        ref_id: alertEvent.id,
+      }
+      await admin.from('notifications').insert(notification)
+    }
+    return { ok: true, reason: 'alert_leads', eventId: alertEvent.id }
+  }
+
   const jobUrl = extractSavableJobUrl(
     `${opts.subject}\n${opts.text}`,
     opts.html,
