@@ -704,7 +704,7 @@ function ExperienceEntry({
   highlights: PreviewHighlights | null
 }) {
   const { showBy, showLocationBy, showDatesBy } = theme.experienceSettings
-  const dateStr = formatDateRange(exp.startDate, exp.endDate)
+  const dateStr = formatDateRange(exp.startDate, exp.endDate, exp.current)
   const locationSuffix = showLocationBy !== 'hidden' && exp.location ? `  ·  ${exp.location}` : ''
 
   const titleFirst = showBy === 'title-first'

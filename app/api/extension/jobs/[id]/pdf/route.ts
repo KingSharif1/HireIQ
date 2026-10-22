@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { renderResumePdfFitted } from '@/lib/export/render-fitted'
 import React from 'react'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveExtensionUserId } from '@/lib/extension/tokens'
@@ -174,9 +175,7 @@ export async function GET(
     })
   }
 
-  const buffer = await renderToBuffer(
-    React.createElement(ResumePDF, { data: exportData }) as any,
-  )
+  const buffer = await renderResumePdfFitted(exportData)
   return new NextResponse(new Uint8Array(buffer as Buffer), {
     headers: {
       ...headers,
