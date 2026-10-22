@@ -45,8 +45,10 @@ export function evaluateDealBreakers(
 
   const isRemote = job.remote === true || /\bremote\b/.test(loc) || /\bremote\b/.test(title)
   if (!isRemote) {
+    // A missing location is unknown, not a reason to rule the job out.
+    const hasLocation = (job.location ?? '').trim().length > 0
     const inArea = prefs.locationTerms.some(t => loc.includes(t.toLowerCase()))
-    if (!inArea) reasons.push(job.location ? `location outside target (${job.location.trim()})` : 'location unknown and not remote')
+    if (hasLocation && !inArea) reasons.push(`location outside target (${(job.location ?? '').trim()})`)
   } else if (!prefs.remoteOk) {
     reasons.push('remote roles not accepted')
   }

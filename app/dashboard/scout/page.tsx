@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ScoutDeck } from '@/components/scout/ScoutDeck'
+import { AddJobs } from '@/components/scout/AddJobs'
 import type { ScoutLead } from '@/components/scout/types'
 
 export const metadata = { title: 'Scout' }
@@ -24,8 +25,11 @@ export default async function ScoutPage() {
       <header className="mb-6">
         <h1 className="text-2xl font-semibold">Scout</h1>
         <p className="mt-1 text-sm text-muted-foreground">Jobs found for you. Keep the ones you want and HireIQ starts tailoring your resume.</p>
+        <div className="mt-4">
+          <AddJobs />
+        </div>
       </header>
-      <ScoutDeck initialLeads={(data ?? []) as ScoutLead[]} />
+      <ScoutDeck key={(data ?? []).map(l => l.id).join(',')} initialLeads={(data ?? []) as ScoutLead[]} />
     </div>
   )
 }
