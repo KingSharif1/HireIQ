@@ -150,3 +150,33 @@ describe('evaluateDealBreakers', () => {
     expect(evaluateDealBreakers({ title: 'Engineer', location: 'Remote', description: 'Active TS/SCI clearance required' }).blocked).toBe(true)
   })
 })
+
+import { parsePastedUrls } from '../paste'
+
+describe('parsePastedUrls', () => {
+  it('pulls links from a list, table and prose, deduped', () => {
+    const text = `Top picks:
+1. https://boards.greenhouse.io/acme/jobs/1
+| Dev | https://jobs.lever.co/globex/abc-123 |
+see (https://boards.greenhouse.io/acme/jobs/1).`
+    expect(parsePastedUrls(text)).toEqual(['https://boards.greenhouse.io/acme/jobs/1', 'https://jobs.lever.co/globex/abc-123'])
+  })
+  it('canonicalizes indeed links and drops private ones', () => {
+    const urls = parsePastedUrls('https://www.indeed.com/rc/clk?jk=AAAAAAAA11111111&x=1 http://10.0.0.1/x http://localhost:3000/a')
+    expect(urls).toEqual(['https://www.indeed.com/viewjob?jk=aaaaaaaa11111111'])
+  })
+  it('caps the count', () => {
+    const many = Array.from({ length: 30 }, (_, i) => `https://jobs.lever.co/x/${i}`).join('\n')
+    expect(parsePastedUrls(many, 10)).toHaveLength(10)
+  })
+  it('returns nothing for text without links', () => {
+    expect(parsePastedUrls('no links here')).toEqual([])
+  })
+})
+
+describe('deal-breakers: unknown location', () => {
+  it('does not rule out a job just because its location is missing', () => {
+    expect(evaluateDealBreakers({ title: 'Software Engineer', location: null }).blocked).toBe(false)
+    expect(evaluateDealBreakers({ title: 'Software Engineer', location: '  ' }).blocked).toBe(false)
+  })
+})

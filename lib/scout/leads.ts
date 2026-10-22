@@ -5,6 +5,8 @@ import { evaluateDealBreakers, DEFAULT_SCOUT_PREFS, type ScoutPrefs } from '@/li
 import { scanPostingSafety } from '@/lib/scout/safety'
 import { classifyLiveness, fetchPage, isSafeFetchTarget } from '@/lib/scout/liveness'
 import { mapApplyPage } from '@/lib/scout/apply-map'
+import { scrapeJobUrl } from '@/lib/jobs/job-scraper'
+import { canonicalAlertUrl } from '@/lib/scout/job-alert-email'
 
 export type LeadInput = {
   url: string
@@ -33,7 +35,10 @@ export async function ingestLeads(
   userId: string,
   leads: LeadInput[],
   prefs: ScoutPrefs = DEFAULT_SCOUT_PREFS,
+  opts: { autoSkip?: boolean } = {},
 ): Promise<IngestResult> {
+  // Links the user pasted themselves are never auto-skipped; deal-breakers show as a heads up instead.
+  const autoSkip = opts.autoSkip !== false
   const admin = createAdminClient()
   const result: IngestResult = { added: 0, duplicates: 0, autoSkipped: 0, rejected: 0 }
 
@@ -69,7 +74,7 @@ export async function ingestLeads(
           fit_score: fit,
           fit_reasons: (lead.fitReasons ?? []).slice(0, 8),
           deal_breakers: dealBreakers.reasons,
-          status: dealBreakers.blocked ? 'skipped' : 'new',
+          status: autoSkip && dealBreakers.blocked ? 'skipped' : 'new',
           safety: descSafety?.findings ?? [],
           safety_blocked: descSafety ? !descSafety.safe : false,
         },
@@ -81,7 +86,7 @@ export async function ingestLeads(
       result.rejected++
     } else if (!data || data.length === 0) {
       result.duplicates++
-    } else if (dealBreakers.blocked) {
+    } else if (autoSkip && dealBreakers.blocked) {
       result.autoSkipped++
     } else {
       result.added++
@@ -215,4 +220,86 @@ export async function decideLead(
     }
     throw err
   }
+}
+
+export type PasteResult = {
+  added: number
+  duplicates: number
+  /** Links we could not turn into a card, with the reason. */
+  failed: Array<{ url: string; reason: string }>
+}
+
+function hostLabel(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return 'job'
+  }
+}
+
+/**
+ * Turn pasted job links into scout cards: read each page for the title,
+ * company and description, add it, then run the live/safety/apply check.
+ * Indeed and LinkedIn links are not fetched; they become cards that point the
+ * user to the employer page.
+ */
+export async function addLeadsFromUrls(userId: string, urls: string[]): Promise<PasteResult> {
+  const admin = createAdminClient()
+  const result: PasteResult = { added: 0, duplicates: 0, failed: [] }
+
+  async function one(url: string) {
+    const alert = canonicalAlertUrl(url)
+    let lead: LeadInput
+    if (alert) {
+      lead = {
+        url: alert.url,
+        title: alert.source === 'indeed' ? 'Indeed job (open it for details)' : 'LinkedIn job (open it for details)',
+        source: alert.source,
+      }
+    } else {
+      const scraped = await scrapeJobUrl(url).catch(() => null)
+      lead = scraped
+        ? {
+            url,
+            title: scraped.title || `Job at ${hostLabel(url)}`,
+            company: scraped.company || null,
+            description: scraped.text,
+            source: 'manual',
+          }
+        : { url, title: `Job at ${hostLabel(url)}`, source: 'manual' }
+    }
+
+    const ingested = await ingestLeads(userId, [lead], DEFAULT_SCOUT_PREFS, { autoSkip: false })
+    if (ingested.rejected > 0) {
+      result.failed.push({ url, reason: 'link not allowed' })
+      return
+    }
+    if (ingested.duplicates > 0) {
+      result.duplicates++
+      return
+    }
+    result.added++
+
+    const { data } = await admin
+      .from('job_leads')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('url_key', normalizeApplyUrl(lead.url))
+      .maybeSingle()
+    if (data?.id) await checkLead(userId, data.id).catch(() => null)
+  }
+
+  const queue = [...urls]
+  await Promise.all(
+    Array.from({ length: Math.min(3, queue.length) }, async () => {
+      for (let url = queue.shift(); url; url = queue.shift()) {
+        try {
+          await one(url)
+        } catch {
+          result.failed.push({ url, reason: 'could not add this link' })
+        }
+      }
+    }),
+  )
+  return result
 }
