@@ -1,0 +1,12 @@
+{
+  "name": "HireIQ",
+  "install": "npm install",
+  "ports": [{ "name": "Next.js dev server", "port": 3000 }],
+  "terminals": [
+    {
+      "name": "dev",
+      "command": "npm run dev",
+      "description": "Next.js 16 dev server on http://localhost:3000. Requires Supabase + Anthropic env vars (added via the Secrets panel) for auth, dashboard, and AI features; marketing/login/signup pages render without them."
+    }
+  ]
+}
