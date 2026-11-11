@@ -40,7 +40,8 @@ This is the audit trail for the "Sprout-class" work. Every row below was verifie
 | Queue → dispatch → claim → Playwright fill/submit → terminal + pause (`needs_user`) | `lib/apply/queue.ts`, `lib/apply/process-run.ts`, `lib/apply/server-apply.ts`, `services/apply-worker/server.ts` |
 | Worker image + env contract | `services/apply-worker/Dockerfile`, `README.md`, `docs/CLOUD-RUN-APPLY.md` |
 | Credit gate + atomic debit on queue | `lib/apply/queue.ts` |
-| **OPS** | Deploy worker to Oracle Cloud; set `APPLY_WORKER_URL` + `APPLY_WORKER_SECRET` |
+| **Daily-run API** — `POST /api/agent/daily-run` (session or `api_tokens` bearer; `{dryRun, limit}`; idempotent per day; non-compete block list; credit budget) | `app/api/agent/daily-run/route.ts`, `lib/apply/daily-run.ts` (pure planner, 16 tests) |
+| **OPS** | Worker is **deployed** (`163.192.106.154:8080`); set `APPLY_WORKER_URL`/`APPLY_WORKER_SECRET` in Vercel and the worker's `SUPABASE_SERVICE_ROLE_KEY` |
 
 ## 4. Email timeline (`CODE COMPLETE`, needs env / OAuth)
 
