@@ -56,7 +56,7 @@ function isBetterScrapedDescription(scraped: string, current: string): boolean {
   return true
 }
 
-function buildExtractedData(opts: {
+export function buildExtractedData(opts: {
   title: string
   company: string
   description: string

@@ -54,9 +54,18 @@ This is the audit trail for the "Sprout-class" work. Every row below was verifie
 | Tests | `lib/email/__tests__/{application-alias,inbound-match-alias}.test.ts` |
 | **OPS** | Set `MASKED_EMAIL_DOMAIN`; verify the Resend inbound webhook. Gmail `+alias` variant still needs `gmail.readonly` |
 
-## 5. LinkedIn referrals (`COMPLETE`, needs migration)
+## 4b. Job hub — ingestion & discovery (`COMPLETE`)
 
 | Capability | Where |
+| --- | --- |
+| Single posting by URL (fetch → extract → normalize → save) | `lib/jobs/` (`save-from-url.ts`, `extract-pipeline.ts`, `job-scraper.ts`, `normalize-job.ts`), `app/api/jobs/fetch-url/route.ts` |
+| **Employer board discovery** — pull live postings straight from public ATS APIs (Greenhouse / Lever / Ashby), no scraping | `lib/jobs/board-discovery.ts` (pure parsers + `fetchBoardPostings`), **14 tests** |
+| **Discovery endpoint** — `POST /api/jobs/discover` `{ boards, dryRun?, limitPerBoard? }`; session or api-token auth; dedupes by `apply_url` | `app/api/jobs/discover/route.ts` |
+| Scout leads | `lib/scout/leads.ts`, `app/api/scout/leads/*` |
+
+**Verified live against real boards:** Greenhouse `stripe` 779 / `canonical` 316 / `figma` 142 / `discord` 26 postings; Lever `leverdemo` 10; Ashby `ramp` 176.
+
+## 5. LinkedIn referrals (`COMPLETE`, needs migration)| Capability | Where |
 | --- | --- |
 | CSV ingestion (RFC 4180 parser + LinkedIn header mapping + dedupe) | `lib/referrals/csv.ts` |
 | Stage machine (`drafting → intro_asked → referred/replied/declined/no_response`) | `lib/referrals/stages.ts` |
