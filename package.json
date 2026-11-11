@@ -17,6 +17,7 @@
     "extension:build": "npm run build --prefix extension",
     "extension:dev": "npm run dev --prefix extension",
     "apply:worker": "npx tsx --tsconfig tsconfig.json services/apply-worker/server.ts",
+    "verify:deploy": "npx tsx --tsconfig tsconfig.json scripts/verify-deployment.ts",
     "trigger:dev": "trigger dev",
     "trigger:deploy": "trigger deploy"
   },

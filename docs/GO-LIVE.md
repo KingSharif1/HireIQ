@@ -11,7 +11,7 @@ independent.
 | Migrations 028/029 | ❌ **not applied** (need HireIQ Supabase access — see step 1) |
 | Auto-apply worker | ✅ **deployed** — OCI `HireIQ` x86, `163.192.106.154:8080`, health verified from outside |
 | Worker service-role key | ❌ **not set** in the container (so `/run` can't process yet) |
-| Vercel env | ❌ not set (step 2) |
+| Vercel env | ⚠️ partial — `CRON_SECRET` set (cron returns 401); `CREDITS_ENABLED` / `APPLY_WORKER_URL` / `APPLY_WORKER_SECRET` / `MASKED_EMAIL_DOMAIN` unverified |
 | Gmail OAuth | ❌ not done (only needed for the Gmail `+alias` path) |
 | Job-hub Slice 1 | ❌ uncommitted on the box |
 
@@ -58,6 +58,26 @@ the Gmail `+alias` variant; the masked `hireiq.<uuid>` path works without it onc
 
 `lib/job-hub/ark-import.ts` (the ARK importer) is uncommitted on the box (`/workspace/repos/HireIQ`). Either push it and
 `git pull` here, or re-implement it on this checkout.
+
+## 6b. Automated verification (run this any time)
+
+```bash
+npm run verify:deploy
+# or point it at a specific worker:
+WORKER_BASE=http://163.192.106.154:8080 npm run verify:deploy
+```
+
+It checks, from outside, and exits non-zero on any failure:
+
+| Check | Meaning |
+| --- | --- |
+| `app:reachable` | deployed site responds |
+| `project:anon-key` | pulls the anon key from the live bundle and derives the Supabase project ref |
+| `table:*` | base tables (`profiles`/`jobs`/`applications`) must exist; the five migration tables must too — `PGRST205` = migration not applied to *this* project |
+| `cron:credit-mint` | `401` = `CRON_SECRET` configured; `{"skipped":true}` = not configured |
+| `worker:health` / `worker:auth` | worker answers `/health` and rejects a bad bearer |
+
+Implementation: `lib/deploy/verify.ts` (pure, unit-tested) + `scripts/verify-deployment.ts`.
 
 ## 7. Verify end-to-end (smoke)
 
