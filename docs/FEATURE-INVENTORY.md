@@ -97,6 +97,8 @@ Apply against project **`wsbbgznobxhjefaqbniv`** (HIRE/Nami Supabase account). T
 | Follow-up cadence engine — applied-but-silent applications become due at `applied_at + 5 days` (unless `follow_up_at` is set), replies cancel it, closed stages are skipped | `lib/applications/follow-ups.ts` (pure, **14 tests**) |
 | Due/upcoming feed + suggested nudge text | `GET /api/agent/follow-ups` (session or api token) |
 | Snooze / mark-sent | `POST /api/agent/follow-ups` `{ applicationId, action: 'snooze'｜'done', days? }` |
+| **UI**: "follow-ups due" panel on `/dashboard/tracker` — overdue list, draft preview, snooze/sent buttons | `components/tracker/FollowUpsPanel.tsx`, wired in `app/dashboard/tracker/page.tsx` |
+| **UI**: "Import from company boards" card on `/dashboard/jobs` — preview then import, shows per-board counts | `components/jobs/BoardDiscoveryCard.tsx`, wired in `app/dashboard/jobs/page.tsx` |
 
 ## 9. Not built (honest)
 

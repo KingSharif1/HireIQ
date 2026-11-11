@@ -15,6 +15,7 @@ import Link from 'next/link'
 import { isLinkedInJobUrl, LINKEDIN_PASTE_MESSAGE } from '@/lib/jobs/url-detect'
 import type { JobExtractedData } from '@/types'
 import { ApplyEaseBadge } from '@/components/jobs/ApplyEaseBadge'
+import { BoardDiscoveryCard } from '@/components/jobs/BoardDiscoveryCard'
 import { AiModelHint } from '@/components/ai/AiModelHint'
 import { AiFlowLoader } from '@/components/ai/AiFlowLoader'
 import { readNdjsonResponse } from '@/lib/ai/ndjson-stream'
@@ -323,6 +324,8 @@ export default function JobsPage() {
           <div className="mt-1"><AiModelHint uses="strong" /></div>
         </div>
       </div>
+
+      <BoardDiscoveryCard onImported={() => router.refresh()} />
 
       <Tabs value={activeTab} onValueChange={v => setActiveTab(v as 'url' | 'paste')}>
         <TabsList className="w-full mb-4">

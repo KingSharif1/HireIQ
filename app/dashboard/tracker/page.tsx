@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation'
 import { readStoredSecret } from '@/lib/crypto/secret'
 import { createClient } from '@/lib/supabase/server'
 import { ApplicationsTracker } from '@/components/jobs/ApplicationsTracker'
+import { FollowUpsPanel } from '@/components/tracker/FollowUpsPanel'
+import { computeFollowUps, followUpDraft } from '@/lib/applications/follow-ups'
 import type { Application, ApplicationTrackerItem, Job } from '@/types'
 
 type AppRow = Application & {
@@ -33,7 +35,7 @@ export default async function TrackerPage({
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [appsRes, tailoredRes, inboundRes, runsRes] = await Promise.all([
+  const [appsRes, tailoredRes, inboundRes, runsRes, matchedInboundRes] = await Promise.all([
     supabase
       .from('applications')
       .select(`
@@ -62,6 +64,11 @@ export default async function TrackerPage({
       .eq('user_id', user.id)
       .in('status', ['analyzing_gaps', 'awaiting_answers', 'generating', 'needs_review'])
       .order('updated_at', { ascending: false }),
+    supabase
+      .from('inbound_email_events')
+      .select('application_id')
+      .eq('user_id', user.id)
+      .not('application_id', 'is', null),
   ])
 
   const apps = (appsRes.data ?? []) as AppRow[]
@@ -94,11 +101,40 @@ export default async function TrackerPage({
       }
     })
 
+  const repliedIds = new Set(
+    ((matchedInboundRes.data ?? []) as Array<{ application_id: string | null }>)
+      .map((row) => row.application_id)
+      .filter((id): id is string => Boolean(id)),
+  )
+
+  const followUpPlan = computeFollowUps(
+    items.map((item) => ({
+      applicationId: item.id,
+      company: item.job.company ?? '',
+      title: item.job.title ?? '',
+      status: item.status,
+      appliedAt: item.applied_at,
+      followUpAt: item.follow_up_at,
+      hasReply: repliedIds.has(item.id),
+    })),
+  )
+  const dueFollowUps = followUpPlan.due.map((entry) => ({
+    applicationId: entry.candidate.applicationId,
+    company: entry.candidate.company,
+    title: entry.candidate.title,
+    dueAt: entry.dueAt,
+    daysUntilDue: entry.daysUntilDue,
+    draft: followUpDraft(entry),
+  }))
+
   return (
-    <ApplicationsTracker
-      initialItems={items}
-      initialSurface={view === 'outreach' ? 'outreach' : 'applications'}
-      unmatchedInbound={inboundRes.data ?? []}
-    />
+    <>
+      <FollowUpsPanel initialDue={dueFollowUps} />
+      <ApplicationsTracker
+        initialItems={items}
+        initialSurface={view === 'outreach' ? 'outreach' : 'applications'}
+        unmatchedInbound={inboundRes.data ?? []}
+      />
+    </>
   )
 }
