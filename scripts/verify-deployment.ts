@@ -19,6 +19,7 @@ import {
   classifyWorkerHealth,
   classifyWorkerAuth,
   classifyWorkerRun,
+  classifyRouteProbe,
   summarise,
   type DeployCheck,
 } from '@/lib/deploy/verify'
@@ -101,7 +102,32 @@ async function main() {
     checks.push({ name: 'cron:credit-mint', ok: false, detail: err instanceof Error ? err.message : 'unreachable' })
   }
 
-  // 5. Worker health + auth (optional)
+  // 5. Agent route surface — every route must exist and refuse anonymous callers
+  const routeProbes: Array<{ route: string; method: 'GET' | 'POST' }> = [
+    { route: '/api/agent/daily-run', method: 'POST' },
+    { route: '/api/agent/follow-ups', method: 'GET' },
+    { route: '/api/jobs/discover', method: 'POST' },
+    { route: '/api/referrals/outreach', method: 'GET' },
+    { route: '/api/apply/runs/00000000-0000-0000-0000-000000000000/resume', method: 'GET' },
+  ]
+  for (const probe of routeProbes) {
+    try {
+      const res = await fetch(`${APP}${probe.route}`, {
+        method: probe.method,
+        headers: probe.method === 'POST' ? { 'Content-Type': 'application/json' } : undefined,
+        body: probe.method === 'POST' ? '{}' : undefined,
+      })
+      checks.push(classifyRouteProbe(probe.route, res.status, await res.text()))
+    } catch (err) {
+      checks.push({
+        name: `route:${probe.route}`,
+        ok: false,
+        detail: err instanceof Error ? err.message : 'unreachable',
+      })
+    }
+  }
+
+  // 6. Worker health + auth (optional)
   if (WORKER) {
     try {
       const h = await fetch(`${WORKER}/health`)

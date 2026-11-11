@@ -97,7 +97,21 @@ export function classifyWorkerRun(httpStatus: number, body: string): DeployCheck
   return { name, ok: false, detail: `HTTP ${httpStatus}: ${trimmed}` }
 }
 
-export function summarise(checks: DeployCheck[]): { ok: boolean; failing: string[] } {
-  const failing = checks.filter((c) => !c.ok).map((c) => c.name)
+/**
+ * Every agent-facing route must exist AND refuse anonymous callers.
+ * 401 = deployed and auth-gated (good); 404 = not deployed; 200 = open (bad).
+ */
+export function classifyRouteProbe(route: string, httpStatus: number, body = ''): DeployCheck {
+  const name = `route:${route}`
+  const trimmed = body.trim().slice(0, 100)
+  if (httpStatus === 401) return { name, ok: true, detail: 'deployed, auth-gated (401)' }
+  if (httpStatus === 404) return { name, ok: false, detail: 'not deployed (404)' }
+  if (httpStatus === 405) return { name, ok: false, detail: 'wrong method for probe (405)' }
+  if (httpStatus >= 500) return { name, ok: false, detail: `HTTP ${httpStatus}: ${trimmed}` }
+  if (httpStatus === 200) return { name, ok: false, detail: 'responded 200 without auth — check the guard' }
+  return { name, ok: false, detail: `HTTP ${httpStatus}: ${trimmed}` }
+}
+
+export function summarise(checks: DeployCheck[]): { ok: boolean; failing: string[] } {  const failing = checks.filter((c) => !c.ok).map((c) => c.name)
   return { ok: failing.length === 0, failing }
 }

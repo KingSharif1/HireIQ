@@ -5,6 +5,7 @@ import {
   classifyWorkerHealth,
   classifyWorkerAuth,
   classifyWorkerRun,
+  classifyRouteProbe,
   isUuid,
   summarise,
   REQUIRED_TABLES,
@@ -93,8 +94,31 @@ describe('worker probes', () => {
   })
 })
 
-describe('summarise', () => {
-  it('reports nothing failing when all pass', () => {
+describe('classifyRouteProbe', () => {
+  it('passes an auth-gated route', () => {
+    const check = classifyRouteProbe('/api/agent/daily-run', 401, '{"error":"Unauthorized"}')
+    expect(check.ok).toBe(true)
+    expect(check.detail).toContain('auth-gated')
+  })
+
+  it('fails a missing route', () => {
+    const check = classifyRouteProbe('/api/agent/daily-run', 404, '')
+    expect(check.ok).toBe(false)
+    expect(check.detail).toContain('not deployed')
+  })
+
+  it('fails a route that answers without auth', () => {
+    const check = classifyRouteProbe('/api/agent/daily-run', 200, '{}')
+    expect(check.ok).toBe(false)
+    expect(check.detail).toContain('without auth')
+  })
+
+  it('fails a 5xx', () => {
+    expect(classifyRouteProbe('/api/agent/daily-run', 500, 'boom').ok).toBe(false)
+  })
+})
+
+describe('summarise', () => {  it('reports nothing failing when all pass', () => {
     expect(summarise([{ name: 'a', ok: true, detail: '' }])).toEqual({ ok: true, failing: [] })
   })
 
