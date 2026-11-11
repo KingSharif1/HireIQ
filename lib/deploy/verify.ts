@@ -75,6 +75,28 @@ export function classifyWorkerAuth(httpStatus: number): DeployCheck {
   return { name, ok: false, detail: `expected 401 for a bad bearer, got HTTP ${httpStatus}` }
 }
 
+/**
+ * POST /run with a bogus-but-valid run id and the real shared secret.
+ * This is the only way to detect, remotely, whether the worker actually has its
+ * Supabase env: with the key it reaches the DB and reports "run not found";
+ * without it, processApplyRun throws before touching Supabase.
+ */
+export function classifyWorkerRun(httpStatus: number, body: string): DeployCheck {
+  const name = 'worker:run-config'
+  const trimmed = body.trim().slice(0, 200)
+  if (httpStatus === 401) {
+    return { name, ok: false, detail: 'worker rejected the shared secret — APPLY_WORKER_SECRET mismatch' }
+  }
+  if (httpStatus === 200) return { name, ok: true, detail: 'run accepted' }
+  if (/SUPABASE_SERVICE_ROLE_KEY/i.test(trimmed)) {
+    return { name, ok: false, detail: 'worker is missing SUPABASE_SERVICE_ROLE_KEY — cannot process runs' }
+  }
+  if (httpStatus === 404 || /not found|no such run|unknown run/i.test(trimmed)) {
+    return { name, ok: true, detail: 'worker reached the database (bogus run rejected as expected)' }
+  }
+  return { name, ok: false, detail: `HTTP ${httpStatus}: ${trimmed}` }
+}
+
 export function summarise(checks: DeployCheck[]): { ok: boolean; failing: string[] } {
   const failing = checks.filter((c) => !c.ok).map((c) => c.name)
   return { ok: failing.length === 0, failing }

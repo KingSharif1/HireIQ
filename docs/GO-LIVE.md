@@ -76,6 +76,7 @@ It checks, from outside, and exits non-zero on any failure:
 | `table:*` | base tables (`profiles`/`jobs`/`applications`) must exist; the five migration tables must too — `PGRST205` = migration not applied to *this* project |
 | `cron:credit-mint` | `401` = `CRON_SECRET` configured; `{"skipped":true}` = not configured |
 | `worker:health` / `worker:auth` | worker answers `/health` and rejects a bad bearer |
+| `worker:run-config` | set `APPLY_WORKER_SECRET` too — a bogus run id then reveals whether the worker has `SUPABASE_SERVICE_ROLE_KEY` (it returns "run not found" when configured, "SUPABASE_SERVICE_ROLE_KEY required" when not) |
 
 Implementation: `lib/deploy/verify.ts` (pure, unit-tested) + `scripts/verify-deployment.ts`.
 

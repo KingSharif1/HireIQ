@@ -18,6 +18,7 @@ import {
   classifyCronResponse,
   classifyWorkerHealth,
   classifyWorkerAuth,
+  classifyWorkerRun,
   summarise,
   type DeployCheck,
 } from '@/lib/deploy/verify'
@@ -111,6 +112,17 @@ async function main() {
         body: '{}',
       })
       checks.push(classifyWorkerAuth(bad.status))
+      // Optional: with the real secret, a bogus run id reveals whether the worker
+      // has its Supabase env (the one thing you cannot see from /health).
+      const secret = process.env.APPLY_WORKER_SECRET
+      if (secret) {
+        const run = await fetch(`${WORKER}/run`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
+          body: JSON.stringify({ runId: '00000000-0000-0000-0000-000000000000' }),
+        })
+        checks.push(classifyWorkerRun(run.status, await run.text()))
+      }
     } catch (err) {
       checks.push({ name: 'worker:health', ok: false, detail: err instanceof Error ? err.message : 'unreachable' })
     }

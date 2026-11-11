@@ -4,6 +4,7 @@ import {
   classifyCronResponse,
   classifyWorkerHealth,
   classifyWorkerAuth,
+  classifyWorkerRun,
   isUuid,
   summarise,
   REQUIRED_TABLES,
@@ -71,6 +72,24 @@ describe('worker probes', () => {
     expect(isUuid('00000000-0000-0000-0000-000000000000')).toBe(true)
     expect(isUuid('test')).toBe(false)
     expect(isUuid(undefined)).toBe(false)
+  })
+
+  it('detects a missing SUPABASE_SERVICE_ROLE_KEY on the worker', () => {
+    const r = classifyWorkerRun(500, '{"error":"SUPABASE_SERVICE_ROLE_KEY (and URL) required for extension API"}')
+    expect(r.ok).toBe(false)
+    expect(r.detail).toContain('SUPABASE_SERVICE_ROLE_KEY')
+  })
+
+  it('passes when the worker reaches the database', () => {
+    expect(classifyWorkerRun(404, '{"error":"run not found"}').ok).toBe(true)
+  })
+
+  it('fails when the worker rejects the shared secret', () => {
+    expect(classifyWorkerRun(401, '{"error":"Unauthorized"}').ok).toBe(false)
+  })
+
+  it('passes an accepted run', () => {
+    expect(classifyWorkerRun(200, '{"ok":true}').ok).toBe(true)
   })
 })
 
