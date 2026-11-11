@@ -65,7 +65,9 @@ This is the audit trail for the "Sprout-class" work. Every row below was verifie
 
 **Verified live against real boards:** Greenhouse `stripe` 779 / `canonical` 316 / `figma` 142 / `discord` 26 postings; Lever `leverdemo` 10; Ashby `ramp` 176.
 
-## 5. LinkedIn referrals (`COMPLETE`, needs migration)| Capability | Where |
+## 5. LinkedIn referrals (`COMPLETE`, needs migration)
+
+| Capability | Where |
 | --- | --- |
 | CSV ingestion (RFC 4180 parser + LinkedIn header mapping + dedupe) | `lib/referrals/csv.ts` |
 | Stage machine (`drafting → intro_asked → referred/replied/declined/no_response`) | `lib/referrals/stages.ts` |
@@ -87,16 +89,24 @@ Apply against project **`wsbbgznobxhjefaqbniv`** (HIRE/Nami Supabase account). T
 
 `CREDITS_ENABLED=1` · `CRON_SECRET` · `MASKED_EMAIL_DOMAIN` · `APPLY_WORKER_URL` · `APPLY_WORKER_SECRET` (plus existing Supabase/Anthropic/Resend).
 
-## 8. Not built (honest)
+## 8. Follow-ups (`COMPLETE`)
+
+| Capability | Where |
+| --- | --- |
+| Follow-up cadence engine — applied-but-silent applications become due at `applied_at + 5 days` (unless `follow_up_at` is set), replies cancel it, closed stages are skipped | `lib/applications/follow-ups.ts` (pure, **14 tests**) |
+| Due/upcoming feed + suggested nudge text | `GET /api/agent/follow-ups` (session or api token) |
+| Snooze / mark-sent | `POST /api/agent/follow-ups` `{ applicationId, action: 'snooze'｜'done', days? }` |
+
+## 9. Not built (honest)
 
 - **Job-hub Slice 1** (`lib/job-hub/ark-import.ts`, the ARK importer) — exists only as uncommitted work on the box; not on `main`.
 - **Trigger.dev durable tailor worker** — not required for any of the above; only affects long tailors hitting Vercel's 120 s cap.
 - **Vercel env changes** — no Vercel MCP/token available to me.
 
-## 9. Verification commands
+## 10. Verification commands
 
 ```bash
 npx tsc --noEmit
-npx vitest run        # 556 passed / 11 skipped
+npx vitest run        # 620 passed / 11 skipped
 npm run lint          # 0 errors
 ```
