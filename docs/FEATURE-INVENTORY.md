@@ -42,6 +42,7 @@ This is the audit trail for the "Sprout-class" work. Every row below was verifie
 | Credit gate + atomic debit on queue | `lib/apply/queue.ts` |
 | **Daily-run API** — `POST /api/agent/daily-run` (session or `api_tokens` bearer; `{dryRun, limit}`; idempotent per day; non-compete block list; credit budget) | `app/api/agent/daily-run/route.ts`, `lib/apply/daily-run.ts` (pure planner, 16 tests) |
 | **OPS** | Worker is **deployed** (`163.192.106.154:8080`); set `APPLY_WORKER_URL`/`APPLY_WORKER_SECRET` in Vercel and the worker's `SUPABASE_SERVICE_ROLE_KEY` |
+| **Human-in-the-loop resume** — paused (`needs_user`) runs answer "what do I do?" and can be retried/cancelled | `lib/apply/resume.ts` (pure, 10 tests), `app/api/apply/runs/[runId]/resume/route.ts` |
 
 ## 4. Email timeline (`CODE COMPLETE`, needs env / OAuth)
 
@@ -107,6 +108,6 @@ Apply against project **`wsbbgznobxhjefaqbniv`** (HIRE/Nami Supabase account). T
 
 ```bash
 npx tsc --noEmit
-npx vitest run        # 620 passed / 11 skipped
+npx vitest run        # 630 passed / 11 skipped
 npm run lint          # 0 errors
 ```
