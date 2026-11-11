@@ -3,6 +3,20 @@
 Everything in this list is ops/deploy — the code is built and green (556 tests). Work top-to-bottom; most items are
 independent.
 
+## Status (2026-11-11)
+
+| Item | State |
+| --- | --- |
+| Code (`main`) | ✅ `ddeeee9` pushed · 556 tests · tsc/eslint clean |
+| Migrations 028/029 | ❌ **not applied** (need HireIQ Supabase access — see step 1) |
+| Auto-apply worker | ✅ **deployed** — OCI `HireIQ` x86, `163.192.106.154:8080`, health verified from outside |
+| Worker service-role key | ❌ **not set** in the container (so `/run` can't process yet) |
+| Vercel env | ❌ not set (step 2) |
+| Gmail OAuth | ❌ not done (only needed for the Gmail `+alias` path) |
+| Job-hub Slice 1 | ❌ uncommitted on the box |
+
+Deployment details and the worker secret: `ARK/projects/hireiq/build-logs/2026-11-11-oracle-apply-worker-deploy.md`.
+
 ## 1. Apply migrations (Supabase)
 
 ```bash
