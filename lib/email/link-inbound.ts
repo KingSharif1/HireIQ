@@ -2,9 +2,10 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import type { ApplicationEmailLogEntry } from '@/types'
 import {
   inferStatusFromEmail,
-  matchInboundToJob,
+  resolveInboundApplication,
   type JobMatchCandidate,
 } from '@/lib/email/inbound-match'
+import { isApplicationAlias } from '@/lib/email/application-alias'
 import type { NotificationInsert } from '@/lib/notifications'
 
 export type InboundProvider = 'resend' | 'gmail'
@@ -116,7 +117,10 @@ export async function linkInboundEmailForUser(opts: {
 
   const hint = inferStatusFromEmail(email.subject, email.bodyPreview)
   const candidates = await loadOpenApplications(userId)
-  const matched = matchInboundToJob(candidates, {
+  // Exact per-application alias match first, then fuzzy company matching.
+  const aliasRecipient = email.toAddresses.find((a) => isApplicationAlias(a))
+  const matched = resolveInboundApplication(candidates, {
+    recipient: aliasRecipient ?? email.toAddresses[0],
     from: email.fromAddress,
     subject: email.subject,
     bodyPreview: email.bodyPreview,
@@ -164,6 +168,7 @@ export async function linkInboundEmailForUser(opts: {
       confidence: hint?.confidence ?? null,
       raw_meta: {
         matchScore: matched?.score ?? null,
+        matchVia: matched?.via ?? null,
         hintReason: hint?.reason ?? null,
         ...(email.rawMeta ?? {}),
       },

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { getChangeId, setAllDecisions } from '@/lib/tailor/change-decisions'
+import { ruleForDecision, type DraftedRule } from '@/lib/tailor/rule-from-diff'
 import { scoreImpactForChange } from '@/lib/scoring/tailored-rescore'
 import type {
   ChangeDecision,
@@ -12,7 +13,7 @@ import type {
   ResumeDiffChange,
   StructuredResume,
 } from '@/types'
-import { Check, X, Pencil, RotateCcw, ChevronDown } from 'lucide-react'
+import { Check, X, Pencil, RotateCcw, ChevronDown, Bookmark } from 'lucide-react'
 
 interface TailorDiffProps {
   original: StructuredResume
@@ -28,6 +29,8 @@ interface TailorDiffProps {
   jobExtracted?: JobExtractedData | null
   /** Live whole-resume score total (updates as decisions change). */
   liveScoreTotal?: number | null
+  /** When set, declined rows offer "Save as rule" to persist the decision to the blueprint. */
+  onSaveRule?: (rule: DraftedRule) => void
 }
 
 function changeLabel(change: ResumeDiffChange, original: StructuredResume): string {
@@ -132,6 +135,7 @@ export function TailorDiff({
   onHighlightChange,
   jobExtracted = null,
   liveScoreTotal = null,
+  onSaveRule,
 }: TailorDiffProps) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState('')
@@ -339,6 +343,24 @@ export function TailorDiff({
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span className="text-xs">Undo</span>
                   </Button>
+                  {status === 'declined' && onSaveRule
+                    ? (() => {
+                        const rule = ruleForDecision(change, decision)
+                        return rule ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 gap-1 px-2"
+                            aria-label="Save as rule"
+                            onClick={() => onSaveRule(rule)}
+                          >
+                            <Bookmark className="w-3.5 h-3.5" />
+                            <span className="text-xs">Save as rule</span>
+                          </Button>
+                        ) : null
+                      })()
+                    : null}
                   {(status === 'accepted' || status === 'edited') && (
                     <>
                       <Button

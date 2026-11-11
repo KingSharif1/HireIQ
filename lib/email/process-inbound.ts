@@ -4,6 +4,7 @@ import {
   extractRecipientEmails,
   normalizeMaskedRecipient,
 } from '@/lib/email/masked-address'
+import { applicationIdFromAlias } from '@/lib/email/application-alias'
 import { linkInboundEmailForUser } from '@/lib/email/link-inbound'
 
 export type ResendReceivedEvent = {
@@ -115,6 +116,31 @@ export async function processResendInbound(event: ResendReceivedEvent): Promise<
       user = saveHit
       saveMailbox = saveHit.forward_save_email
       break
+    }
+
+    // Per-application alias → resolve the user through the application.
+    const aliasAppId = applicationIdFromAlias(r)
+    if (aliasAppId) {
+      const { data: appRow } = await admin
+        .from('applications')
+        .select('user_id')
+        .eq('id', aliasAppId)
+        .maybeSingle()
+      if (appRow?.user_id) {
+        const { data: aliasUser } = await admin
+          .from('profiles')
+          .select(
+            'id, email, masked_email, forward_save_email, email_forward_to, email_forward_enabled',
+          )
+          .eq('id', appRow.user_id)
+          .maybeSingle()
+        if (aliasUser) {
+          // Treat the alias itself as the mailbox for downstream logging.
+          user = { ...aliasUser, masked_email: aliasUser.masked_email ?? r }
+          break
+        }
+      }
+      continue
     }
 
     const { data } = await admin

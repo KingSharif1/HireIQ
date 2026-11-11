@@ -25,17 +25,21 @@ export function normalizeStructuredResume(raw: Partial<StructuredResume> | null 
       website: '',
     },
     summary: typeof r.summary === 'string' ? r.summary : '',
-    experience: (Array.isArray(r.experience) ? r.experience : []).map((e, i) => ({
-      id: e?.id || `exp_${i + 1}`,
-      company: e?.company ?? '',
-      title: e?.title ?? '',
-      location: e?.location ?? '',
-      startDate: e?.startDate ?? '',
-      endDate: e?.endDate ?? '',
-      current: Boolean(e?.current),
-      bullets: asStringArray(e?.bullets),
-      skills_used: asStringArray(e?.skills_used),
-    })) as ResumeExperience[],
+    experience: (Array.isArray(r.experience) ? r.experience : []).map((e, i) => {
+      const bullets = asStringArray(e?.bullets)
+      return {
+        id: e?.id || `exp_${i + 1}`,
+        company: e?.company ?? '',
+        title: e?.title ?? '',
+        location: e?.location ?? '',
+        startDate: e?.startDate ?? '',
+        endDate: e?.endDate ?? '',
+        current: Boolean(e?.current),
+        bullets,
+        bulletIds: e?.bulletIds?.slice(0, bullets.length),
+        skills_used: asStringArray(e?.skills_used),
+      } as ResumeExperience
+    }),
     education: Array.isArray(r.education) ? r.education : [],
     skills: {
       technical: asStringArray(skills.technical),
@@ -43,15 +47,19 @@ export function normalizeStructuredResume(raw: Partial<StructuredResume> | null 
       tools: asStringArray(skills.tools),
       languages: asStringArray(skills.languages),
     },
-    projects: (Array.isArray(r.projects) ? r.projects : []).map((p, i) => ({
-      id: p?.id || `proj_${i + 1}`,
-      name: p?.name ?? '',
-      description: p?.description ?? '',
-      bullets: asStringArray(p?.bullets),
-      technologies: asStringArray(p?.technologies),
-      url: p?.url ?? '',
-      github: p?.github ?? '',
-    })) as ResumeProject[],
+    projects: (Array.isArray(r.projects) ? r.projects : []).map((p, i) => {
+      const bullets = asStringArray(p?.bullets)
+      return {
+        id: p?.id || `proj_${i + 1}`,
+        name: p?.name ?? '',
+        description: p?.description ?? '',
+        bullets,
+        bulletIds: p?.bulletIds?.slice(0, bullets.length),
+        technologies: asStringArray(p?.technologies),
+        url: p?.url ?? '',
+        github: p?.github ?? '',
+      } as ResumeProject
+    }),
     certifications: Array.isArray(r.certifications) ? r.certifications : [],
     volunteer: Array.isArray(r.volunteer) ? r.volunteer : [],
     awards: Array.isArray(r.awards) ? r.awards : [],

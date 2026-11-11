@@ -1,4 +1,5 @@
 import type { StructuredResume, ResumeDiffChange, TailoringNote } from '@/types'
+import type { EnforceViolation } from '@/lib/tailor/enforce'
 
 export type TailorCritiqueFlagType =
   | 'unsupported_claim'
@@ -54,6 +55,8 @@ export interface TailorPipelineResult {
   changes: ResumeDiffChange[]
   tailoringNotes: TailoringNote[]
   writeBackSuggestions: WriteBackSuggestion[]
+  /** Deterministic blueprint-enforcement actions (reinserted/restored/removed). */
+  enforceViolations?: EnforceViolation[]
   meta: TailorPipelineMeta
 }
 

@@ -5,6 +5,7 @@ import type {
   ResumeExperience,
 } from '@/types'
 import { uid, emptyProfileData } from './data'
+import { normalizeBlueprint } from './blueprint'
 import { normalizeApplyAnswers } from './apply-answers'
 import { bulletsWithIds, isHeavyEdit } from './bullets'
 import { mergeDocumentVault } from './documents'
@@ -31,6 +32,7 @@ export function normalizeProfileData(data: ProfileData | null | undefined): Prof
     dismissedSuggestionIds: Array.isArray(raw.dismissedSuggestionIds)
       ? [...new Set(raw.dismissedSuggestionIds.filter(id => typeof id === 'string' && id))]
       : [],
+    blueprint: normalizeBlueprint(raw.blueprint),
     urls: Array.isArray(raw.urls) ? raw.urls : [],
     education: Array.isArray(raw.education) ? raw.education : [],
     certifications: Array.isArray(raw.certifications) ? raw.certifications : [],

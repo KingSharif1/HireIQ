@@ -1,6 +1,6 @@
 import { TAILOR_GENERATE_PROMPT } from '@/lib/ai/prompts'
 import { AI_MODELS, TAILOR_MAX_AI_CALLS } from '@/lib/ai/models'
-import type { StructuredResume, JobExtractedData, GapAnalysis } from '@/types'
+import type { StructuredResume, JobExtractedData, GapAnalysis, ResumeBlueprint } from '@/types'
 import type { GenerateFn, TailorPipelineResult } from '@/lib/ai/tailor-types'
 import { formatAdjacentForPrompt, formatRealGapsForPrompt } from '@/lib/ai/gap-analysis'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
@@ -19,6 +19,8 @@ import {
 } from '@/lib/resume/markdown'
 import { polishStructuredForExport } from '@/lib/export/format'
 import { normalizeJobExtractedData } from '@/lib/jobs/normalize-job'
+import { enforceBlueprint } from '@/lib/tailor/enforce'
+import { defaultBlueprint } from '@/lib/profile/blueprint'
 
 interface PipelineInput {
   resume: StructuredResume
@@ -29,6 +31,8 @@ interface PipelineInput {
   githubContext?: string
   profileContext?: string
   resumeMarkdown?: string
+  /** Persistent per-item tailoring rules (Sprout-style blueprint). */
+  blueprint?: ResumeBlueprint
   generate: GenerateFn
   models?: { strong: string; fast: string }
   /** Free-form attribution recorded with each usage event (e.g. { tailor_run_id }). */
@@ -119,6 +123,10 @@ CRITICAL RETRY: Your previous reply was not usable (empty, broken markdown, or J
   }
   // Deterministic polish: dedupe skills, fix "Degree in Field in Field" — never invents.
   current = polishStructuredForExport(current)
+  // Blueprint enforcement: re-insert pinned entries/bullets, restore verbatim text, strip hidden.
+  const blueprint = input.blueprint ?? defaultBlueprint()
+  const enforced = enforceBlueprint(resume, current, blueprint)
+  current = enforced.resume
   const notes = current.tailoring_notes ?? []
   const changes = buildResumeChanges(resume, current, notes)
 
@@ -134,6 +142,7 @@ CRITICAL RETRY: Your previous reply was not usable (empty, broken markdown, or J
       },
       changes,
     }),
+    enforceViolations: enforced.violations,
     meta: {
       attempts: aiCallsUsed.n,
       passedGate: true,

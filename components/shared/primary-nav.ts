@@ -1,4 +1,4 @@
-import { Home, User, Briefcase, FileText, Compass, type LucideIcon } from 'lucide-react'
+import { Home, User, Users, Briefcase, FileText, Compass, type LucideIcon } from 'lucide-react'
 
 /** Primary rail — Profile is master + autofill; Builder is tailored versions. */
 export const PRIMARY_NAV: {
@@ -31,6 +31,13 @@ export const PRIMARY_NAV: {
     match: (p) =>
       p.startsWith('/dashboard/tracker') ||
       p.startsWith('/dashboard/jobs'),
+  },
+  {
+    href: '/dashboard/referrals',
+    icon: Users,
+    label: 'Referrals',
+    shortLabel: 'Refs',
+    match: (p) => p.startsWith('/dashboard/referrals'),
   },
   {
     href: '/dashboard/profile',

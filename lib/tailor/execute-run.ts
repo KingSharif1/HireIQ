@@ -15,6 +15,7 @@ import {
   leftoverGapChips,
 } from '@/lib/tailor/ats-gap-hints'
 import { formatPreferredProjectsForPrompt } from '@/lib/tailor/job-relevance'
+import { resolveBlueprint } from '@/lib/profile/blueprint'
 import { themeOverrideForJob } from '@/lib/tailor/job-structure'
 import { withChangeIds, initialDecisions } from '@/lib/tailor/change-decisions'
 import { createProcessLog } from '@/lib/tailor/process-log'
@@ -266,6 +267,7 @@ export async function executeGeneratePhase(
           githubContext,
           profileContext: enrichedProfileContext,
           resumeMarkdown,
+          blueprint: resolveBlueprint(master.profileData),
           generate: generateFn,
           models: ai.models,
           usageMetadata: { tailor_run_id: runId },

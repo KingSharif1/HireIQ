@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Suspense } from 'react'
 import { SettingsPage } from '@/components/settings/SettingsPage'
+import { CreditBalanceCard } from '@/components/credits/CreditBalanceCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +15,7 @@ export default async function DashboardSettingsPage() {
 
   return (
     <Suspense fallback={null}>
+      <CreditBalanceCard userId={user.id} />
       <SettingsPage />
     </Suspense>
   )

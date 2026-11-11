@@ -14,6 +14,12 @@ import {
 } from '@/lib/apply/types'
 import type { ProfileData } from '@/types'
 import { recordAutoApplyUsage } from '@/lib/ai/usage'
+import { buildApplicationAlias } from '@/lib/email/application-alias'
+import {
+  assertCanAfford,
+  debitCreditsAtomic,
+  InsufficientCreditsError,
+} from '@/lib/credits/service'
 
 export class ApplyQueueError extends Error {
   constructor(
@@ -30,7 +36,10 @@ function pickUrl(urls: { label: string; url: string }[], pattern: RegExp): strin
   return hit?.url?.trim() || ''
 }
 
-async function buildIdentity(userId: string): Promise<ApplyIdentityPayload> {
+async function buildIdentity(
+  userId: string,
+  applicationId?: string | null,
+): Promise<ApplyIdentityPayload> {
   const admin = createAdminClient()
   const { data: profile } = await admin
     .from('profiles')
@@ -53,16 +62,32 @@ async function buildIdentity(userId: string): Promise<ApplyIdentityPayload> {
     gmailConnected,
   })
 
+  // Per-application masked alias (decision #9): `hireiq.<uuid>@<domain>`, deterministic.
+  const alias =
+    identity.mode === 'masked' && applicationId
+      ? buildApplicationAliasOrNull(applicationId)
+      : null
+
   return {
     firstName: (personal.firstName || profile.first_name || '').trim(),
     lastName: (personal.lastName || profile.last_name || '').trim(),
-    email: (identity.applyEmail || profileEmail).trim(),
+    email: (alias ?? identity.applyEmail ?? profileEmail).trim(),
     phone: (personal.phone || '').trim(),
     linkedin: pickUrl(data.urls, /linkedin/i),
     website:
       pickUrl(data.urls, /portfolio|website|personal|github\.com|^site$/i) ||
       data.urls.find(u => !/linkedin/i.test(u.label) && !/linkedin/i.test(u.url))?.url?.trim() ||
       '',
+  }
+}
+
+function buildApplicationAliasOrNull(applicationId: string): string | null {
+  const domain = process.env.MASKED_EMAIL_DOMAIN?.trim()
+  if (!domain) return null
+  try {
+    return buildApplicationAlias(applicationId, domain)
+  } catch {
+    return null
   }
 }
 
@@ -151,6 +176,23 @@ export async function queueServerApply(opts: {
   const complexity = estimateApplyComplexity(applyUrl)
   const now = new Date().toISOString()
 
+  // Credit gate (inert until CREDITS_ENABLED=1 and migration 028 is applied).
+  const creditsEnabled = process.env.CREDITS_ENABLED === '1'
+  if (creditsEnabled) {
+    try {
+      await assertCanAfford(opts.userId, complexity)
+    } catch (err) {
+      if (err instanceof InsufficientCreditsError) {
+        throw new ApplyQueueError(
+          `Not enough credits — this application costs ${complexity} credit${complexity === 1 ? '' : 's'} (${err.remaining} left).`,
+          402,
+        )
+      }
+      // Table not applied / transient DB error → fail open so apply still works.
+      console.error('[credits] affordability check failed (failing open)', err)
+    }
+  }
+
   const { data: run, error } = await admin
     .from('apply_runs')
     .insert({
@@ -183,6 +225,19 @@ export async function queueServerApply(opts: {
     complexity,
   })
 
+  if (creditsEnabled) {
+    await debitCreditsAtomic(opts.userId, {
+      cost: complexity,
+      kind: 'apply',
+      jobApplicationId: app?.id ?? null,
+    }).catch((err) => {
+      console.error(
+        '[credits] debit failed (run still queued)',
+        err instanceof InsufficientCreditsError ? `insufficient: ${err.message}` : err,
+      )
+    })
+  }
+
   if (app?.id) {
     await admin.from('application_events').insert({
       application_id: app.id,
@@ -212,7 +267,7 @@ export async function loadServerApplyContext(runId: string): Promise<ServerApply
   if (error || !run) throw new ApplyQueueError('Apply run not found', 404)
   if (!run.apply_url) throw new ApplyQueueError('Apply run missing URL', 400)
 
-  const identity = await buildIdentity(run.user_id)
+  const identity = await buildIdentity(run.user_id, run.application_id)
 
   const { data: tailored } = await admin
     .from('tailored_resumes')

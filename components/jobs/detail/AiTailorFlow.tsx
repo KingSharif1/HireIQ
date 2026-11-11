@@ -498,6 +498,13 @@ export function AiTailorFlow({
                   onHighlightChange={setHighlightedChangeId}
                   jobExtracted={jobExtracted}
                   liveScoreTotal={liveScore?.total ?? tailoredScore}
+                  onSaveRule={(rule) => {
+                    void fetch('/api/profile/blueprint-rule', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(rule),
+                    })
+                  }}
                 />
               </div>
             </div>

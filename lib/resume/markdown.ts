@@ -11,16 +11,29 @@ import { cleanDateToken, stripEdgeSeparators } from '@/lib/export/format'
 
 /** Stable HireIQ resume markdown — model wire format, not storage. */
 
-const ID_RE = /<!--\s*id:([a-zA-Z0-9_-]+)\s*-->/
+const ID_RE = /<!--\s*id:([a-zA-Z0-9_:-]+)\s*-->/
 
 function clean(s: string): string {
   return s.replace(/\s+/g, ' ').trim()
 }
 
-function bullets(lines: string[]): string[] {
-  return lines
-    .map(l => l.replace(/^[-*•]\s+/, '').trim())
-    .filter(Boolean)
+interface ParsedBullets {
+  bullets: string[]
+  bulletIds: string[]
+}
+
+function parseBullets(lines: string[], fallbackPrefix: string): ParsedBullets {
+  const pairs: Array<[string, string | null]> = lines.map((l) => {
+    const text = l.replace(/^[-*•]\s+/, '').trim()
+    const m = text.match(ID_RE)
+    if (m) return [text.replace(ID_RE, '').trim(), m[1]]
+    return [text, null]
+  })
+  const kept = pairs.filter(([t]) => Boolean(t))
+  return {
+    bullets: kept.map(([t]) => t),
+    bulletIds: kept.map(([, id], i) => id ?? `${fallbackPrefix}:${i}`),
+  }
 }
 
 function splitCsv(line: string): string[] {
@@ -56,7 +69,10 @@ export function structuredResumeToMarkdown(resume: StructuredResume): string {
       const head = [`### ${e.title || 'Role'}`, e.company, dates].filter(Boolean).join(' | ')
       lines.push(`${head} <!-- id:${e.id} -->`)
       if (e.location) lines.push(`_${e.location}_`)
-      for (const b of e.bullets) lines.push(`- ${b}`)
+      e.bullets.forEach((b, i) => {
+        const bid = e.bulletIds?.[i] ?? `${e.id}:${i}`
+        lines.push(`- ${b} <!-- id:${bid} -->`)
+      })
       if (e.skills_used.length) lines.push(`Skills: ${e.skills_used.join(', ')}`)
       lines.push('')
     }
@@ -67,7 +83,10 @@ export function structuredResumeToMarkdown(resume: StructuredResume): string {
     for (const p of r.projects) {
       lines.push(`### ${p.name || 'Project'} <!-- id:${p.id} -->`)
       if (p.description) lines.push(p.description)
-      for (const b of p.bullets) lines.push(`- ${b}`)
+      p.bullets.forEach((b, i) => {
+        const bid = p.bulletIds?.[i] ?? `${p.id}:${i}`
+        lines.push(`- ${b} <!-- id:${bid} -->`)
+      })
       if (p.technologies.length) lines.push(`Tech: ${p.technologies.join(', ')}`)
       const links = [p.url, p.github].filter(Boolean).join(' · ')
       if (links) lines.push(links)
@@ -182,6 +201,7 @@ function parseExperienceBlock(block: string, index: number): ResumeExperience {
   const skillsLine = lines.find(l => /^skills:/i.test(l))
   const skills_used = skillsLine ? splitCsv(skillsLine.replace(/^skills:\s*/i, '')) : []
   const bulletLines = lines.filter(l => /^[-*•]\s+/.test(l))
+  const parsed = parseBullets(bulletLines, id)
   return {
     id,
     title,
@@ -190,7 +210,8 @@ function parseExperienceBlock(block: string, index: number): ResumeExperience {
     startDate: startDate || '',
     endDate: current ? 'Present' : endDate,
     current,
-    bullets: bullets(bulletLines),
+    bullets: parsed.bullets,
+    bulletIds: parsed.bulletIds,
     skills_used,
   }
 }
@@ -211,11 +232,13 @@ function parseProjectBlock(block: string, index: number): ResumeProject {
       !/^https?:/i.test(l),
   )
   const links = lines.filter(l => /^https?:/i.test(l) || l.includes('github.com'))
+  const parsed = parseBullets(bulletLines, id)
   return {
     id,
     name,
     description: desc || '',
-    bullets: bullets(bulletLines),
+    bullets: parsed.bullets,
+    bulletIds: parsed.bulletIds,
     technologies,
     url: links[0] || '',
     github: links.find(l => /github/i.test(l)) || '',

@@ -159,12 +159,25 @@ export function parseApplyProgress(result: Record<string, unknown> | null | unde
   }
 }
 
-/** Portal complexity for pricing / SLA — Workday-like = 3. */
+/** Hosts that require an account or multi-step/OTP flow — priced at 3. */
+const HARD_COMPLEXITY_HOSTS = [
+  'myworkdayjobs.com',
+  'myworkdaysite.com',
+  'workday.com',
+  'taleo.net',
+  'icims.com',
+  'successfactors.com',
+  'oraclecloud.com',
+  'ultipro.com',
+  'adp.com',
+  'eightfold.ai',
+]
+
+/** Portal complexity for pricing / SLA — account portals = 3, public forms = 1. */
 export function estimateApplyComplexity(applyUrl: string): 1 | 3 {
   try {
-    const host = new URL(applyUrl).hostname
-    const board = detectBoard(host)
-    if (board === 'workday') return 3
+    const host = new URL(applyUrl).hostname.toLowerCase()
+    if (HARD_COMPLEXITY_HOSTS.some((h) => host === h || host.endsWith(`.${h}`))) return 3
     return 1
   } catch {
     return 1

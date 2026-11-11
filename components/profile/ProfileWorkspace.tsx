@@ -16,6 +16,7 @@ import { ContentEditor } from '@/components/builder/ContentEditor'
 import { DesignerPanel } from '@/components/builder/designer/DesignerPanel'
 import { AnalyzerPanel } from '@/components/builder/AnalyzerPanel'
 import { JobMatcherPanel } from '@/components/builder/JobMatcherPanel'
+import { BlueprintPanel } from '@/components/profile/BlueprintPanel'
 import { CoverLetterPanel } from '@/components/builder/CoverLetterPanel'
 import {
   DEFAULT_RESUME_THEME,
@@ -34,7 +35,7 @@ interface Props {
   githubData: GitHubProfileData | null
 }
 
-type WorkspaceTab = 'content' | 'designer' | 'analyzer' | 'matcher' | 'cover'
+type WorkspaceTab = 'content' | 'designer' | 'analyzer' | 'matcher' | 'cover' | 'blueprint'
 
 const TAB_FROM_PARAM: Record<string, WorkspaceTab> = {
   content: 'content',
@@ -44,6 +45,7 @@ const TAB_FROM_PARAM: Record<string, WorkspaceTab> = {
   'job-matcher': 'matcher',
   cover: 'cover',
   'cover-letter': 'cover',
+  blueprint: 'blueprint',
 }
 
 export function ProfileWorkspace({ userId, initialData, profile, resumes, githubData }: Props) {
@@ -171,6 +173,7 @@ export function ProfileWorkspace({ userId, initialData, profile, resumes, github
               ['analyzer', 'Analyzer'],
               ['matcher', 'Job Matcher'],
               ['cover', 'Cover Letter'],
+              ['blueprint', 'Blueprint'],
             ] as const
           ).map(([value, label]) => (
             <button
@@ -264,6 +267,8 @@ export function ProfileWorkspace({ userId, initialData, profile, resumes, github
                 onUpdate={update}
                 initialJobId={jobIdParam}
               />
+            ) : workspaceTab === 'blueprint' ? (
+              <BlueprintPanel data={data} update={update} />
             ) : (
               <CoverLetterPanel jobId={jobIdParam} />
             )}

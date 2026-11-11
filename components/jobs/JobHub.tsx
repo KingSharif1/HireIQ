@@ -220,6 +220,13 @@ export function JobHub({ job, versions }: JobHubProps) {
         onDecisionsChange={setDecisions}
         onSave={handleSaveDecisions}
         saving={savingDecisions}
+        onSaveRule={(rule) => {
+          void fetch('/api/profile/blueprint-rule', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(rule),
+          })
+        }}
       />
     </div>
   ) : (

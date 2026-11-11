@@ -1,4 +1,5 @@
 import type { ApplicationStatus } from '@/types'
+import { applicationIdFromAlias } from '@/lib/email/application-alias'
 
 export type JobMatchCandidate = {
   jobId: string
@@ -84,4 +85,32 @@ export function matchInboundToJob(
 
   if (!best || best.score < 3) return null
   return best
+}
+
+/**
+ * Resolve an inbound email to an application: exact per-application alias
+ * match first (decision #9), then fall back to fuzzy company matching.
+ */
+export function resolveInboundApplication(
+  candidates: readonly JobMatchCandidate[],
+  opts: {
+    recipient?: string
+    from: string
+    subject: string
+    bodyPreview?: string
+  },
+): { match: JobMatchCandidate; score: number; via: 'alias' | 'fuzzy' } | null {
+  if (opts.recipient) {
+    const id = applicationIdFromAlias(opts.recipient)
+    if (id) {
+      const exact = candidates.find((c) => c.applicationId === id)
+      if (exact) return { match: exact, score: 100, via: 'alias' }
+    }
+  }
+  const fuzzy = matchInboundToJob(candidates, {
+    from: opts.from,
+    subject: opts.subject,
+    bodyPreview: opts.bodyPreview,
+  })
+  return fuzzy ? { ...fuzzy, via: 'fuzzy' } : null
 }

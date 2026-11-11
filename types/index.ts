@@ -356,6 +356,8 @@ export interface ProfileData {
   pendingSuggestions?: PendingSuggestion[]
   /** Suggestion ids the user declined — never re-offer (GitHub gh-* and others). */
   dismissedSuggestionIds?: string[]
+  /** Persistent per-item tailoring rules (Sprout-style blueprint). */
+  blueprint?: ResumeBlueprint
 }
 
 // DB row types
@@ -500,6 +502,91 @@ export interface ResumeInclusion {
   experienceIds?: string[]
   projectIds?: string[]
   educationIds?: string[]
+}
+
+/** Sprout-style per-item tailoring rule. */
+export type ResumeRule = 'auto' | 'tailored' | 'verbatim'
+
+/**
+ * Persistent, per-profile tailoring blueprint. Keys into `ProfileData` by item
+ * id (section key, entry id, or bullet id). Parent rules win: a `verbatim`
+ * entry locks its bullets; a hidden entry hides its bullets.
+ */
+export interface ResumeBlueprint {
+  /** May the AI drop `auto` items? true = yes (default); false = include everything. */
+  aiChooses: boolean
+  /** rule per item id. */
+  rules: Record<string, ResumeRule>
+  /** item ids hidden from resumes (still present in the profile). */
+  hidden: string[]
+  /** manual order per section key → ordered ids. */
+  order: Record<string, string[]>
+}
+
+/** Credit grant (monthly allowance, purchase, promo, refund) with an active window. */
+export interface CreditGrant {
+  id: string
+  userId: string
+  amount: number
+  /** ISO datetime — inclusive start of the active window. */
+  periodStart: string
+  /** ISO datetime — exclusive end of the active window. */
+  periodEnd: string
+  kind: 'monthly' | 'purchase' | 'promo' | 'refund'
+  createdAt: string
+}
+
+/** Credit debit — one application/tailor/cover letter consuming credits. */
+export interface CreditUsage {
+  id: string
+  userId: string
+  cost: number
+  kind: 'apply' | 'tailor' | 'cover_letter'
+  jobApplicationId?: string | null
+  createdAt: string
+}
+
+// ---------------------------------------------------------------------------
+// LinkedIn referrals (v2)
+// ---------------------------------------------------------------------------
+
+export type ReferralStage =
+  | 'drafting'
+  | 'intro_asked'
+  | 'referred'
+  | 'replied'
+  | 'declined'
+  | 'no_response'
+
+/** A synced 1st-degree connection (LinkedIn Connections.csv export, or OAuth). */
+export interface LinkedInConnection {
+  id: string
+  userId: string
+  firstName: string
+  lastName: string
+  url: string
+  company: string
+  position: string
+  email?: string
+  connectedOn?: string
+  source: 'csv' | 'oauth'
+  createdAt: string
+}
+
+/** A referral/warm-intro attempt toward one connection for one job. */
+export interface ReferralOutreach {
+  id: string
+  userId: string
+  connectionId: string | null
+  jobId: string | null
+  applicationId: string | null
+  stage: ReferralStage
+  messageDraft: string | null
+  referralStrength: number | null
+  askedAt?: string | null
+  repliedAt?: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 export interface ApplicationEvent {

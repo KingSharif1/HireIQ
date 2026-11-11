@@ -5,6 +5,7 @@ import type {
 } from '@/types'
 import { emptyApplyAnswers, normalizeApplyAnswers } from '@/lib/profile/apply-answers'
 import { mergeDocumentVault } from '@/lib/profile/documents'
+import { defaultBlueprint, normalizeBlueprint } from '@/lib/profile/blueprint'
 
 /** A fully-empty ProfileData object. */
 export function emptyProfileData(): ProfileData {
@@ -34,6 +35,7 @@ export function emptyProfileData(): ProfileData {
     provenance: {},
     pendingSuggestions: [],
     dismissedSuggestionIds: [],
+    blueprint: defaultBlueprint(),
   }
 }
 
@@ -60,6 +62,7 @@ export function resolveProfileData(
     applyAnswers: normalizeApplyAnswers(stored?.applyAnswers),
     additionalDocuments: mergeDocumentVault(stored?.additionalDocuments, stored?.attachments),
     attachments: [],
+    blueprint: normalizeBlueprint(stored?.blueprint),
   }
 
   // Personal info falls back to the profile row.

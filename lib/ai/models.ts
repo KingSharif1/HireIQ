@@ -42,6 +42,7 @@ export type AiFeature =
   | 'cover_letter'
   | 'autofill_draft'
   | 'auto_apply'
+  | 'referral_draft'
 
 /**
  * Best model for the job. Rule: any step that *judges evidence or writes the
@@ -67,6 +68,7 @@ export const AI_FEATURES: {
   { id: 'cover_letter', label: 'Cover letter', uses: 'strong', where: 'Job → Cover letter' },
   { id: 'autofill_draft', label: 'Application question drafts', uses: 'fast', where: 'Chrome extension' },
   { id: 'auto_apply', label: 'Auto-apply with HireIQ', uses: 'infra', where: 'Job → Auto-apply' },
+  { id: 'referral_draft', label: 'Referral / intro drafts', uses: 'strong', where: 'Referrals' },
 ]
 
 export function tierForFeature(id: AiFeature): 'strong' | 'fast' {
@@ -183,6 +185,7 @@ export const TYPICAL_ACTION_TOKENS: Record<
   tailor_critique: { strongIn: 4000, strongOut: 800, fastIn: 0, fastOut: 0 },
   cover_letter: { strongIn: 2300, strongOut: 700, fastIn: 0, fastOut: 0 },
   autofill_draft: { strongIn: 0, strongOut: 0, fastIn: 2800, fastOut: 900 },
+  referral_draft: { strongIn: 4000, strongOut: 300, fastIn: 0, fastOut: 0 },
 }
 
 export function typicalActionCostUsd(
