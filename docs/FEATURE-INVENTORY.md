@@ -76,6 +76,7 @@ This is the audit trail for the "Sprout-class" work. Every row below was verifie
 | Claude draft prompt + route | `lib/referrals/draft-prompt.ts`, `app/api/referrals/draft/route.ts` (`referral_draft` AI feature in `lib/ai/models.ts`) |
 | Import route + UI | `app/api/referrals/import/route.ts`, `components/referrals/ConnectionImport.tsx` |
 | Referrals screen + nav | `app/dashboard/referrals/page.tsx`, `components/referrals/ReferralsPage.tsx`, `components/shared/primary-nav.ts` |
+| **Outreach funnel (persisted)** — log an ask, then advance `intro_asked → replied/referred/declined`; stage badges on the screen | `lib/referrals/outreach.ts` (pure, 12 tests), `app/api/referrals/outreach/route.ts`, `ReferralsPage` |
 | Tests | `lib/referrals/__tests__/{referrals,match,draft-prompt}.test.ts` |
 | **OPS** | Apply migration **029** |
 
@@ -110,6 +111,6 @@ Apply against project **`wsbbgznobxhjefaqbniv`** (HIRE/Nami Supabase account). T
 
 ```bash
 npx tsc --noEmit
-npx vitest run        # 630 passed / 11 skipped
+npx vitest run        # 642 passed / 11 skipped
 npm run lint          # 0 errors
 ```
