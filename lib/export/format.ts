@@ -55,6 +55,27 @@ export function formatEducationLine(edu: Pick<ResumeEducation, 'degree' | 'field
   return formatDegreeField(edu.degree ?? '', edu.field ?? '')
 }
 
+/**
+ * Education row text for every renderer (preview, PDF, DOCX): no dangling
+ * dash, comma, or "·" when the degree, institution, dates, or GPA is missing.
+ */
+export function educationParts(
+  edu: Pick<ResumeEducation, 'degree' | 'field' | 'institution' | 'startDate' | 'endDate' | 'gpa'>,
+  showBy: 'degree-first' | 'institution-first' | string = 'degree-first',
+): { primary: string; secondary: string; inline: string; meta: string } {
+  const degreeText = formatEducationLine(edu)
+  const institution = stripEdgeSeparators(edu.institution)
+  const [primary, secondary] =
+    showBy === 'degree-first' ? [degreeText, institution] : [institution, degreeText]
+  const gpa = stripEdgeSeparators(edu.gpa)
+  return {
+    primary: primary || secondary,
+    secondary: primary ? secondary : '',
+    inline: [primary, secondary].filter(Boolean).join(', '),
+    meta: [formatDateRange(edu.startDate, edu.endDate), gpa ? `GPA: ${gpa}` : ''].filter(Boolean).join(' · '),
+  }
+}
+
 /** Join a date range without a dangling separator when one side is empty or only a dash. */
 export function formatDateRange(
   startDate: string | null | undefined,

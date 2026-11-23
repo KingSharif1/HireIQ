@@ -5,6 +5,7 @@ import {
 import type { StructuredResume } from '@/types'
 import { normalizeResumeForDisplay, toTitleCaseName } from '@/lib/format/normalize'
 import {
+  educationParts,
   formatDateRange,
   formatEducationLine,
   polishStructuredForExport,
@@ -159,22 +160,21 @@ export async function generateDocx(rawData: StructuredResume): Promise<Buffer> {
     children.push(hr())
 
     for (const edu of data.education) {
-      const degreeText = formatEducationLine(edu)
+      const parts = educationParts(edu, 'degree-first')
       children.push(new Paragraph({
         children: [
-          new TextRun({ text: degreeText, bold: true, size: 22 }),
-          new TextRun({ text: `  ${edu.institution}`, size: 20, color: '555555' }),
+          new TextRun({ text: parts.primary, bold: true, size: 22 }),
+          ...(parts.secondary ? [new TextRun({ text: `  ${parts.secondary}`, size: 20, color: '555555' })] : []),
         ],
-        spacing: { after: 40 },
+        spacing: { after: parts.meta ? 40 : 120 },
       }))
 
-      children.push(new Paragraph({
-        children: [new TextRun({
-          text: `${formatDateRange(edu.startDate, edu.endDate)}${edu.gpa ? ` · GPA: ${edu.gpa}` : ''}`,
-          size: 18, italics: true, color: '777777',
-        })],
-        spacing: { after: 120 },
-      }))
+      if (parts.meta) {
+        children.push(new Paragraph({
+          children: [new TextRun({ text: parts.meta, size: 18, italics: true, color: '777777' })],
+          spacing: { after: 120 },
+        }))
+      }
     }
   }
 

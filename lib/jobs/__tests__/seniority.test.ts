@@ -57,3 +57,15 @@ describe('normalizeJobExtractedData seniority', () => {
     expect(job.seniority).toBe('new_grad')
   })
 })
+
+describe('resolveStoredJobFacts (pre-fix jobs)', () => {
+  it('fixes a stored intern label and board-token company before tailoring', async () => {
+    const { resolveStoredJobFacts } = await import('@/lib/jobs/normalize-job')
+    const fixed = resolveStoredJobFacts(
+      { title: 'Software Engineer (New Grad December 2026)', company: 'freeformfuturecorp', seniority: 'intern', summary: '' } as never,
+      { apply_url: 'https://job-boards.greenhouse.io/freeformfuturecorp/jobs/4', description: 'Full-time role.' },
+    )
+    expect(fixed.seniority).toBe('new_grad')
+    expect(fixed.company).toBe('Freeformfuture Corp')
+  })
+})

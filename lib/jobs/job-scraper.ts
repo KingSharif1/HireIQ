@@ -10,6 +10,9 @@ import {
 } from '@/lib/jobs/url-detect'
 
 import { classifyApplyEaseFromJobPage, type ApplyEaseResult } from '@/lib/apply/ease'
+import { humanizeBoardToken, isUsableCompanyName } from '@/lib/jobs/company'
+
+export { humanizeBoardToken, isUsableCompanyName }
 
 /** Cap JD text kept from scrapes — thick enough for thesis + skills, not infinite. */
 const MAX_SCRAPED_JD_CHARS = 16_000
@@ -133,20 +136,6 @@ async function greenhouseCompanyFromPage(boardToken: string, jobId: string): Pro
   }
 }
 
-const GENERIC_BOARD_NAMES = new Set(['greenhouse', 'jobs', 'job', 'careers', 'boards', 'job board'])
-
-/** True when a Greenhouse name is a real company, not the board slug or a generic label. */
-export function isUsableCompanyName(name: string | null | undefined, boardToken: string): boolean {
-  const trimmed = name?.replace(/\s+/g, ' ').trim() ?? ''
-  if (trimmed.length < 2) return false
-  const lower = trimmed.toLowerCase()
-  if (GENERIC_BOARD_NAMES.has(lower)) return false
-  const compact = lower.replace(/[^a-z0-9]/g, '')
-  const token = boardToken.toLowerCase().replace(/[^a-z0-9]/g, '')
-  if (compact && token && compact === token) return false
-  return true
-}
-
 /** Prefer the boards API company, then the page, then a title-cased token. */
 export function resolveGreenhouseCompany(input: {
   companyName?: string | null
@@ -160,15 +149,6 @@ export function resolveGreenhouseCompany(input: {
     }
   }
   return humanizeBoardToken(input.boardToken)
-}
-
-/** Last-resort prettifier for a Greenhouse board token like "freeformfuturecorp". */
-export function humanizeBoardToken(token: string): string {
-  const spaced = token
-    .replace(/[-_]+/g, ' ')
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .trim()
-  return spaced.replace(/\b\w/g, c => c.toUpperCase())
 }
 
 async function greenhouseCompanyFromBoard(boardToken: string): Promise<string | null> {
