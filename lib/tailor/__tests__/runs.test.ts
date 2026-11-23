@@ -71,3 +71,20 @@ describe('durable tailor run', () => {
     expect(isStaleBusyRun(waiting, now)).toBe(false)
   })
 })
+
+describe('visibleTailorRunStatus', () => {
+  const now = Date.parse('2026-11-23T12:00:00Z')
+  it('surfaces failed and silently-stuck runs as failed', async () => {
+    const { visibleTailorRunStatus } = await import('@/lib/tailor/run-types')
+    expect(visibleTailorRunStatus({ status: 'failed', updated_at: '2026-11-23T11:00:00Z' }, { nowMs: now })).toBe('failed')
+    expect(visibleTailorRunStatus({ status: 'generating', updated_at: '2026-11-23T11:00:00Z' }, { nowMs: now })).toBe('failed')
+    expect(visibleTailorRunStatus({ status: 'generating', updated_at: '2026-11-23T11:59:00Z' }, { nowMs: now })).toBe('generating')
+    expect(visibleTailorRunStatus({ status: 'needs_review', updated_at: '2026-11-23T11:00:00Z' }, { nowMs: now })).toBe('needs_review')
+  })
+  it('hides an old failure once a newer resume exists, and cancelled runs', async () => {
+    const { visibleTailorRunStatus } = await import('@/lib/tailor/run-types')
+    expect(visibleTailorRunStatus({ status: 'failed', updated_at: '2026-11-20T00:00:00Z' }, { nowMs: now, latestResumeAt: '2026-11-21T00:00:00Z' })).toBeNull()
+    expect(visibleTailorRunStatus({ status: 'cancelled', updated_at: '2026-11-23T11:00:00Z' }, { nowMs: now })).toBeNull()
+    expect(visibleTailorRunStatus(null)).toBeNull()
+  })
+})

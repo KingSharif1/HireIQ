@@ -22,11 +22,13 @@ import { canHostedAutoApply } from '@/lib/apply/ease'
 import { resolveSeniority } from '@/lib/jobs/seniority'
 import { ApplyEaseBadge } from '@/components/jobs/ApplyEaseBadge'
 import { AutoApplyWithHireIQ } from '@/components/jobs/detail/AutoApplyWithHireIQ'
+import { V2_SURFACES_ENABLED } from '@/lib/features'
 import { QuestionsPanel } from '@/components/jobs/detail/QuestionsPanel'
 import { TailorRunChip } from '@/components/jobs/detail/TailorRunChip'
 import { fetchTailorRun } from '@/lib/api/client'
 import { isBusyTailorStatus } from '@/lib/tailor/run-types'
 import { buildActivityFeed } from '@/lib/applications/activity'
+import { JobTimeline } from '@/components/jobs/detail/JobTimeline'
 import { buildInboxThreads, emailThreadKey } from '@/lib/applications/email'
 import { normalizeFormAnswers } from '@/lib/applications/form-answers'
 import {
@@ -75,6 +77,8 @@ interface JobDetailPageProps {
   applyEmail?: string | null
   /** When false, auto-apply CTA explains Cloud Run setup instead of queueing. */
   applyWorkerReady?: boolean
+  /** Raw error of the latest failed tailor run, if any. */
+  tailorRunError?: string | null
 }
 
 function resolveInitialTab(param: string | null): DetailTab {
@@ -105,6 +109,7 @@ export function JobDetailPage({
   emailTrackingEnabled = true,
   applyEmail = null,
   applyWorkerReady = true,
+  tailorRunError: initialTailorRunError = null,
 }: JobDetailPageProps) {
   const searchParams = useSearchParams()
   const visibleTabs = useMemo(
@@ -141,6 +146,7 @@ export function JobDetailPage({
   const [error, setError] = useState<string | null>(null)
   const [copiedApplyEmail, setCopiedApplyEmail] = useState(false)
   const [tailorRunStatus, setTailorRunStatus] = useState(item.tailorRunStatus ?? null)
+  const [tailorRunError, setTailorRunError] = useState<string | null>(initialTailorRunError)
 
   useEffect(() => {
     setTailorRunStatus(item.tailorRunStatus ?? null)
@@ -150,7 +156,10 @@ export function JobDetailPage({
     if (!isBusyTailorStatus(tailorRunStatus ?? '')) return
     const tick = window.setInterval(() => {
       void fetchTailorRun(item.job_id)
-        .then(({ run }) => setTailorRunStatus(run?.status ?? null))
+        .then(({ run }) => {
+          setTailorRunStatus(run?.status === 'cancelled' ? null : run?.status ?? null)
+          setTailorRunError(run?.status === 'failed' ? run.error : null)
+        })
         .catch(() => undefined)
     }, 4000)
     return () => window.clearInterval(tick)
@@ -370,8 +379,8 @@ export function JobDetailPage({
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f7f9] dark:bg-background">
-      <header className="sticky top-0 z-20 border-b border-border bg-white/95 backdrop-blur dark:bg-card/95">
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-20 border-b border-border bg-card/95 backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-6">
           <div className="flex min-w-0 items-start gap-3">
             <Link
@@ -450,7 +459,7 @@ export function JobDetailPage({
                 {copiedApplyEmail ? 'Copied' : 'Copy apply email'}
               </Button>
             ) : null}
-            {hostedAutoApply ? (
+            {hostedAutoApply && V2_SURFACES_ENABLED ? (
               <AutoApplyWithHireIQ
                 jobId={item.job.id}
                 hasApplyUrl
@@ -558,6 +567,22 @@ export function JobDetailPage({
         <div className="min-w-0">
           {tab === 'overview' ? (
             <div className="space-y-4">
+              <JobTimeline
+                status={currentStatus}
+                appliedAt={item.applied_at}
+                followUpAt={item.follow_up_at}
+                activity={activityItems}
+                versions={versions}
+                notes={notes}
+                tailorRunStatus={tailorRunStatus}
+                tailorRunError={tailorRunError}
+                onViewResume={(id) => {
+                  setSelectedDocId(id)
+                  openDocuments('preview')
+                }}
+                onTailor={() => openDocuments('ai-tailor')}
+                onOpenActivity={() => setTab('activity')}
+              />
               <JobSummaryOverview
                 score={currentScore}
                 status={currentStatus}
@@ -609,6 +634,7 @@ export function JobDetailPage({
               onVersionSaved={handleVersionSaved}
               jobExtracted={item.job.extracted_data}
               tailorRunStatus={tailorRunStatus}
+              tailorRunError={tailorRunError}
               onOpenTailor={() => openDocuments('ai-tailor')}
             />
           ) : null}

@@ -50,8 +50,8 @@ export function TrackerBoard({
             className={cn(
               'snap-start flex-shrink-0 w-[min(248px,78vw)] sm:w-[260px] rounded-xl border flex flex-col h-full min-h-0 transition-[border-color,background-color] duration-150',
               isOver
-                ? 'border-foreground/50 bg-white dark:bg-card shadow-sm'
-                : 'border-border/80 bg-white/70 dark:bg-card/50'
+                ? 'border-foreground/50 bg-card shadow-sm'
+                : 'border-border/80 bg-card/60'
             )}
             onDragOver={e => {
               e.preventDefault()
@@ -81,7 +81,7 @@ export function TrackerBoard({
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto overscroll-contain p-2 space-y-2 min-h-0 bg-[#f6f7f9]/80 dark:bg-secondary/20 rounded-b-xl">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-2 space-y-2 min-h-0 bg-secondary/30 rounded-b-xl">
               {columnItems.length === 0 ? (
                 <div className="h-full min-h-[72px] flex items-center justify-center">
                   <p className="text-[11px] text-muted-foreground/80">Drop here</p>
@@ -100,7 +100,7 @@ export function TrackerBoard({
                       }}
                       onClick={() => onSelect(item.job_id)}
                       className={cn(
-                        'rounded-lg border bg-white dark:bg-card p-3 cursor-grab active:cursor-grabbing touch-manipulation transition-opacity duration-150',
+                        'rounded-lg border bg-card p-3 cursor-grab active:cursor-grabbing touch-manipulation transition-opacity duration-150',
                         'hover:border-foreground/25',
                         selectedJobId === item.job_id
                           ? 'border-foreground/40 ring-1 ring-foreground/10'

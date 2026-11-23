@@ -1,14 +1,19 @@
 import { Home, User, Users, Briefcase, FileText, Compass, type LucideIcon } from 'lucide-react'
+import { V2_SURFACES_ENABLED } from '@/lib/features'
 
 /** Primary rail — Profile is master + autofill; Builder is tailored versions. */
-export const PRIMARY_NAV: {
+export type NavItem = {
   href: string
   icon: LucideIcon
   label: string
   /** Short label for mobile bottom bar */
   shortLabel: string
   match: (pathname: string) => boolean
-}[] = [
+  /** v2 job-hub surface — hidden unless NEXT_PUBLIC_V2_SURFACES=1. */
+  v2?: boolean
+}
+
+export const ALL_NAV: NavItem[] = [
   {
     href: '/dashboard',
     icon: Home,
@@ -22,6 +27,7 @@ export const PRIMARY_NAV: {
     label: 'Scout',
     shortLabel: 'Scout',
     match: (p) => p.startsWith('/dashboard/scout'),
+    v2: true,
   },
   {
     href: '/dashboard/tracker',
@@ -38,6 +44,7 @@ export const PRIMARY_NAV: {
     label: 'Referrals',
     shortLabel: 'Refs',
     match: (p) => p.startsWith('/dashboard/referrals'),
+    v2: true,
   },
   {
     href: '/dashboard/profile',
@@ -56,3 +63,10 @@ export const PRIMARY_NAV: {
       p.startsWith('/dashboard/resume'),
   },
 ]
+
+export function navFor(v2Enabled: boolean): NavItem[] {
+  return ALL_NAV.filter((item) => v2Enabled || !item.v2)
+}
+
+/** Primary rail for this build: v1 = Dashboard, Applications, Profile, Resume Builder. */
+export const PRIMARY_NAV: NavItem[] = navFor(V2_SURFACES_ENABLED)

@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { V2_SURFACES_ENABLED } from '@/lib/features'
 import { createClient } from '@/lib/supabase/server'
 import { ScoutDeck } from '@/components/scout/ScoutDeck'
 import { AddJobs } from '@/components/scout/AddJobs'
@@ -7,6 +8,7 @@ import type { ScoutLead } from '@/components/scout/types'
 export const metadata = { title: 'Scout' }
 
 export default async function ScoutPage() {
+  if (!V2_SURFACES_ENABLED) redirect('/dashboard/tracker')
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')

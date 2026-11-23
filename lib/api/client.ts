@@ -340,6 +340,34 @@ export async function exportPDF(tailoredResumeId: string): Promise<Blob> {
   return res.blob()
 }
 
+/**
+ * Download a tailored resume or cover letter PDF. Throws APIError with the
+ * server's reason (unreviewed changes, layout issues) so callers can show it.
+ */
+export async function downloadTailoredPdf(
+  tailoredResumeId: string,
+  kind: 'resume' | 'cover' = 'resume',
+): Promise<void> {
+  const res = await fetch('/api/export/pdf', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tailoredResumeId, type: kind }),
+  })
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({ error: res.statusText }))) as { error?: string }
+    throw new APIError(res.status, data.error || 'Could not export the PDF')
+  }
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = kind === 'cover' ? 'cover-letter.pdf' : 'tailored-resume.pdf'
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(url)
+}
+
 export async function exportDOCX(tailoredResumeId: string): Promise<Blob> {
   const res = await fetch('/api/export/docx', {
     method: 'POST',

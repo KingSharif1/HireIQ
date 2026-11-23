@@ -32,6 +32,7 @@ const itemStyles: Record<ActivityItem['kind'], string> = {
   email: 'border-primary/40 bg-primary/10 text-primary',
   created: 'border-border bg-secondary text-foreground',
   note: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  resume: 'border-primary/40 bg-primary/10 text-primary',
   other: 'border-border bg-muted text-muted-foreground',
 }
 
@@ -173,7 +174,7 @@ export function ActivityPanel({
         className="overflow-hidden rounded-xl border border-border bg-card shadow-sm p-4 lg:hidden"
       />
 
-      <div className="rounded-xl border border-border bg-white p-4 dark:bg-card sm:p-5">
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
         <h3 className="text-sm font-semibold text-foreground">Timeline</h3>
         {chronologicalItems.length === 0 ? (
           <div className="py-10 text-center">

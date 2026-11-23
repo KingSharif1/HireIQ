@@ -103,7 +103,7 @@ export function ApplicationAnswers({
   return (
     <section
       aria-labelledby="application-answers-title"
-      className="rounded-xl border border-border bg-white p-4 text-foreground dark:bg-card sm:p-5"
+      className="rounded-xl border border-border bg-card p-4 text-foreground sm:p-5"
     >
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>

@@ -21,6 +21,8 @@ import { AiTailorFlow } from '@/components/jobs/detail/AiTailorFlow'
 import { TailorRunChip } from '@/components/jobs/detail/TailorRunChip'
 import { countPendingDecisions } from '@/lib/tailor/change-decisions'
 import { isBusyTailorStatus, type TailorRunStatus } from '@/lib/tailor/run-types'
+import { userFacingTailorError } from '@/lib/tailor/user-error'
+import { downloadTailoredPdf } from '@/lib/api/client'
 
 export type JobDetailTailoredVersion = {
   id: string
@@ -55,6 +57,8 @@ type DocumentsWorkspaceProps = {
   }) => void
   jobExtracted?: JobExtractedData | null
   tailorRunStatus?: TailorRunStatus | null
+  /** Raw error of the latest failed run (mapped to friendly copy here). */
+  tailorRunError?: string | null
   onOpenTailor?: () => void
 }
 
@@ -70,6 +74,7 @@ export function DocumentsWorkspace({
   onVersionSaved,
   jobExtracted = null,
   tailorRunStatus = null,
+  tailorRunError = null,
   onOpenTailor,
 }: DocumentsWorkspaceProps) {
   const selected = versions.find(version => version.id === selectedId) ?? versions[0] ?? null
@@ -87,25 +92,19 @@ export function DocumentsWorkspace({
     window.scrollTo({ top: 0 })
   }, [mode])
 
+  const [downloadError, setDownloadError] = useState<string | null>(null)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+
   async function downloadDocument(kind: 'resume' | 'cover', tailoredId: string) {
-    const response = await fetch('/api/export/pdf', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tailoredResumeId: tailoredId,
-        type: kind === 'cover' ? 'cover' : 'resume',
-      }),
-    })
-    if (!response.ok) return
-    const blob = await response.blob()
-    const url = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = kind === 'cover' ? 'cover-letter.pdf' : 'tailored-resume.pdf'
-    document.body.appendChild(anchor)
-    anchor.click()
-    anchor.remove()
-    URL.revokeObjectURL(url)
+    setDownloadError(null)
+    setDownloadingId(`${kind}:${tailoredId}`)
+    try {
+      await downloadTailoredPdf(tailoredId, kind)
+    } catch (err) {
+      setDownloadError(err instanceof Error ? err.message : 'Could not export the PDF')
+    } finally {
+      setDownloadingId(null)
+    }
   }
 
   if (mode === 'choose') {
@@ -210,10 +209,11 @@ export function DocumentsWorkspace({
             type="button"
             size="sm"
             variant="outline"
+            disabled={downloadingId === `cover:${selected.id}`}
             onClick={() => void downloadDocument('cover', selected.id)}
           >
             <Download className="h-4 w-4" />
-            Download
+            {downloadingId === `cover:${selected.id}` ? 'Exporting…' : 'Download'}
           </Button>
         ) : (
           <Button type="button" size="sm" onClick={() => openCreate('cover')}>
@@ -222,6 +222,27 @@ export function DocumentsWorkspace({
           </Button>
         )}
       </div>
+
+      {downloadError ? (
+        <div role="alert" className="mt-4 flex items-start justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+          <p>{downloadError}</p>
+          <button type="button" className="shrink-0 text-xs font-medium underline-offset-2 hover:underline" onClick={() => setDownloadError(null)}>
+            Dismiss
+          </button>
+        </div>
+      ) : null}
+
+      {listTab === 'resume' && tailorRunStatus === 'failed' ? (
+        <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-destructive">{userFacingTailorError(tailorRunError).title}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{userFacingTailorError(tailorRunError).message}</p>
+          </div>
+          <Button type="button" size="sm" onClick={() => onMode('ai-tailor')}>
+            Try again
+          </Button>
+        </div>
+      ) : null}
 
       {listTab === 'resume' && tailorRunStatus && tailorRunStatus !== 'failed' ? (
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-secondary/40 px-3 py-2.5">
@@ -390,9 +411,10 @@ export function DocumentsWorkspace({
                     type="button"
                     size="sm"
                     variant="outline"
+                    disabled={downloadingId === `resume:${version.id}`}
                     onClick={() => void downloadDocument('resume', version.id)}
                   >
-                    Download
+                    {downloadingId === `resume:${version.id}` ? 'Exporting…' : 'Download'}
                   </Button>
                 </div>
               </li>

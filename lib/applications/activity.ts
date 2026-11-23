@@ -6,7 +6,7 @@ export type ActivityItem = {
   title: string
   detail?: string
   at: string
-  kind: 'status' | 'email' | 'created' | 'note' | 'other'
+  kind: 'status' | 'email' | 'created' | 'note' | 'resume' | 'other'
 }
 
 function metaString(meta: Record<string, unknown>, key: string): string | undefined {
@@ -70,4 +70,29 @@ export function buildActivityFeed(
   return [...fromEvents, ...legacyEmails].sort(
     (a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()
   )
+}
+
+/**
+ * One job timeline (newest first): status history, emails, notes/events, and
+ * each tailored resume version — the per-job "what happened" view.
+ */
+export function buildJobTimeline(
+  activity: readonly ActivityItem[],
+  versions: ReadonlyArray<{ id: string; version: number; created_at: string; tailored_score: number | null; match_score: number | null }>,
+): ActivityItem[] {
+  const resumes: ActivityItem[] = versions.map((v) => {
+    const score = v.tailored_score ?? v.match_score
+    return {
+      id: `resume-${v.id}`,
+      title: `Tailored resume v${v.version} created`,
+      detail: score != null ? `Match ${score}%` : undefined,
+      at: v.created_at,
+      kind: 'resume',
+    }
+  })
+  return [...activity, ...resumes].sort((a, b) => {
+    const at = new Date(a.at).getTime()
+    const bt = new Date(b.at).getTime()
+    return (Number.isNaN(bt) ? 0 : bt) - (Number.isNaN(at) ? 0 : at)
+  })
 }

@@ -56,7 +56,7 @@ export function QuestionsPanel({ answers, tailoredResumeId }: QuestionsPanelProp
   return (
     <section
       aria-labelledby="questions-panel-title"
-      className="rounded-xl border border-border bg-white p-4 text-foreground shadow-sm dark:bg-card"
+      className="rounded-xl border border-border bg-card p-4 text-foreground shadow-sm"
     >
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>

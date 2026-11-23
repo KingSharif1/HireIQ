@@ -116,3 +116,24 @@ export function isStaleBusyRun(
 export function tailorDocumentsHref(jobId: string): string {
   return `/dashboard/tracker/${jobId}?tab=documents&docMode=ai-tailor`
 }
+
+/**
+ * What the tracker and job page should show for a job's most recent tailor
+ * run. A failed run, or a busy run that went silent (worker gone), surfaces
+ * as 'failed' so the user gets a retry instead of a spinner forever. A run
+ * that failed before a newer tailored resume exists is not shown.
+ */
+export function visibleTailorRunStatus(
+  run: { status: string; updated_at: string } | null | undefined,
+  opts: { latestResumeAt?: string | null; nowMs?: number } = {},
+): TailorRunStatus | null {
+  if (!run) return null
+  if (run.status === 'cancelled') return null
+  const failed = run.status === 'failed' || isStaleBusyRun(run, opts.nowMs)
+  if (failed) {
+    const resumeAt = opts.latestResumeAt ? Date.parse(opts.latestResumeAt) : NaN
+    if (Number.isFinite(resumeAt) && resumeAt >= Date.parse(run.updated_at)) return null
+    return 'failed'
+  }
+  return run.status as TailorRunStatus
+}

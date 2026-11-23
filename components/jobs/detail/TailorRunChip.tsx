@@ -20,8 +20,9 @@ export function TailorRunChip({
   className?: string
   onOpen?: () => void
 }) {
-  const label = tailorRunLabel(status)
-  if (!label || !status || status === 'failed') return null
+  const failed = status === 'failed'
+  const label = failed ? 'Tailor didn’t finish · Retry' : tailorRunLabel(status)
+  if (!label || !status) return null
 
   const busy = isBusyTailorStatus(status)
   const classes = cn(
@@ -32,6 +33,7 @@ export function TailorRunChip({
       'border-amber-700/25 bg-amber-50 text-amber-950 dark:border-amber-400/25 dark:bg-amber-950/40 dark:text-amber-100',
     status === 'needs_review' &&
       'border-foreground/20 bg-secondary text-foreground',
+    failed && 'border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/15',
     className,
   )
 

@@ -30,7 +30,7 @@ export function TrackerList({ items, selectedJobId, onSelect }: TrackerListProps
   return (
     <div className="w-full overflow-x-auto">
       <table className="w-full text-sm border-collapse min-w-[720px]">
-        <thead className="sticky top-0 z-10 bg-white dark:bg-card">
+        <thead className="sticky top-0 z-10 bg-card">
           <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
             <th className="px-4 py-2.5 font-medium">Position</th>
             <th className="px-3 py-2.5 font-medium">Company</th>
@@ -44,7 +44,7 @@ export function TrackerList({ items, selectedJobId, onSelect }: TrackerListProps
         <tbody>
           {Array.from(groups.entries()).map(([status, rows]) => (
             <Fragment key={status}>
-              <tr className="bg-[#f6f7f9] dark:bg-secondary/40">
+              <tr className="bg-secondary/50">
                 <td colSpan={7} className="px-4 py-1.5 text-xs font-medium text-foreground">
                   {applicationStatusLabel(status)}
                   <span className="text-muted-foreground font-normal ml-1.5">
@@ -60,7 +60,7 @@ export function TrackerList({ items, selectedJobId, onSelect }: TrackerListProps
                     onClick={() => onSelect(item.job_id)}
                     className={cn(
                       'border-b border-border/60 cursor-pointer transition-colors',
-                      selected ? 'bg-secondary/60' : 'hover:bg-[#f6f7f9] dark:hover:bg-secondary/30'
+                      selected ? 'bg-secondary/60' : 'hover:bg-secondary/40'
                     )}
                   >
                     <td className="px-4 py-3 font-medium text-foreground max-w-[260px]">

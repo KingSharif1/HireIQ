@@ -5,6 +5,8 @@ import { ApplicationsTracker } from '@/components/jobs/ApplicationsTracker'
 import { FollowUpsPanel } from '@/components/tracker/FollowUpsPanel'
 import { JobHuntPulse } from '@/components/tracker/JobHuntPulse'
 import { nextStepFor } from '@/lib/applications/pulse'
+import { displayCompanyName } from '@/lib/jobs/company'
+import { visibleTailorRunStatus } from '@/lib/tailor/run-types'
 import { computeFollowUps, followUpDraft } from '@/lib/applications/follow-ups'
 import type { Application, ApplicationTrackerItem, Job } from '@/types'
 
@@ -62,10 +64,10 @@ export default async function TrackerPage({
       .limit(50),
     supabase
       .from('tailor_runs')
-      .select('job_id, status')
+      .select('job_id, status, updated_at')
       .eq('user_id', user.id)
-      .in('status', ['analyzing_gaps', 'awaiting_answers', 'generating', 'needs_review'])
-      .order('updated_at', { ascending: false }),
+      .order('updated_at', { ascending: false })
+      .limit(500),
     supabase
       .from('inbound_email_events')
       .select('application_id')
@@ -86,11 +88,13 @@ export default async function TrackerPage({
     if (!latestByJob.has(row.job_id)) latestByJob.set(row.job_id, row)
   }
   const runByJob = new Map<string, ApplicationTrackerItem['tailorRunStatus']>()
-  for (const row of (runsRes.data ?? []) as Array<{
-    job_id: string
-    status: NonNullable<ApplicationTrackerItem['tailorRunStatus']>
-  }>) {
-    if (!runByJob.has(row.job_id)) runByJob.set(row.job_id, row.status)
+  // Latest run per job; failed or silently-stuck runs show as "Couldn't finish" with a retry.
+  const seenRunJobs = new Set<string>()
+  for (const row of (runsRes.data ?? []) as Array<{ job_id: string; status: string; updated_at: string }>) {
+    if (seenRunJobs.has(row.job_id)) continue
+    seenRunJobs.add(row.job_id)
+    const visible = visibleTailorRunStatus(row, { latestResumeAt: latestByJob.get(row.job_id)?.created_at })
+    if (visible) runByJob.set(row.job_id, visible)
   }
 
   const items: ApplicationTrackerItem[] = apps
@@ -102,7 +106,7 @@ export default async function TrackerPage({
         ats_account_password: a.ats_account_password
           ? readStoredSecret(a.ats_account_password)
           : a.ats_account_password,
-        job: a.job,
+        job: { ...a.job, company: displayCompanyName(a.job.company, a.job.apply_url) },
         score: latest?.tailored_score ?? latest?.match_score ?? null,
         tailored: Boolean(latest),
         tailoredResumeId: latest?.id ?? null,
