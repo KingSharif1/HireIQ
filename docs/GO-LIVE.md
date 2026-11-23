@@ -8,7 +8,7 @@ independent.
 | Item | State |
 | --- | --- |
 | Code (`main`) | ✅ `ddeeee9` pushed · 556 tests · tsc/eslint clean |
-| Migrations 028/029 | ❌ **not applied** (need HireIQ Supabase access — see step 1) |
+| Migrations 028/029/030/031 | ✅ applied to prod 2026-11-23 (credits, referrals, screening/skipped statuses, trigger-fn revoke) |
 | Auto-apply worker | ✅ **deployed** — OCI `HireIQ` x86, `163.192.106.154:8080`, health verified from outside |
 | Worker service-role key | ❌ **not set** in the container (so `/run` can't process yet) |
 | Vercel env | ⚠️ partial — `CRON_SECRET` set (cron returns 401); `CREDITS_ENABLED` / `APPLY_WORKER_URL` / `APPLY_WORKER_SECRET` / `MASKED_EMAIL_DOMAIN` unverified |

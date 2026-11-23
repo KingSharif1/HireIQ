@@ -76,6 +76,7 @@ CREATE OR REPLACE FUNCTION debit_credits(
 ) RETURNS INT
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_remaining INT;
@@ -105,7 +106,9 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION debit_credits(UUID, INT, TEXT, UUID) FROM PUBLIC;
+-- Supabase's default privileges also grant EXECUTE to anon/authenticated, so revoke those
+-- explicitly; otherwise any signed-in user could debit someone else's credits.
+REVOKE ALL ON FUNCTION debit_credits(UUID, INT, TEXT, UUID) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION debit_credits(UUID, INT, TEXT, UUID) TO service_role;
 
 -- Rollback:
