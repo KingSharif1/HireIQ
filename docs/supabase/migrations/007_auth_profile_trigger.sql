@@ -10,18 +10,18 @@ AS $function$
 DECLARE
   fn TEXT;
   ln TEXT;
-  full TEXT;
+  v_full_name TEXT;
   meta JSONB;
 BEGIN
   meta := COALESCE(NEW.raw_user_meta_data, '{}'::jsonb);
 
-  full := NULLIF(trim(COALESCE(meta->>'full_name', meta->>'name', '')), '');
-  fn := NULLIF(trim(COALESCE(meta->>'first_name', split_part(COALESCE(full, ''), ' ', 1), '')), '');
+  v_full_name := NULLIF(trim(COALESCE(meta->>'full_name', meta->>'name', '')), '');
+  fn := NULLIF(trim(COALESCE(meta->>'first_name', split_part(COALESCE(v_full_name, ''), ' ', 1), '')), '');
   ln := NULLIF(trim(COALESCE(
     meta->>'last_name',
     CASE
-      WHEN full IS NOT NULL AND position(' ' IN full) > 0
-        THEN trim(substring(full FROM position(' ' IN full) + 1))
+      WHEN v_full_name IS NOT NULL AND position(' ' IN v_full_name) > 0
+        THEN trim(substring(v_full_name FROM position(' ' IN v_full_name) + 1))
       ELSE ''
     END,
     ''
