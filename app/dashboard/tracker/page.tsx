@@ -3,6 +3,8 @@ import { readStoredSecret } from '@/lib/crypto/secret'
 import { createClient } from '@/lib/supabase/server'
 import { ApplicationsTracker } from '@/components/jobs/ApplicationsTracker'
 import { FollowUpsPanel } from '@/components/tracker/FollowUpsPanel'
+import { JobHuntPulse } from '@/components/tracker/JobHuntPulse'
+import { nextStepFor } from '@/lib/applications/pulse'
 import { computeFollowUps, followUpDraft } from '@/lib/applications/follow-ups'
 import type { Application, ApplicationTrackerItem, Job } from '@/types'
 
@@ -35,7 +37,7 @@ export default async function TrackerPage({
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [appsRes, tailoredRes, inboundRes, runsRes, matchedInboundRes] = await Promise.all([
+  const [appsRes, tailoredRes, inboundRes, runsRes, matchedInboundRes, lastEmailRes] = await Promise.all([
     supabase
       .from('applications')
       .select(`
@@ -69,6 +71,13 @@ export default async function TrackerPage({
       .select('application_id')
       .eq('user_id', user.id)
       .not('application_id', 'is', null),
+    supabase
+      .from('inbound_email_events')
+      .select('created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
 
   const apps = (appsRes.data ?? []) as AppRow[]
@@ -107,6 +116,21 @@ export default async function TrackerPage({
       .filter((id): id is string => Boolean(id)),
   )
 
+  for (const item of items) {
+    item.nextStep = nextStepFor({
+      status: item.status,
+      appliedAt: item.applied_at,
+      followUpAt: item.follow_up_at,
+      hasReply: repliedIds.has(item.id),
+    })
+  }
+  const pulseItems = items.map((item) => ({
+    status: item.status,
+    appliedAt: item.applied_at,
+    followUpAt: item.follow_up_at,
+    hasReply: repliedIds.has(item.id),
+  }))
+
   const followUpPlan = computeFollowUps(
     items.map((item) => ({
       applicationId: item.id,
@@ -129,6 +153,10 @@ export default async function TrackerPage({
 
   return (
     <>
+      <JobHuntPulse
+        items={pulseItems}
+        lastEmailAt={(lastEmailRes.data as { created_at: string } | null)?.created_at ?? null}
+      />
       <FollowUpsPanel initialDue={dueFollowUps} />
       <ApplicationsTracker
         initialItems={items}
