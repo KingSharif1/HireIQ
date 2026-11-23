@@ -643,6 +643,8 @@ export interface ApplicationTrackerItem extends Application {
     | 'failed'
     | 'cancelled'
     | null
+  /** One-line next action for the tracker (lib/applications/pulse.ts). */
+  nextStep?: string | null
 }
 
 export interface TailoredResume {

@@ -99,6 +99,7 @@ Apply against project **`wsbbgznobxhjefaqbniv`** (HIRE/Nami Supabase account). T
 | Due/upcoming feed + suggested nudge text | `GET /api/agent/follow-ups` (session or api token) |
 | Snooze / mark-sent | `POST /api/agent/follow-ups` `{ applicationId, action: 'snooze'｜'done', days? }` |
 | **UI**: "follow-ups due" panel on `/dashboard/tracker` — overdue list, draft preview, snooze/sent buttons | `components/tracker/FollowUpsPanel.tsx`, wired in `app/dashboard/tracker/page.tsx` |
+| **Job-hunt pulse (#30)**: applied today / this week vs 2–3 per weekday, active pipeline, likely-ghosted (21d no reply), email watch, per-job next step, ledger JSON import (`POST /api/applications/import`) | `lib/applications/pulse.ts`, `lib/applications/ledger-import.ts`, `components/tracker/JobHuntPulse.tsx` |
 | **UI**: "Import from company boards" card on `/dashboard/jobs` — preview then import, shows per-board counts | `components/jobs/BoardDiscoveryCard.tsx`, wired in `app/dashboard/jobs/page.tsx` |
 
 ## 9. Not built (honest)

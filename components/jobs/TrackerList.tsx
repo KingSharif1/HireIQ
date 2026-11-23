@@ -36,6 +36,7 @@ export function TrackerList({ items, selectedJobId, onSelect }: TrackerListProps
             <th className="px-3 py-2.5 font-medium">Company</th>
             <th className="px-3 py-2.5 font-medium hidden md:table-cell">Location</th>
             <th className="px-3 py-2.5 font-medium">Status</th>
+            <th className="px-3 py-2.5 font-medium hidden lg:table-cell">Next step</th>
             <th className="px-3 py-2.5 font-medium">Saved</th>
             <th className="px-4 py-2.5 font-medium text-right">Match</th>
           </tr>
@@ -44,7 +45,7 @@ export function TrackerList({ items, selectedJobId, onSelect }: TrackerListProps
           {Array.from(groups.entries()).map(([status, rows]) => (
             <Fragment key={status}>
               <tr className="bg-[#f6f7f9] dark:bg-secondary/40">
-                <td colSpan={6} className="px-4 py-1.5 text-xs font-medium text-foreground">
+                <td colSpan={7} className="px-4 py-1.5 text-xs font-medium text-foreground">
                   {applicationStatusLabel(status)}
                   <span className="text-muted-foreground font-normal ml-1.5">
                     {rows.length}
@@ -85,6 +86,9 @@ export function TrackerList({ items, selectedJobId, onSelect }: TrackerListProps
                       >
                         {applicationStatusLabel(item.status)}
                       </span>
+                    </td>
+                    <td className="px-3 py-3 text-xs text-foreground/80 max-w-[200px] hidden lg:table-cell">
+                      <span className="line-clamp-1">{item.nextStep ?? '—'}</span>
                     </td>
                     <td className="px-3 py-3 text-muted-foreground tabular-nums text-xs whitespace-nowrap">
                       {new Date(item.created_at).toLocaleDateString(undefined, {
