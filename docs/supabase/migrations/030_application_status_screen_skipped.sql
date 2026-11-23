@@ -1,4 +1,4 @@
--- 030 — DRAFT, NOT APPLIED. Needs King Sharif's yes before running on prod.
+-- 030 — applied to prod 2026-11-23 (King approved).
 -- Issue #30: add explicit 'screening' and 'skipped' statuses to the tracker.
 -- ('ghosted' stays derived in code: applied + no reply for 21 days — see lib/applications/pulse.ts.)
 -- After applying: add both values to ApplicationStatus (types/index.ts), APPLICATION_STATUSES
