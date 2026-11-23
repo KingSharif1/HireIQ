@@ -19,11 +19,13 @@ const DAY_MS = 24 * 60 * 60 * 1000
 
 /** Statuses where chasing a reply makes no sense. */
 export const CLOSED_STATUSES: readonly ApplicationStatus[] = [
+  'screening',
   'interviewing',
   'negotiating',
   'offer',
   'rejected',
   'accepted',
+  'skipped',
 ]
 
 export interface FollowUpCandidate {

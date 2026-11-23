@@ -105,6 +105,12 @@ describe('inbound-match', () => {
     ).toBeNull()
   })
 
+  it('hints screening for a recruiter / phone screen email', () => {
+    expect(inferStatusFromEmail('Next steps', 'Can we set up a 30-minute phone screen this week?')?.status).toBe(
+      'screening',
+    )
+  })
+
   it('infers interviewing status', () => {
     const hint = inferStatusFromEmail('Interview invitation', 'We would like to schedule a call')
     expect(hint?.status).toBe('interviewing')

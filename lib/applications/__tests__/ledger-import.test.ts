@@ -17,8 +17,9 @@ describe('ledger import', () => {
   })
 
   it('maps ledger statuses onto DB statuses', () => {
-    expect(mapLedgerStatus('screen')).toBe('interviewing')
-    expect(mapLedgerStatus('Skipped')).toBe('bookmarked')
+    expect(mapLedgerStatus('screen')).toBe('screening')
+    expect(mapLedgerStatus('Skipped')).toBe('skipped')
+    expect(mapLedgerStatus('recruiter_screen')).toBe('screening')
     expect(mapLedgerStatus('ghosted')).toBe('applied')
     expect(mapLedgerStatus('weird')).toBe('bookmarked')
   })
@@ -28,7 +29,7 @@ describe('ledger import', () => {
     expect(applied.status).toBe('applied')
     expect(applied.appliedAt?.startsWith('2026-09-19')).toBe(true)
     expect(applied.notes).toContain('Greenhouse confirmation')
-    expect(skipped.status).toBe('bookmarked')
+    expect(skipped.status).toBe('skipped')
     expect(skipped.appliedAt).toBeNull()
     expect(skipped.notes).toContain('Skipped: Requires active clearance')
   })

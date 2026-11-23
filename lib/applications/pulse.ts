@@ -81,6 +81,8 @@ export function nextStepFor(item: PulseItem, now: Date = new Date()): string {
       if (!Number.isNaN(followUp) && followUp <= now.getTime()) return 'Follow-up due'
       return 'Wait for a reply'
     }
+    case 'screening':
+      return 'Prep for the recruiter screen'
     case 'interviewing':
       return 'Prep for the next interview'
     case 'negotiating':
@@ -91,12 +93,21 @@ export function nextStepFor(item: PulseItem, now: Date = new Date()): string {
       return 'Done — accepted'
     case 'rejected':
       return 'Closed'
+    case 'skipped':
+      return 'Skipped — not applying'
     default:
       return 'Review'
   }
 }
 
-const ACTIVE: readonly ApplicationStatus[] = ['applying', 'applied', 'interviewing', 'negotiating', 'offer']
+const ACTIVE: readonly ApplicationStatus[] = [
+  'applying',
+  'applied',
+  'screening',
+  'interviewing',
+  'negotiating',
+  'offer',
+]
 
 export function computeHuntPulse(
   items: readonly PulseItem[],
@@ -125,7 +136,9 @@ export function computeHuntPulse(
       if (t >= week) appliedThisWeek++
     }
     if (ACTIVE.includes(item.status)) active++
-    if (item.status === 'interviewing' || item.status === 'negotiating') interviewing++
+    if (item.status === 'screening' || item.status === 'interviewing' || item.status === 'negotiating') {
+      interviewing++
+    }
     if (isGhosted(item, now)) ghosted++
     if (item.hasReply) replies++
   }

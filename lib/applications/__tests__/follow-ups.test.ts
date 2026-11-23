@@ -69,7 +69,7 @@ describe('computeFollowUps', () => {
   })
 
   it('skips closed stages', () => {
-    for (const status of ['interviewing', 'offer', 'rejected', 'accepted'] as ApplicationStatus[]) {
+    for (const status of ['screening', 'interviewing', 'offer', 'rejected', 'accepted', 'skipped'] as ApplicationStatus[]) {
       const plan = computeFollowUps([cand({ applicationId: 'a', status })], { now: NOW })
       expect(plan.due).toHaveLength(0)
       expect(plan.skipped[0].reason).toBe('closed')

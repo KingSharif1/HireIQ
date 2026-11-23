@@ -63,3 +63,26 @@ describe('ghosted + next step', () => {
     expect(nextStepFor({ status: 'interviewing', appliedAt: daysAgo(9) }, NOW)).toMatch(/interview/)
   })
 })
+
+describe('screening and skipped (migration 030)', () => {
+  it('gives each a next step', () => {
+    expect(nextStepFor({ status: 'screening', appliedAt: daysAgo(3) }, NOW)).toBe('Prep for the recruiter screen')
+    expect(nextStepFor({ status: 'skipped', appliedAt: null }, NOW)).toBe('Skipped — not applying')
+  })
+
+  it('counts screening as active and in conversations; skipped is neither', () => {
+    const p = computeHuntPulse(
+      [
+        { status: 'screening', appliedAt: daysAgo(4), hasReply: true },
+        { status: 'skipped', appliedAt: null },
+      ],
+      { now: NOW },
+    )
+    expect(p.active).toBe(1)
+    expect(p.interviewing).toBe(1)
+  })
+
+  it('never calls a screening application ghosted', () => {
+    expect(isGhosted({ status: 'screening', appliedAt: daysAgo(60) }, NOW)).toBe(false)
+  })
+})

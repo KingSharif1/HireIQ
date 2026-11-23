@@ -115,3 +115,52 @@ export function classifyRouteProbe(route: string, httpStatus: number, body = '')
 export function summarise(checks: DeployCheck[]): { ok: boolean; failing: string[] } {  const failing = checks.filter((c) => !c.ok).map((c) => c.name)
   return { ok: failing.length === 0, failing }
 }
+
+/** Decode a JWT's payload without verifying it (base64url, unpadded). */
+export function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  const part = token.split('.')[1]
+  if (!part) return null
+  try {
+    const json = Buffer.from(part.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')
+    const parsed: unknown = JSON.parse(json)
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : null
+  } catch {
+    return null
+  }
+}
+
+const JWT_RE = /eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g
+const SUPABASE_URL_RE = /https:\/\/([a-z0-9]{20})\.supabase\.co/g
+
+export interface BundleProject {
+  /** The Supabase anon JWT, when one was found. */
+  anonKey: string | null
+  /** Project ref, from the anon key's `ref` claim or the bundled project URL. */
+  ref: string | null
+}
+
+/**
+ * Find the Supabase anon key and project ref in client bundle sources.
+ *
+ * A bundle can hold several JWT-shaped strings (library fixtures, other
+ * services), so the first match isn't necessarily the key. Only a JWT whose
+ * payload says `role: "anon"` with a string `ref` counts. If none matches,
+ * fall back to the project URL the client was built with.
+ */
+export function findSupabaseProjectInBundle(sources: string[]): BundleProject {
+  let urlRef: string | null = null
+  for (const js of sources) {
+    for (const m of js.matchAll(JWT_RE)) {
+      const payload = decodeJwtPayload(m[0])
+      if (payload?.role === 'anon' && typeof payload.ref === 'string' && payload.ref) {
+        return { anonKey: m[0], ref: payload.ref }
+      }
+    }
+    if (!urlRef) {
+      const u = SUPABASE_URL_RE.exec(js)
+      SUPABASE_URL_RE.lastIndex = 0
+      if (u) urlRef = u[1]
+    }
+  }
+  return { anonKey: null, ref: urlRef }
+}

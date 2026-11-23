@@ -21,6 +21,8 @@ import {
   classifyWorkerRun,
   classifyRouteProbe,
   summarise,
+  decodeJwtPayload,
+  findSupabaseProjectInBundle,
   type DeployCheck,
 } from '@/lib/deploy/verify'
 
@@ -29,27 +31,16 @@ const WORKER = (process.env.WORKER_BASE ?? process.env.APPLY_WORKER_URL ?? '')
   .replace(/\/run\/?$/, '')
   .replace(/\/$/, '')
 
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  const part = token.split('.')[1]
-  if (!part) return null
-  try {
-    const json = Buffer.from(part.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')
-    return JSON.parse(json) as Record<string, unknown>
-  } catch {
-    return null
-  }
-}
-
-async function fetchAnonFromBundle(): Promise<string | null> {
+/** Every `_next` script on /login, fetched, for anon-key discovery. */
+async function fetchBundleSources(): Promise<string[]> {
   const html = await (await fetch(`${APP}/login`)).text()
   const srcs = [...new Set([...html.matchAll(/["']((?:https?:\/\/[^"']+)?\/_next\/[^"']+\.js[^"']*)["']/g)].map((m) => m[1]))]
+  const out = [html]
   for (const src of srcs) {
     const abs = src.startsWith('http') ? src : `${APP}${src}`
-    const js = await (await fetch(abs)).text().catch(() => '')
-    const key = js.match(/eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/)
-    if (key) return key[0]
+    out.push(await fetch(abs).then((r) => r.text()).catch(() => ''))
   }
-  return null
+  return out
 }
 
 async function main() {
@@ -66,14 +57,17 @@ async function main() {
   }
 
   // 2. Anon key + project URL
-  const anon = process.env.ANON_KEY ?? (await fetchAnonFromBundle())
+  const envKey = process.env.ANON_KEY?.trim() || null
+  const envRef = envKey ? decodeJwtPayload(envKey)?.ref : undefined
+  const bundle = envKey && typeof envRef === 'string' ? null : findSupabaseProjectInBundle(await fetchBundleSources())
+  const anon = envKey ?? bundle?.anonKey ?? null
   if (!anon) {
-    checks.push({ name: 'project:anon-key', ok: false, detail: 'not found in the deployed bundle — pass ANON_KEY' })
+    checks.push({ name: 'project:anon-key', ok: false, detail: 'no role=anon JWT in the deployed bundle — pass ANON_KEY' })
     report(checks)
     return
   }
-  const ref = decodeJwtPayload(anon)?.ref
-  const projectUrl = typeof ref === 'string' ? `https://${ref}.supabase.co` : null
+  const ref = typeof envRef === 'string' && envRef ? envRef : (bundle?.ref ?? null)
+  const projectUrl = ref ? `https://${ref}.supabase.co` : null
   checks.push({
     name: 'project:anon-key',
     ok: Boolean(projectUrl),

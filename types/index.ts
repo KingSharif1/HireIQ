@@ -420,11 +420,15 @@ export type ApplicationStatus =
   | 'bookmarked'
   | 'applying'
   | 'applied'
+  /** Recruiter / phone screen scheduled or done (migration 030). */
+  | 'screening'
   | 'interviewing'
   | 'negotiating'
   | 'offer'
   | 'rejected'
   | 'accepted'
+  /** Decided not to apply; kept for the record with a reason in notes (migration 030). */
+  | 'skipped'
   /** @deprecated Migrated to bookmarked — kept for reading old clients only */
   | 'not_applied'
 

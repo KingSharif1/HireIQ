@@ -29,17 +29,18 @@ export const ledgerSchema = z.object({
 
 export type LedgerEntry = z.infer<typeof entrySchema>
 
-/** Ledger statuses → DB statuses (the DB check constraint has no screen/skipped/ghosted yet). */
+/** Ledger statuses → DB statuses ('ghosted' stays derived: applied + no reply). */
 const STATUS_MAP: Record<string, ApplicationStatus> = {
   queued: 'bookmarked',
   bookmarked: 'bookmarked',
   saved: 'bookmarked',
-  skipped: 'bookmarked',
+  skipped: 'skipped',
   applying: 'applying',
   applied: 'applied',
   ghosted: 'applied',
-  screen: 'interviewing',
-  screening: 'interviewing',
+  screen: 'screening',
+  screening: 'screening',
+  recruiter_screen: 'screening',
   interview: 'interviewing',
   interviewing: 'interviewing',
   negotiating: 'negotiating',
@@ -81,7 +82,7 @@ export function planLedgerImport(entries: readonly LedgerEntry[]): PlannedImport
     ]
       .filter(Boolean)
       .join('\n')
-    const submitted = status !== 'bookmarked' && status !== 'applying'
+    const submitted = status !== 'bookmarked' && status !== 'applying' && status !== 'skipped'
     return {
       company: e.company,
       title: e.title,
