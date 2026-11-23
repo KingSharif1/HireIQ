@@ -87,4 +87,10 @@ describe('visibleTailorRunStatus', () => {
     expect(visibleTailorRunStatus({ status: 'cancelled', updated_at: '2026-11-23T11:00:00Z' }, { nowMs: now })).toBeNull()
     expect(visibleTailorRunStatus(null)).toBeNull()
   })
+  it('drops "Ready to review" once the application is past Bookmarked', async () => {
+    const { visibleTailorRunStatus } = await import('@/lib/tailor/run-types')
+    const run = { status: 'needs_review', updated_at: '2026-11-23T11:00:00Z' }
+    expect(visibleTailorRunStatus(run, { nowMs: now, applicationStarted: false })).toBe('needs_review')
+    expect(visibleTailorRunStatus(run, { nowMs: now, applicationStarted: true })).toBeNull()
+  })
 })

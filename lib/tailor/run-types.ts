@@ -125,10 +125,12 @@ export function tailorDocumentsHref(jobId: string): string {
  */
 export function visibleTailorRunStatus(
   run: { status: string; updated_at: string } | null | undefined,
-  opts: { latestResumeAt?: string | null; nowMs?: number } = {},
+  opts: { latestResumeAt?: string | null; nowMs?: number; applicationStarted?: boolean } = {},
 ): TailorRunStatus | null {
   if (!run) return null
   if (run.status === 'cancelled') return null
+  // "Ready to review" is moot once the user has moved the application past Bookmarked.
+  if (run.status === 'needs_review' && opts.applicationStarted) return null
   const failed = run.status === 'failed' || isStaleBusyRun(run, opts.nowMs)
   if (failed) {
     const resumeAt = opts.latestResumeAt ? Date.parse(opts.latestResumeAt) : NaN

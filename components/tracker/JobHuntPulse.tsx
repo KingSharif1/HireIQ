@@ -85,18 +85,18 @@ export function JobHuntPulse({ items, lastEmailAt }: { items: PulseItem[]; lastE
       value: String(pulse.active),
       hint: `${pulse.interviewing} interviewing${pulse.ghosted ? ` · ${pulse.ghosted} likely ghosted` : ''}`,
     },
-    { label: 'Recruiter replies', value: String(pulse.replies), hint: `Email watch · last email ${relative(pulse.lastEmailAt)}` },
+    { label: 'Recruiter replies', value: String(pulse.replies), hint: pulse.lastEmailAt ? `Email watch · last email ${relative(pulse.lastEmailAt)}` : 'Email watch · no email yet' },
   ]
 
   return (
-    <section aria-label="Job hunt pulse" className="mb-4">
+    <section aria-label="Job hunt pulse">
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         {stats.map((s) => (
-          <div key={s.label} className="rounded-lg border border-border bg-card p-3">
+          <div key={s.label} className="rounded-lg border border-border bg-card px-3 py-2 sm:p-3">
             <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{s.label}</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">{s.value}</p>
+            <p className="mt-1 text-xl font-semibold tabular-nums text-foreground sm:text-2xl">{s.value}</p>
             {s.hint ? (
-              <p className={cn('mt-0.5 text-xs text-muted-foreground', s.hintCls)}>{s.hint}</p>
+              <p className={cn('mt-0.5 hidden text-xs text-muted-foreground sm:block', s.hintCls)}>{s.hint}</p>
             ) : null}
           </div>
         ))}

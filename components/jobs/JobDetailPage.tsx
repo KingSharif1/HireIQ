@@ -391,7 +391,7 @@ export function JobDetailPage({
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div className="min-w-0">
-              <h1 className="truncate text-xl font-semibold tracking-tight text-foreground md:text-2xl">
+              <h1 className="line-clamp-2 break-words text-xl leading-snug md:line-clamp-1 font-semibold tracking-tight text-foreground md:text-2xl">
                 {item.job.title}
               </h1>
               <p className="mt-0.5 truncate text-sm text-muted-foreground">
@@ -445,7 +445,7 @@ export function JobDetailPage({
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {item.job.extracted_data?.apply_ease ? (
+            {V2_SURFACES_ENABLED && item.job.extracted_data?.apply_ease ? (
               <ApplyEaseBadge
                 ease={item.job.extracted_data.apply_ease}
                 reason={item.job.extracted_data.apply_ease_reason}
@@ -579,6 +579,10 @@ export function JobDetailPage({
                 onViewResume={(id) => {
                   setSelectedDocId(id)
                   openDocuments('preview')
+                }}
+                onReviewResume={(id) => {
+                  setSelectedDocId(id)
+                  openDocuments('ai-review')
                 }}
                 onTailor={() => openDocuments('ai-tailor')}
                 onOpenActivity={() => setTab('activity')}

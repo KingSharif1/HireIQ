@@ -10,6 +10,7 @@ import { parseModelJson } from '@/lib/ai/parse-json'
 import { tierForFeature } from '@/lib/ai/models'
 import { classifyApplyEase, type ApplyEaseResult } from '@/lib/apply/ease'
 import { normalizeJobExtractedData } from '@/lib/jobs/normalize-job'
+import { displayCompanyName } from '@/lib/jobs/company'
 import type { JobExtractedData } from '@/types'
 
 export const runtime = 'nodejs'
@@ -77,11 +78,13 @@ export async function POST(request: Request) {
         ? applyEase
         : classifyApplyEase({ url: applyUrl })
     const resolvedApplyUrl = ease.detectedApplyUrl || applyUrl || null
+    // A board token ("freeformfuturecorp") is not a company name; humanize it before it's stored.
+    const resolvedCompany = displayCompanyName(company || extractedBase.company, resolvedApplyUrl)
     const extractedData: JobExtractedData = normalizeJobExtractedData(
       {
         ...extractedBase,
         title: title || extractedBase.title,
-        company: company || extractedBase.company,
+        company: resolvedCompany,
         apply_ease: ease.ease,
         apply_ease_reason: ease.reason,
       },
@@ -93,7 +96,7 @@ export async function POST(request: Request) {
       .insert({
         user_id: user.id,
         source: source || 'manual',
-        company: company || extractedData.company || 'Unknown',
+        company: resolvedCompany || 'Unknown',
         title: title || extractedData.title || 'Unknown Role',
         description: description.slice(0, 50000),
         location: location || null,

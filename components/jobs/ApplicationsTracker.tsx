@@ -29,12 +29,15 @@ interface ApplicationsTrackerProps {
   initialItems: ApplicationTrackerItem[]
   initialSurface?: Surface
   unmatchedInbound?: UnmatchedInboundRow[]
+  /** Pulse stats and follow-ups, shown inside the header on the applications surface. */
+  summary?: ReactNode
 }
 
 export function ApplicationsTracker({
   initialItems,
   initialSurface = 'applications',
   unmatchedInbound = [],
+  summary,
 }: ApplicationsTrackerProps) {
   const router = useRouter()
   const [items, setItems] = useState(initialItems)
@@ -242,6 +245,8 @@ export function ApplicationsTracker({
             </Button>
           </div>
         </div>
+
+        {!isOutreach && summary ? <div className="px-4 pb-3">{summary}</div> : null}
 
         <div
           className="flex items-center gap-1 px-4 pb-2"

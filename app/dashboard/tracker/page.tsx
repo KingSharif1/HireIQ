@@ -87,13 +87,18 @@ export default async function TrackerPage({
   for (const row of (tailoredRes.data ?? []) as TailoredRow[]) {
     if (!latestByJob.has(row.job_id)) latestByJob.set(row.job_id, row)
   }
+  const statusByJob = new Map(apps.map((a) => [a.job_id, a.status] as const))
   const runByJob = new Map<string, ApplicationTrackerItem['tailorRunStatus']>()
   // Latest run per job; failed or silently-stuck runs show as "Couldn't finish" with a retry.
   const seenRunJobs = new Set<string>()
   for (const row of (runsRes.data ?? []) as Array<{ job_id: string; status: string; updated_at: string }>) {
     if (seenRunJobs.has(row.job_id)) continue
     seenRunJobs.add(row.job_id)
-    const visible = visibleTailorRunStatus(row, { latestResumeAt: latestByJob.get(row.job_id)?.created_at })
+    const latestResume = latestByJob.get(row.job_id)
+    const visible = visibleTailorRunStatus(row, {
+      latestResumeAt: latestResume?.created_at,
+      applicationStarted: (statusByJob.get(row.job_id) ?? 'bookmarked') !== 'bookmarked',
+    })
     if (visible) runByJob.set(row.job_id, visible)
   }
 
@@ -126,6 +131,8 @@ export default async function TrackerPage({
       appliedAt: item.applied_at,
       followUpAt: item.follow_up_at,
       hasReply: repliedIds.has(item.id),
+      hasResume: item.tailored,
+      tailorFailed: item.tailorRunStatus === 'failed',
     })
   }
   const pulseItems = items.map((item) => ({
@@ -156,17 +163,21 @@ export default async function TrackerPage({
   }))
 
   return (
-    <>
-      <JobHuntPulse
-        items={pulseItems}
-        lastEmailAt={(lastEmailRes.data as { created_at: string } | null)?.created_at ?? null}
-      />
-      <FollowUpsPanel initialDue={dueFollowUps} />
-      <ApplicationsTracker
-        initialItems={items}
-        initialSurface={view === 'outreach' ? 'outreach' : 'applications'}
-        unmatchedInbound={inboundRes.data ?? []}
-      />
-    </>
+    <ApplicationsTracker
+      initialItems={items}
+      initialSurface={view === 'outreach' ? 'outreach' : 'applications'}
+      unmatchedInbound={inboundRes.data ?? []}
+      summary={
+        items.length > 0 ? (
+          <>
+            <JobHuntPulse
+              items={pulseItems}
+              lastEmailAt={(lastEmailRes.data as { created_at: string } | null)?.created_at ?? null}
+            />
+            <FollowUpsPanel initialDue={dueFollowUps} />
+          </>
+        ) : null
+      }
+    />
   )
 }

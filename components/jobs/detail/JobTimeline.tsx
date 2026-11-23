@@ -50,6 +50,7 @@ export function JobTimeline({
   tailorRunStatus,
   tailorRunError,
   onViewResume,
+  onReviewResume,
   onTailor,
   onOpenActivity,
 }: {
@@ -62,6 +63,8 @@ export function JobTimeline({
   tailorRunStatus: TailorRunStatus | null
   tailorRunError: string | null
   onViewResume: (id: string) => void
+  /** Open the accept/decline review for a version (used when export is blocked on review). */
+  onReviewResume?: (id: string) => void
   onTailor: () => void
   onOpenActivity: () => void
 }) {
@@ -71,10 +74,14 @@ export function JobTimeline({
   const latest = versions[0] ?? null
   const latestScore = latest ? latest.tailored_score ?? latest.match_score : null
   const hasReply = activity.some((item) => item.kind === 'email')
-  const nextStep =
-    tailorRunStatus === 'failed'
-      ? 'Retry the tailor, then apply'
-      : nextStepFor({ status, appliedAt, followUpAt, hasReply })
+  const nextStep = nextStepFor({
+    status,
+    appliedAt,
+    followUpAt,
+    hasReply,
+    hasResume: Boolean(latest),
+    tailorFailed: tailorRunStatus === 'failed',
+  })
   const failure = tailorRunStatus === 'failed' ? userFacingTailorError(tailorRunError) : null
 
   async function download(id: string) {
@@ -142,9 +149,22 @@ export function JobTimeline({
           </div>
         ) : null}
         {downloadError ? (
-          <p role="alert" className="mt-2 text-xs text-destructive">
-            {downloadError}
-          </p>
+          <div role="alert" className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-destructive">
+            <span>{downloadError}</span>
+            {latest ? (
+              <button
+                type="button"
+                className="font-medium text-foreground underline-offset-2 hover:underline"
+                onClick={() => {
+                  setDownloadError(null)
+                  if (/review/i.test(downloadError) && onReviewResume) onReviewResume(latest.id)
+                  else onViewResume(latest.id)
+                }}
+              >
+                {/review/i.test(downloadError) ? 'Review changes' : 'Open resume'}
+              </button>
+            ) : null}
+          </div>
         ) : null}
       </div>
 

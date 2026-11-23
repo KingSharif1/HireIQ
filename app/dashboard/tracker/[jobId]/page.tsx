@@ -133,12 +133,18 @@ export default async function TrackerJobDetailPage({
     tailoredResumeId: latest?.id ?? null,
     tailorRunStatus: visibleTailorRunStatus(
       runRes.data as { status: string; updated_at: string } | null,
-      { latestResumeAt: latest?.created_at },
+      {
+        latestResumeAt: latest?.created_at,
+        applicationStarted: app.status !== 'bookmarked',
+      },
     ),
   }
+  const runRow = runRes.data as { status?: string; error?: string | null } | null
   const tailorRunError =
     item.tailorRunStatus === 'failed'
-      ? ((runRes.data as { error?: string | null } | null)?.error ?? null)
+      ? (runRow?.error ??
+        // A busy run that stopped updating never wrote an error: say what happened.
+        (runRow?.status !== 'failed' ? 'Tailor stopped before it finished' : null))
       : null
 
   const events = (eventsRes.data ?? []) as ApplicationEvent[]

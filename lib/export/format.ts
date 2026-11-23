@@ -227,3 +227,27 @@ export function filterResumeBySections(
     certifications: keep.has('certifications') ? data.certifications : [],
   }
 }
+
+/**
+ * A readable download name, e.g. "Jordan-Rivers-Resume-Freeformfuture-Corp.pdf".
+ * Falls back to "resume.pdf" / "cover-letter.pdf" when there's nothing to name it by.
+ */
+export function exportFilename(opts: {
+  name?: string | null
+  company?: string | null
+  kind: 'resume' | 'cover'
+  ext?: 'pdf' | 'docx'
+}): string {
+  const ext = opts.ext ?? 'pdf'
+  const slug = (value: string | null | undefined) =>
+    (value ?? '')
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^A-Za-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40)
+  const label = opts.kind === 'cover' ? 'Cover-Letter' : 'Resume'
+  const parts = [slug(opts.name), slug(opts.name) || slug(opts.company) ? label : '', slug(opts.company)].filter(Boolean)
+  if (!parts.length) return opts.kind === 'cover' ? `cover-letter.${ext}` : `resume.${ext}`
+  return `${parts.join('-')}.${ext}`
+}

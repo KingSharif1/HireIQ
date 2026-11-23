@@ -361,7 +361,8 @@ export async function downloadTailoredPdf(
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = url
-  anchor.download = kind === 'cover' ? 'cover-letter.pdf' : 'tailored-resume.pdf'
+  const named = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1]
+  anchor.download = named || (kind === 'cover' ? 'cover-letter.pdf' : 'resume.pdf')
   document.body.appendChild(anchor)
   anchor.click()
   anchor.remove()

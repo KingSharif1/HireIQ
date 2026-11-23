@@ -66,6 +66,14 @@ describe('runTailorPipeline', () => {
     expect(generate.mock.calls[1][0].prompt).toContain('CRITICAL RETRY')
   })
 
+  it('fails the run (instead of saving a hollow draft) when the retry is unusable too', async () => {
+    const generate = vi.fn().mockResolvedValue('{"broken": [ { "x": 1 {')
+    await expect(
+      runTailorPipeline({ resume: base, job, answers: {}, generate }),
+    ).rejects.toThrow(/missing summary and experience after retry/)
+    expect(generate).toHaveBeenCalledTimes(2)
+  })
+
   it('retries once when the model returns broken JSON instead of markdown', async () => {
     const generate = vi
       .fn()

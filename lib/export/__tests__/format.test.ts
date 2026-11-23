@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   educationParts,
+  exportFilename,
   contactHeaderLines,
   dedupeResumeSkills,
   formatDateRange,
@@ -190,5 +191,18 @@ describe('educationParts', () => {
     const instFirst = educationParts({ degree: '', field: '', institution: 'MIT', startDate: '2020', endDate: '2024', gpa: '' }, 'institution-first')
     expect(instFirst.primary).toBe('MIT')
     expect(instFirst.meta).toBe('2020 – 2024')
+  })
+})
+
+describe('exportFilename', () => {
+  it('names the file after the candidate and company', () => {
+    expect(exportFilename({ name: 'Jordan Rivers', company: 'Freeformfuture Corp', kind: 'resume' })).toBe(
+      'Jordan-Rivers-Resume-Freeformfuture-Corp.pdf',
+    )
+    expect(exportFilename({ name: 'José Núñez', company: null, kind: 'cover' })).toBe('Jose-Nunez-Cover-Letter.pdf')
+  })
+  it('falls back to a generic name', () => {
+    expect(exportFilename({ name: '', company: '', kind: 'resume' })).toBe('resume.pdf')
+    expect(exportFilename({ kind: 'cover', ext: 'docx' })).toBe('cover-letter.docx')
   })
 })
