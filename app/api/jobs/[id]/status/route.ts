@@ -2,17 +2,9 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { ApplicationStatusError, setApplicationStatus } from '@/lib/applications/status'
+import { APPLICATION_STATUS_VALUES } from '@/lib/jobs/status'
 
-const STATUSES = [
-  'bookmarked',
-  'applying',
-  'applied',
-  'interviewing',
-  'negotiating',
-  'offer',
-  'accepted',
-  'rejected',
-] as const
+const STATUSES = APPLICATION_STATUS_VALUES
 
 const bodySchema = z.object({
   status: z.enum(STATUSES),

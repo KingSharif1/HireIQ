@@ -1,26 +1,28 @@
 import type { Metadata } from 'next'
-import { DM_Sans, Inter, Syne } from 'next/font/google'
+import localFont from 'next/font/local'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import './globals.css'
 
-const inter = Inter({
+// Self-hosted (latin subset, variable weight) so builds never depend on fetching
+// Google Fonts — that fetch flaked Vercel builds. Files: app/fonts (SIL OFL 1.1).
+const inter = localFont({
+  src: './fonts/inter-latin-var.woff2',
   variable: '--font-inter',
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
+  weight: '300 700',
   display: 'swap',
 })
 
-const syne = Syne({
+const syne = localFont({
+  src: './fonts/syne-latin-var.woff2',
   variable: '--font-syne',
-  subsets: ['latin'],
-  weight: ['500', '600', '700', '800'],
+  weight: '500 800',
   display: 'swap',
 })
 
-const dmSans = DM_Sans({
+const dmSans = localFont({
+  src: './fonts/dm-sans-latin-var.woff2',
   variable: '--font-dm-sans',
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: '400 700',
   display: 'swap',
 })
 

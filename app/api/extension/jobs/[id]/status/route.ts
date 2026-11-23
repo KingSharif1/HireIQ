@@ -3,19 +3,11 @@ import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveExtensionUserId } from '@/lib/extension/tokens'
 import { ApplicationStatusError, setApplicationStatus } from '@/lib/applications/status'
+import { APPLICATION_STATUS_VALUES } from '@/lib/jobs/status'
 
 export const runtime = 'nodejs'
 
-const STATUSES = [
-  'bookmarked',
-  'applying',
-  'applied',
-  'interviewing',
-  'negotiating',
-  'offer',
-  'accepted',
-  'rejected',
-] as const
+const STATUSES = APPLICATION_STATUS_VALUES
 
 const bodySchema = z.object({
   status: z.enum(STATUSES),

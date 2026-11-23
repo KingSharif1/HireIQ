@@ -21,7 +21,10 @@ export function inferStatusFromEmail(subject: string, bodyPreview: string): Stat
   if (/\b(offer|congratulations[,.]?\s+you('ve| have)\s+been\s+selected)\b/.test(text)) {
     return { status: 'offer', confidence: 0.75, reason: 'offer keywords' }
   }
-  if (/\b(interview|schedule a call|speak with you|phone screen)\b/.test(text)) {
+  if (/\b(phone screen|recruiter screen|screening call|quick call|intro(ductory)? call)\b/.test(text)) {
+    return { status: 'screening', confidence: 0.7, reason: 'screen keywords' }
+  }
+  if (/\b(interview|schedule a call|speak with you)\b/.test(text)) {
     return { status: 'interviewing', confidence: 0.7, reason: 'interview keywords' }
   }
   if (
