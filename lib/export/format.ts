@@ -55,6 +55,27 @@ export function formatEducationLine(edu: Pick<ResumeEducation, 'degree' | 'field
   return formatDegreeField(edu.degree ?? '', edu.field ?? '')
 }
 
+/**
+ * Education row text for every renderer (preview, PDF, DOCX): no dangling
+ * dash, comma, or "·" when the degree, institution, dates, or GPA is missing.
+ */
+export function educationParts(
+  edu: Pick<ResumeEducation, 'degree' | 'field' | 'institution' | 'startDate' | 'endDate' | 'gpa'>,
+  showBy: 'degree-first' | 'institution-first' | string = 'degree-first',
+): { primary: string; secondary: string; inline: string; meta: string } {
+  const degreeText = formatEducationLine(edu)
+  const institution = stripEdgeSeparators(edu.institution)
+  const [primary, secondary] =
+    showBy === 'degree-first' ? [degreeText, institution] : [institution, degreeText]
+  const gpa = stripEdgeSeparators(edu.gpa)
+  return {
+    primary: primary || secondary,
+    secondary: primary ? secondary : '',
+    inline: [primary, secondary].filter(Boolean).join(', '),
+    meta: [formatDateRange(edu.startDate, edu.endDate), gpa ? `GPA: ${gpa}` : ''].filter(Boolean).join(' · '),
+  }
+}
+
 /** Join a date range without a dangling separator when one side is empty or only a dash. */
 export function formatDateRange(
   startDate: string | null | undefined,
@@ -205,4 +226,28 @@ export function filterResumeBySections(
     projects: keep.has('projects') ? data.projects : [],
     certifications: keep.has('certifications') ? data.certifications : [],
   }
+}
+
+/**
+ * A readable download name, e.g. "Jordan-Rivers-Resume-Freeformfuture-Corp.pdf".
+ * Falls back to "resume.pdf" / "cover-letter.pdf" when there's nothing to name it by.
+ */
+export function exportFilename(opts: {
+  name?: string | null
+  company?: string | null
+  kind: 'resume' | 'cover'
+  ext?: 'pdf' | 'docx'
+}): string {
+  const ext = opts.ext ?? 'pdf'
+  const slug = (value: string | null | undefined) =>
+    (value ?? '')
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^A-Za-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40)
+  const label = opts.kind === 'cover' ? 'Cover-Letter' : 'Resume'
+  const parts = [slug(opts.name), slug(opts.name) || slug(opts.company) ? label : '', slug(opts.company)].filter(Boolean)
+  if (!parts.length) return opts.kind === 'cover' ? `cover-letter.${ext}` : `resume.${ext}`
+  return `${parts.join('-')}.${ext}`
 }

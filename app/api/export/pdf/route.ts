@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { buildApprovedResume, countPendingDecisions } from '@/lib/tailor/change-decisions'
 import { getMasterResumeContext } from '@/lib/profile/master'
-import { polishStructuredForExport, filterResumeBySections } from '@/lib/export/format'
+import { polishStructuredForExport, filterResumeBySections, exportFilename } from '@/lib/export/format'
+import { displayCompanyName } from '@/lib/jobs/company'
 import {
   DEFAULT_RESUME_THEME,
   mergeResumeTheme,
@@ -88,7 +89,7 @@ export async function POST(request: Request) {
   const { data: tailored } = await supabase
     .from('tailored_resumes')
     .select(
-      'structured_data, original_structured_data, changes, change_decisions, cover_letter, theme_override'
+      'job_id, structured_data, original_structured_data, changes, change_decisions, cover_letter, theme_override'
     )
     .eq('id', tailoredResumeId)
     .eq('user_id', user.id)
@@ -133,6 +134,22 @@ export async function POST(request: Request) {
     }
   }
 
+  let company: string | null = null
+  if (tailored.job_id) {
+    const { data: job } = await supabase
+      .from('jobs')
+      .select('company, apply_url')
+      .eq('id', tailored.job_id)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    company = job ? displayCompanyName(job.company, job.apply_url) || null : null
+  }
+  const filename = exportFilename({
+    name: exportData?.contact?.name,
+    company,
+    kind: type === 'cover' ? 'cover' : 'resume',
+  })
+
   if (type === 'cover') {
     if (!tailored.cover_letter) {
       return NextResponse.json({ error: 'No cover letter to export' }, { status: 400 })
@@ -146,7 +163,7 @@ export async function POST(request: Request) {
     return new NextResponse(new Uint8Array(buffer as Buffer), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': 'attachment; filename="cover-letter.pdf"',
+        'Content-Disposition': `attachment; filename="${filename}"`,
       },
     })
   }
@@ -161,7 +178,7 @@ export async function POST(request: Request) {
   return new NextResponse(new Uint8Array(buffer as Buffer), {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': 'attachment; filename="resume.pdf"',
+      'Content-Disposition': `attachment; filename="${filename}"`,
     },
   })
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, useTransition, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Briefcase, LayoutGrid, List, Mail, Plus, Search, X } from 'lucide-react'
@@ -29,12 +29,15 @@ interface ApplicationsTrackerProps {
   initialItems: ApplicationTrackerItem[]
   initialSurface?: Surface
   unmatchedInbound?: UnmatchedInboundRow[]
+  /** Pulse stats and follow-ups, shown inside the header on the applications surface. */
+  summary?: ReactNode
 }
 
 export function ApplicationsTracker({
   initialItems,
   initialSurface = 'applications',
   unmatchedInbound = [],
+  summary,
 }: ApplicationsTrackerProps) {
   const router = useRouter()
   const [items, setItems] = useState(initialItems)
@@ -51,6 +54,11 @@ export function ApplicationsTracker({
     setItems(initialItems)
   }, [initialItems])
 
+  const itemsRef = useRef(items)
+  useEffect(() => {
+    itemsRef.current = items
+  }, [items])
+
   const hasBusyTailor = items.some(item => isBusyTailorStatus(item.tailorRunStatus ?? ''))
 
   useEffect(() => {
@@ -59,6 +67,11 @@ export function ApplicationsTracker({
       void fetchActiveTailorRuns()
         .then((runs: TailorRunDto[]) => {
           const byJob = new Map(runs.map(run => [run.job_id, run.status] as const))
+          // A busy run that left the active list finished or failed — let the server decide which.
+          const vanished = itemsRef.current.some(
+            item => isBusyTailorStatus(item.tailorRunStatus ?? '') && !byJob.has(item.job_id),
+          )
+          if (vanished) router.refresh()
           setItems(prev =>
             prev.map(item => ({
               ...item,
@@ -69,7 +82,7 @@ export function ApplicationsTracker({
         .catch(() => undefined)
     }, 4000)
     return () => window.clearInterval(tick)
-  }, [hasBusyTailor])
+  }, [hasBusyTailor, router])
 
   useEffect(() => {
     try {
@@ -192,7 +205,7 @@ export function ApplicationsTracker({
           <div className="flex items-center gap-2">
             {!isOutreach ? (
               <div
-                className="inline-flex rounded-lg border border-border bg-[#f6f7f9] dark:bg-secondary/40 p-0.5"
+                className="inline-flex rounded-lg border border-border bg-secondary/50 p-0.5"
                 role="group"
                 aria-label="View mode"
               >
@@ -202,7 +215,7 @@ export function ApplicationsTracker({
                   className={cn(
                     'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors',
                     view === 'list'
-                      ? 'bg-white dark:bg-card text-foreground shadow-sm'
+                      ? 'bg-card text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
                   )}
                 >
@@ -215,7 +228,7 @@ export function ApplicationsTracker({
                   className={cn(
                     'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors',
                     view === 'board'
-                      ? 'bg-white dark:bg-card text-foreground shadow-sm'
+                      ? 'bg-card text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
                   )}
                 >
@@ -232,6 +245,8 @@ export function ApplicationsTracker({
             </Button>
           </div>
         </div>
+
+        {!isOutreach && summary ? <div className="px-4 pb-3">{summary}</div> : null}
 
         <div
           className="flex items-center gap-1 px-4 pb-2"
@@ -263,7 +278,7 @@ export function ApplicationsTracker({
               placeholder={
                 isOutreach ? 'Search subject, company, message…' : 'Search title, company…'
               }
-              className="w-full h-9 rounded-lg border border-border bg-[#f6f7f9] dark:bg-secondary/30 pl-8 pr-8 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/10 focus:border-foreground/30"
+              className="w-full h-9 rounded-lg border border-border bg-secondary/40 pl-8 pr-8 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/10 focus:border-foreground/30"
             />
             {query && (
               <button
@@ -374,7 +389,7 @@ export function ApplicationsTracker({
             />
           </div>
         ) : (
-          <div className="bg-white dark:bg-card min-h-full">
+          <div className="bg-card min-h-full">
             <TrackerList items={visibleJobs} selectedJobId={null} onSelect={openJob} />
           </div>
         )}
@@ -438,7 +453,7 @@ function FilterChip({
         'flex-shrink-0 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
         active
           ? 'border-foreground bg-foreground text-background'
-          : 'border-border bg-white dark:bg-card text-muted-foreground hover:text-foreground hover:border-foreground/30'
+          : 'border-border bg-card text-muted-foreground hover:text-foreground hover:border-foreground/30'
       )}
     >
       {label}
@@ -457,7 +472,7 @@ function FilterChip({
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-      <div className="w-12 h-12 rounded-2xl border border-border bg-white dark:bg-card flex items-center justify-center mb-4">
+      <div className="w-12 h-12 rounded-2xl border border-border bg-card flex items-center justify-center mb-4">
         <Briefcase className="w-5 h-5 text-muted-foreground" strokeWidth={1.5} />
       </div>
       <h3 className="font-semibold text-foreground">No applications yet</h3>

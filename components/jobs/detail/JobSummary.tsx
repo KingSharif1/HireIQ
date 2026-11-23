@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
+import { V2_SURFACES_ENABLED } from '@/lib/features'
 import {
   Banknote,
   BriefcaseBusiness,
@@ -151,8 +152,8 @@ export function JobSummaryOverview({
             <p className="text-sm font-semibold text-foreground">Quick actions</p>
             <p className="mt-0.5 max-w-md text-xs leading-relaxed text-muted-foreground">
               {hasTailoredResume
-                ? 'Open your tailored resume, then apply from Documents or Auto-apply.'
-                : 'Tailor a resume for this role, then apply from Documents or Auto-apply.'}
+                ? `Open your tailored resume, then apply from Documents${V2_SURFACES_ENABLED ? ' or Auto-apply' : ''}.`
+                : `Tailor a resume for this role, then apply from Documents${V2_SURFACES_ENABLED ? ' or Auto-apply' : ''}.`}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

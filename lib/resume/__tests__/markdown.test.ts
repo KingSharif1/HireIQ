@@ -118,6 +118,35 @@ jane@example.com
     expect(`${parsed.education[0]?.degree} ${parsed.education[0]?.endDate}`).not.toMatch(/[–—]\s*$/)
   })
 
+  it('keeps degree and institution apart when the field is empty', () => {
+    const md = `# Jane
+jane@example.com
+
+## Education
+### B.S. · State University <!-- id:edu_1 -->
+2021 – 2025
+`
+    const edu = markdownToStructuredResume(md).education[0]
+    expect(edu?.degree).toBe('B.S.')
+    expect(edu?.field).toBe('')
+    expect(edu?.institution).toBe('State University')
+  })
+
+  it('never stores literal ** markers in bullets', () => {
+    const md = `# Jane
+jane@example.com
+
+## Experience
+### Engineer · Acme · 2022 – Present <!-- id:exp_1 -->
+- Built **React** dashboards for **4** teams <!-- id:exp_1:b0 -->
+- Cut deploy time by **40%** **
+`
+    const exp = markdownToStructuredResume(md).experience[0]
+    expect(exp?.bullets[0]).toBe('Built React dashboards for 4 teams')
+    expect(exp?.bullets[1]).toBe('Cut deploy time by 40%')
+    expect(exp?.bullets.join(' ')).not.toContain('**')
+  })
+
   it('strips fences and reports streaming progress', () => {
     const fenced = 'Here you go\n```markdown\n# A\n\n## Summary\nHi\n```'
     expect(extractResumeMarkdown(fenced)).toContain('# A')

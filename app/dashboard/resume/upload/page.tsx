@@ -104,6 +104,13 @@ export default function UploadResumePage() {
   }
 
   if (state === 'done' && parsedData) {
+    const allSkills = Array.from(
+      new Set([
+        ...parsedData.skills.languages,
+        ...parsedData.skills.technical,
+        ...parsedData.skills.tools,
+      ]),
+    )
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-6">
@@ -115,8 +122,9 @@ export default function UploadResumePage() {
               {replaced ? 'Source resume replaced' : 'Resume parsed'}
             </h1>
             <p className="text-sm text-muted-foreground">
-              AI extracted {parsedData.experience.length} roles and{' '}
-              {parsedData.skills.technical.length + parsedData.skills.tools.length} skills
+              AI extracted {parsedData.experience.length}{' '}
+              {parsedData.experience.length === 1 ? 'role' : 'roles'} and {allSkills.length}{' '}
+              {allSkills.length === 1 ? 'skill' : 'skills'}
             </p>
           </div>
         </div>
@@ -149,11 +157,11 @@ export default function UploadResumePage() {
             )}
 
             <div className="flex flex-wrap gap-2">
-              {parsedData.skills.technical.slice(0, 8).map(skill => (
+              {allSkills.slice(0, 8).map(skill => (
                 <Badge key={skill} variant="secondary">{skill}</Badge>
               ))}
-              {parsedData.skills.technical.length > 8 && (
-                <Badge variant="muted">+{parsedData.skills.technical.length - 8} more</Badge>
+              {allSkills.length > 8 && (
+                <Badge variant="muted">+{allSkills.length - 8} more</Badge>
               )}
             </div>
 

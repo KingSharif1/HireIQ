@@ -243,7 +243,7 @@ export function AutoApplyWithHireIQ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduceMotion ? undefined : { opacity: 0, y: 6, scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-            className="absolute right-0 top-full z-30 mt-2 w-[min(calc(100vw-2rem),22rem)] overflow-hidden rounded-xl border border-border/80 bg-white shadow-lg dark:bg-card"
+            className="absolute right-0 top-full z-30 mt-2 w-[min(calc(100vw-2rem),22rem)] overflow-hidden rounded-xl border border-border/80 bg-card shadow-lg"
             aria-live="polite"
           >
             <div className="relative overflow-hidden px-3.5 pb-3.5 pt-3">

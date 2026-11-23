@@ -8,6 +8,7 @@ import { checkResumeHealth, healthScore, type HealthSeverity } from '@/lib/resum
 import { resumeSkillLabels } from '@/lib/profile/skills'
 import {
   contactHeaderLines,
+  educationParts,
   formatDateRange,
   formatEducationLine,
   polishStructuredForExport,
@@ -791,10 +792,7 @@ function EducationEntry({
 }) {
   const { showBy, layout } = theme.educationSettings
   const dateStr = formatDateRange(edu.startDate, edu.endDate)
-  const degreeText = formatEducationLine(edu)
-
-  const primaryText = showBy === 'degree-first' ? degreeText : edu.institution
-  const secondaryText = showBy === 'degree-first' ? edu.institution : degreeText
+  const { primary: primaryText, secondary: secondaryText } = educationParts(edu, showBy)
 
   if (layout === 'inline') {
     return (
@@ -802,8 +800,7 @@ function EducationEntry({
         <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4 }}>
           <div style={{ fontSize: theme.bodyFontSize - 0.5, color: '#333' }}>
             <span style={{ fontWeight: 700, fontSize: theme.bodyFontSize }}>{primaryText}</span>
-            {', '}
-            <span style={{ color: '#444' }}>{secondaryText}</span>
+            {secondaryText ? <>{', '}<span style={{ color: '#444' }}>{secondaryText}</span></> : null}
           </div>
           <div style={{ fontSize: theme.bodyFontSize - 1, color: '#666', fontStyle: 'italic' }}>
             {dateStr}
@@ -824,7 +821,7 @@ function EducationEntry({
           {dateStr}
         </div>
       </div>
-      <div style={{ fontSize: theme.bodyFontSize - 0.5, color: '#444' }}>{secondaryText}</div>
+      {secondaryText ? <div style={{ fontSize: theme.bodyFontSize - 0.5, color: '#444' }}>{secondaryText}</div> : null}
       {edu.gpa && (
         <div style={{ fontSize: theme.bodyFontSize - 1, color: '#666' }}>GPA: {edu.gpa}</div>
       )}

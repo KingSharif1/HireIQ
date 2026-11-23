@@ -144,7 +144,7 @@ export function EmailInbox({
       </header>
 
       {threads.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-white px-5 py-12 text-center dark:bg-card">
+        <div className="rounded-xl border border-dashed border-border bg-card px-5 py-12 text-center">
           <Mail className="mx-auto h-7 w-7 text-muted-foreground" aria-hidden="true" />
           <p className="mt-3 text-sm font-medium text-foreground">No tracked emails yet</p>
           <p className="mx-auto mt-1 max-w-md text-xs leading-5 text-muted-foreground">
@@ -154,7 +154,7 @@ export function EmailInbox({
           </p>
         </div>
       ) : (
-        <div className="grid overflow-hidden rounded-xl border border-border bg-white dark:bg-card lg:grid-cols-[minmax(15rem,0.8fr)_minmax(0,1.7fr)]">
+        <div className="grid overflow-hidden rounded-xl border border-border bg-card lg:grid-cols-[minmax(15rem,0.8fr)_minmax(0,1.7fr)]">
           <nav className="border-b border-border lg:border-b-0 lg:border-r" aria-label="Email threads">
             <ul className="max-h-80 overflow-y-auto lg:max-h-[38rem]">
               {threads.map(thread => {

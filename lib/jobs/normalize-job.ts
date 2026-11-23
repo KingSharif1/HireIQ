@@ -1,6 +1,7 @@
 import type { JobExtractedData } from '@/types'
 import { stripAtsChrome } from '@/lib/jobs/description'
 import { resolveSeniority } from '@/lib/jobs/seniority'
+import { displayCompanyName } from '@/lib/jobs/company'
 
 const MAX_SUMMARY = 600
 const MAX_RESP = 280
@@ -84,4 +85,27 @@ function normalizeDomainTags(tags: string[] | undefined): string[] | undefined {
     ),
   ].slice(0, 8)
   return cleaned.length ? cleaned : undefined
+}
+
+/**
+ * Re-apply level + company hygiene to stored requirements before tailoring.
+ * Jobs saved before those fixes can still carry "intern" for a new-grad role
+ * or a raw ATS board token as the company; the model must never see either.
+ */
+export function resolveStoredJobFacts(
+  extracted: JobExtractedData,
+  row: { title?: string | null; description?: string | null; company?: string | null; apply_url?: string | null },
+): JobExtractedData {
+  const title = extracted.title || row.title || ''
+  return {
+    ...extracted,
+    title,
+    company: displayCompanyName(extracted.company || row.company, row.apply_url) || row.company || extracted.company,
+    seniority: resolveSeniority({
+      seniority: extracted.seniority,
+      title,
+      summary: extracted.summary,
+      description: row.description,
+    }),
+  }
 }

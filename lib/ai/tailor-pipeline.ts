@@ -102,7 +102,7 @@ export async function runTailorPipeline(input: PipelineInput): Promise<TailorPip
   let current: StructuredResume
   try {
     current = parseResumeMarkdown(genText)
-    if (!current.summary && current.experience.length === 0) {
+    if (!isUsableRewrite(current)) {
       throw new Error('Markdown rewrite missing summary and experience')
     }
   } catch (firstErr) {
@@ -120,6 +120,10 @@ CRITICAL RETRY: Your previous reply was not usable (empty, broken markdown, or J
       input.usageMetadata
     )
     current = parseResumeMarkdown(genText)
+    // Never save a hollow draft: if the retry is unusable too, fail the run so the UI offers a retry.
+    if (!isUsableRewrite(current)) {
+      throw new Error('Markdown rewrite missing summary and experience after retry')
+    }
   }
   // Deterministic polish: dedupe skills, fix "Degree in Field in Field" — never invents.
   current = polishStructuredForExport(current)
@@ -152,4 +156,9 @@ CRITICAL RETRY: Your previous reply was not usable (empty, broken markdown, or J
       critiques: [],
     },
   }
+}
+
+/** A rewrite with no summary and no experience is a broken reply, not a resume. */
+export function isUsableRewrite(resume: StructuredResume): boolean {
+  return Boolean(resume.summary?.trim()) || resume.experience.length > 0
 }

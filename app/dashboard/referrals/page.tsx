@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { V2_SURFACES_ENABLED } from '@/lib/features'
 import { createClient } from '@/lib/supabase/server'
 import { Suspense } from 'react'
 import { ReferralsPage } from '@/components/referrals/ReferralsPage'
@@ -7,6 +8,7 @@ import type { LinkedInConnection, ReferralStage } from '@/types'
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardReferralsPage() {
+  if (!V2_SURFACES_ENABLED) redirect('/dashboard/tracker')
   const supabase = await createClient()
   const {
     data: { user },

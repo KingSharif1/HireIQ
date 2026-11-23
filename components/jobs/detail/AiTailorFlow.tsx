@@ -153,7 +153,9 @@ export function AiTailorFlow({
   const attachOrStart = useCallback(async () => {
     try {
       const existing = await fetchTailorRun(jobId)
-      if (existing.run && existing.run.status !== 'cancelled') {
+      // Opening the tailor after a failure means "try again": start fresh instead of
+      // re-showing the old error.
+      if (existing.run && existing.run.status !== 'cancelled' && existing.run.status !== 'failed') {
         applyRun(existing.run, existing.tailored)
         return
       }

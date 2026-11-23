@@ -50,6 +50,12 @@ describe('ghosted + next step', () => {
 
   it('gives one next step per status', () => {
     expect(nextStepFor({ status: 'bookmarked', appliedAt: null }, NOW)).toMatch(/Tailor/)
+    expect(nextStepFor({ status: 'bookmarked', appliedAt: null, hasResume: true }, NOW)).toBe(
+      'Apply with your tailored resume',
+    )
+    expect(nextStepFor({ status: 'bookmarked', appliedAt: null, tailorFailed: true }, NOW)).toBe(
+      'Retry the tailor, then apply',
+    )
     expect(nextStepFor({ status: 'applied', appliedAt: daysAgo(2) }, NOW)).toBe('Wait for a reply')
     expect(nextStepFor({ status: 'applied', appliedAt: daysAgo(6), followUpAt: daysAgo(1) }, NOW)).toBe('Follow-up due')
     expect(nextStepFor({ status: 'applied', appliedAt: daysAgo(2), hasReply: true }, NOW)).toMatch(/recruiter/)

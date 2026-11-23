@@ -5,6 +5,7 @@ import {
 import type { StructuredResume } from '@/types'
 import { normalizeResumeForDisplay } from '@/lib/format/normalize'
 import {
+  educationParts,
   formatDateRange,
   formatEducationLine,
   contactHeaderLines,
@@ -392,18 +393,15 @@ function EducationEntry({
 }) {
   const { showBy, layout } = theme.educationSettings
   const dateStr = formatDateRange(edu.startDate, edu.endDate)
-  const degreeText = formatEducationLine(edu)
-
-  const primaryText = showBy === 'degree-first' ? degreeText : edu.institution
-  const secondaryText = showBy === 'degree-first' ? edu.institution : degreeText
+  const { primary: primaryText, secondary: secondaryText } = educationParts(edu, showBy)
 
   if (layout === 'inline') {
     return (
       <View style={styles.eduRow}>
         <Text style={styles.inlineEduText}>
           <Text style={styles.jobTitle}>{primaryText}</Text>
-          {', '}
-          <Text style={styles.companyName}>{secondaryText}</Text>
+          {secondaryText ? ', ' : ''}
+          {secondaryText ? <Text style={styles.companyName}>{secondaryText}</Text> : null}
         </Text>
         <Text style={styles.dateText}>{dateStr}</Text>
       </View>
@@ -414,7 +412,7 @@ function EducationEntry({
     <View style={styles.eduRow}>
       <View>
         <Text style={styles.jobTitle}>{primaryText}</Text>
-        <Text style={styles.companyName}>{secondaryText}</Text>
+        {secondaryText ? <Text style={styles.companyName}>{secondaryText}</Text> : null}
         {edu.gpa ? <Text style={styles.dateText}>GPA: {edu.gpa}</Text> : null}
       </View>
       <Text style={styles.dateText}>{dateStr}</Text>

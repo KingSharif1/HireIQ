@@ -16,6 +16,7 @@ import { isLinkedInJobUrl, LINKEDIN_PASTE_MESSAGE } from '@/lib/jobs/url-detect'
 import type { JobExtractedData } from '@/types'
 import { ApplyEaseBadge } from '@/components/jobs/ApplyEaseBadge'
 import { BoardDiscoveryCard } from '@/components/jobs/BoardDiscoveryCard'
+import { V2_SURFACES_ENABLED } from '@/lib/features'
 import { AiModelHint } from '@/components/ai/AiModelHint'
 import { AiFlowLoader } from '@/components/ai/AiFlowLoader'
 import { readNdjsonResponse } from '@/lib/ai/ndjson-stream'
@@ -236,17 +237,27 @@ export default function JobsPage() {
         <Card className="mb-4">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">{extractedData.title || 'Job Role'}</CardTitle>
-            <CardDescription>{extractedData.company} · {extractedData.work_type} · {extractedData.seniority}</CardDescription>
+            <CardDescription>
+              {[
+                extractedData.company,
+                humanizeFact(extractedData.work_type),
+                humanizeFact(extractedData.seniority),
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {extractedData.summary && (
               <p className="text-sm text-muted-foreground">{extractedData.summary}</p>
             )}
-            <ApplyEaseBadge
-              ease={extractedData.apply_ease}
-              reason={extractedData.apply_ease_reason}
-              className="mb-1"
-            />
+            {V2_SURFACES_ENABLED ? (
+              <ApplyEaseBadge
+                ease={extractedData.apply_ease}
+                reason={extractedData.apply_ease_reason}
+                className="mb-1"
+              />
+            ) : null}
 
             {fetchConfidence === 'low' ? (
               <div className="flex items-start gap-2 bg-brand-amber/10 border border-brand-amber/20 rounded-lg p-3">
@@ -325,7 +336,7 @@ export default function JobsPage() {
         </div>
       </div>
 
-      <BoardDiscoveryCard onImported={() => router.refresh()} />
+      {V2_SURFACES_ENABLED ? <BoardDiscoveryCard onImported={() => router.refresh()} /> : null}
 
       <Tabs value={activeTab} onValueChange={v => setActiveTab(v as 'url' | 'paste')}>
         <TabsList className="w-full mb-4">
@@ -411,4 +422,10 @@ export default function JobsPage() {
       </Tabs>
     </div>
   )
+}
+
+/** "new_grad" → "New grad", "onsite" → "Onsite". */
+function humanizeFact(value: string | null | undefined): string {
+  const spaced = (value ?? '').replace(/[_-]+/g, ' ').trim()
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1)
 }

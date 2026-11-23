@@ -18,7 +18,7 @@ export function OutreachList({ items }: OutreachListProps) {
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-        <div className="w-12 h-12 rounded-2xl border border-border bg-white dark:bg-card flex items-center justify-center mb-4">
+        <div className="w-12 h-12 rounded-2xl border border-border bg-card flex items-center justify-center mb-4">
           <Inbox className="w-5 h-5 text-muted-foreground" strokeWidth={1.5} />
         </div>
         <h3 className="font-semibold text-foreground">No outreach yet</h3>
@@ -31,7 +31,7 @@ export function OutreachList({ items }: OutreachListProps) {
   }
 
   return (
-    <ul className="divide-y divide-border bg-white dark:bg-card min-h-full">
+    <ul className="divide-y divide-border bg-card min-h-full">
       {items.map(item => (
         <li key={`${item.applicationId ?? 'inbox'}-${item.id}`}>
           <Link

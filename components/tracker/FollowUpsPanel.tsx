@@ -49,7 +49,7 @@ export function FollowUpsPanel({ initialDue }: { initialDue: FollowUpItemView[] 
   }
 
   return (
-    <section className="mb-4 rounded-xl border border-amber-300/60 bg-amber-50/60 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
+    <section className="mt-3 rounded-xl border border-brand-amber/30 bg-brand-amber/10 p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold">
           {items.length} follow-up{items.length === 1 ? '' : 's'} due

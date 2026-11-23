@@ -7,7 +7,7 @@ import type {
   TailoringNote,
 } from '@/types'
 import { normalizeStructuredResume } from '@/lib/ai/tailor-engine'
-import { cleanDateToken, stripEdgeSeparators } from '@/lib/export/format'
+import { cleanDateToken, stripEdgeSeparators, stripMarkdownInline } from '@/lib/export/format'
 
 /** Stable HireIQ resume markdown — model wire format, not storage. */
 
@@ -26,8 +26,9 @@ function parseBullets(lines: string[], fallbackPrefix: string): ParsedBullets {
   const pairs: Array<[string, string | null]> = lines.map((l) => {
     const text = l.replace(/^[-*•]\s+/, '').trim()
     const m = text.match(ID_RE)
-    if (m) return [text.replace(ID_RE, '').trim(), m[1]]
-    return [text, null]
+    // Markdown is the model wire format only — never store literal **bold** markers.
+    if (m) return [stripMarkdownInline(text.replace(ID_RE, '')).trim(), m[1]]
+    return [stripMarkdownInline(text).trim(), null]
   })
   const kept = pairs.filter(([t]) => Boolean(t))
   return {
@@ -250,7 +251,14 @@ function parseEducationBlock(block: string, index: number): ResumeEducation {
   const head = lines[0] ?? ''
   const id = head.match(ID_RE)?.[1] || `edu_${index + 1}`
   const headClean = head.replace(ID_RE, '').replace(/^###\s*/, '').trim()
-  const bits = headClean.split('·').map(s => stripEdgeSeparators(s))
+  // Writer drops empty slots, so "Degree · Institution" (no field) has two parts.
+  const bits = headClean.split('·').map(s => stripMarkdownInline(stripEdgeSeparators(s))).filter(Boolean)
+  const [degree, field, institution] =
+    bits.length >= 3
+      ? [bits[0]!, bits.slice(1, -1).join(' · '), bits[bits.length - 1]!]
+      : bits.length === 2
+        ? [bits[0]!, '', bits[1]!]
+        : [bits[0] ?? '', '', '']
   const dates = lines.find(l => /\d{4}/.test(l) && !/^gpa:/i.test(l) && !l.startsWith('###'))
   const dateParts = (dates || '')
     .split(/\s*(?:–|—)\s*|\s+-\s+/)
@@ -259,9 +267,9 @@ function parseEducationBlock(block: string, index: number): ResumeEducation {
   const gpa = lines.find(l => /^gpa:/i.test(l))?.replace(/^gpa:\s*/i, '') || ''
   return {
     id,
-    degree: bits[0] || '',
-    field: bits[1] || '',
-    institution: bits[2] || bits[1] || '',
+    degree,
+    field,
+    institution,
     startDate: dateParts[0] || '',
     endDate: dateParts[1] || '',
     gpa,

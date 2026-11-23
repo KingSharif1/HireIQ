@@ -5,6 +5,8 @@ import { ApplicationsTracker } from '@/components/jobs/ApplicationsTracker'
 import { FollowUpsPanel } from '@/components/tracker/FollowUpsPanel'
 import { JobHuntPulse } from '@/components/tracker/JobHuntPulse'
 import { nextStepFor } from '@/lib/applications/pulse'
+import { displayCompanyName } from '@/lib/jobs/company'
+import { visibleTailorRunStatus } from '@/lib/tailor/run-types'
 import { computeFollowUps, followUpDraft } from '@/lib/applications/follow-ups'
 import type { Application, ApplicationTrackerItem, Job } from '@/types'
 
@@ -62,10 +64,10 @@ export default async function TrackerPage({
       .limit(50),
     supabase
       .from('tailor_runs')
-      .select('job_id, status')
+      .select('job_id, status, updated_at')
       .eq('user_id', user.id)
-      .in('status', ['analyzing_gaps', 'awaiting_answers', 'generating', 'needs_review'])
-      .order('updated_at', { ascending: false }),
+      .order('updated_at', { ascending: false })
+      .limit(500),
     supabase
       .from('inbound_email_events')
       .select('application_id')
@@ -85,12 +87,19 @@ export default async function TrackerPage({
   for (const row of (tailoredRes.data ?? []) as TailoredRow[]) {
     if (!latestByJob.has(row.job_id)) latestByJob.set(row.job_id, row)
   }
+  const statusByJob = new Map(apps.map((a) => [a.job_id, a.status] as const))
   const runByJob = new Map<string, ApplicationTrackerItem['tailorRunStatus']>()
-  for (const row of (runsRes.data ?? []) as Array<{
-    job_id: string
-    status: NonNullable<ApplicationTrackerItem['tailorRunStatus']>
-  }>) {
-    if (!runByJob.has(row.job_id)) runByJob.set(row.job_id, row.status)
+  // Latest run per job; failed or silently-stuck runs show as "Couldn't finish" with a retry.
+  const seenRunJobs = new Set<string>()
+  for (const row of (runsRes.data ?? []) as Array<{ job_id: string; status: string; updated_at: string }>) {
+    if (seenRunJobs.has(row.job_id)) continue
+    seenRunJobs.add(row.job_id)
+    const latestResume = latestByJob.get(row.job_id)
+    const visible = visibleTailorRunStatus(row, {
+      latestResumeAt: latestResume?.created_at,
+      applicationStarted: (statusByJob.get(row.job_id) ?? 'bookmarked') !== 'bookmarked',
+    })
+    if (visible) runByJob.set(row.job_id, visible)
   }
 
   const items: ApplicationTrackerItem[] = apps
@@ -102,7 +111,7 @@ export default async function TrackerPage({
         ats_account_password: a.ats_account_password
           ? readStoredSecret(a.ats_account_password)
           : a.ats_account_password,
-        job: a.job,
+        job: { ...a.job, company: displayCompanyName(a.job.company, a.job.apply_url) },
         score: latest?.tailored_score ?? latest?.match_score ?? null,
         tailored: Boolean(latest),
         tailoredResumeId: latest?.id ?? null,
@@ -122,6 +131,8 @@ export default async function TrackerPage({
       appliedAt: item.applied_at,
       followUpAt: item.follow_up_at,
       hasReply: repliedIds.has(item.id),
+      hasResume: item.tailored,
+      tailorFailed: item.tailorRunStatus === 'failed',
     })
   }
   const pulseItems = items.map((item) => ({
@@ -152,17 +163,21 @@ export default async function TrackerPage({
   }))
 
   return (
-    <>
-      <JobHuntPulse
-        items={pulseItems}
-        lastEmailAt={(lastEmailRes.data as { created_at: string } | null)?.created_at ?? null}
-      />
-      <FollowUpsPanel initialDue={dueFollowUps} />
-      <ApplicationsTracker
-        initialItems={items}
-        initialSurface={view === 'outreach' ? 'outreach' : 'applications'}
-        unmatchedInbound={inboundRes.data ?? []}
-      />
-    </>
+    <ApplicationsTracker
+      initialItems={items}
+      initialSurface={view === 'outreach' ? 'outreach' : 'applications'}
+      unmatchedInbound={inboundRes.data ?? []}
+      summary={
+        items.length > 0 ? (
+          <>
+            <JobHuntPulse
+              items={pulseItems}
+              lastEmailAt={(lastEmailRes.data as { created_at: string } | null)?.created_at ?? null}
+            />
+            <FollowUpsPanel initialDue={dueFollowUps} />
+          </>
+        ) : null
+      }
+    />
   )
 }

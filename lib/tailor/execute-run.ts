@@ -1,4 +1,5 @@
 import { streamAiTextToCompletion } from '@/lib/ai/complete'
+import { resolveStoredJobFacts } from '@/lib/jobs/normalize-job'
 import { resolveAiRuntime } from '@/lib/ai/runtime'
 import { withAiOnce } from '@/lib/ai/once'
 import { calculateATSScore } from '@/lib/scoring/ats-scorer'
@@ -97,7 +98,7 @@ export async function executeGapPhase(runId: string, userId: string): Promise<vo
 
   const [master, jobRes] = await Promise.all([
     getMasterResumeContext(admin, userId, null),
-    admin.from('jobs').select('extracted_data').eq('id', run.job_id).eq('user_id', userId).single(),
+    admin.from('jobs').select('extracted_data, title, description, company, apply_url').eq('id', run.job_id).eq('user_id', userId).single(),
   ])
 
   if ('error' in master) {
@@ -105,6 +106,8 @@ export async function executeGapPhase(runId: string, userId: string): Promise<vo
     return
   }
   const jobData = jobRes.data?.extracted_data
+    ? resolveStoredJobFacts(jobRes.data.extracted_data, jobRes.data)
+    : null
   if (!jobData) {
     await failRun(runId, log, 'Job missing extracted requirements')
     return
@@ -169,7 +172,7 @@ export async function executeGeneratePhase(
 
   const [master, jobRes, profileRes, enhancementsRes, repoIntelligence] = await Promise.all([
     getMasterResumeContext(admin, userId, null),
-    admin.from('jobs').select('extracted_data').eq('id', run.job_id).eq('user_id', userId).single(),
+    admin.from('jobs').select('extracted_data, title, description, company, apply_url').eq('id', run.job_id).eq('user_id', userId).single(),
     admin.from('profiles').select('github_data').eq('id', userId).maybeSingle(),
     admin
       .from('resume_enhancements')
@@ -184,6 +187,8 @@ export async function executeGeneratePhase(
     return
   }
   const job = jobRes.data?.extracted_data
+    ? resolveStoredJobFacts(jobRes.data.extracted_data, jobRes.data)
+    : null
   if (!job) {
     await failRun(runId, log, 'Job not found')
     return

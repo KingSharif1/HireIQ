@@ -17,6 +17,10 @@ export interface PulseItem {
   appliedAt: string | null
   followUpAt?: string | null
   hasReply?: boolean
+  /** A tailored resume already exists for this job. */
+  hasResume?: boolean
+  /** The latest tailor run failed and hasn't been retried. */
+  tailorFailed?: boolean
 }
 
 export interface HuntPulse {
@@ -66,7 +70,8 @@ export function isGhosted(item: PulseItem, now: Date = new Date()): boolean {
 export function nextStepFor(item: PulseItem, now: Date = new Date()): string {
   switch (item.status) {
     case 'bookmarked':
-      return 'Tailor resume, then apply'
+      if (item.tailorFailed) return 'Retry the tailor, then apply'
+      return item.hasResume ? 'Apply with your tailored resume' : 'Tailor resume, then apply'
     case 'applying':
       return 'Finish and submit the application'
     case 'applied': {

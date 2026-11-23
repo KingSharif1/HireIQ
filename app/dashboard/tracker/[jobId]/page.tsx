@@ -6,6 +6,8 @@ import {
   type JobDetailTailoredVersion,
 } from '@/components/jobs/JobDetailPage'
 import { readStoredSecret } from '@/lib/crypto/secret'
+import { displayCompanyName } from '@/lib/jobs/company'
+import { visibleTailorRunStatus } from '@/lib/tailor/run-types'
 import { emptyProfileData } from '@/lib/profile/data'
 import { normalizeProfileData } from '@/lib/profile/provenance'
 import type {
@@ -95,10 +97,9 @@ export default async function TrackerJobDetailPage({
       .order('version', { ascending: false }),
     supabase
       .from('tailor_runs')
-      .select('status')
+      .select('status, error, updated_at')
       .eq('user_id', user.id)
       .eq('job_id', jobId)
-      .in('status', ['analyzing_gaps', 'awaiting_answers', 'generating', 'needs_review'])
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
@@ -126,13 +127,25 @@ export default async function TrackerJobDetailPage({
     ats_account_password: app.ats_account_password
       ? readStoredSecret(app.ats_account_password)
       : app.ats_account_password,
-    job: app.job,
+    job: { ...app.job, company: displayCompanyName(app.job.company, app.job.apply_url) },
     score,
     tailored: rawVersions.length > 0,
     tailoredResumeId: latest?.id ?? null,
-    tailorRunStatus:
-      (runRes.data?.status as ApplicationTrackerItem['tailorRunStatus']) ?? null,
+    tailorRunStatus: visibleTailorRunStatus(
+      runRes.data as { status: string; updated_at: string } | null,
+      {
+        latestResumeAt: latest?.created_at,
+        applicationStarted: app.status !== 'bookmarked',
+      },
+    ),
   }
+  const runRow = runRes.data as { status?: string; error?: string | null } | null
+  const tailorRunError =
+    item.tailorRunStatus === 'failed'
+      ? (runRow?.error ??
+        // A busy run that stopped updating never wrote an error: say what happened.
+        (runRow?.status !== 'failed' ? 'Tailor stopped before it finished' : null))
+      : null
 
   const events = (eventsRes.data ?? []) as ApplicationEvent[]
 
@@ -168,6 +181,7 @@ export default async function TrackerJobDetailPage({
         emailTrackingEnabled={emailTrackingEnabled}
         applyEmail={applyEmail}
         applyWorkerReady={applyWorkerReady}
+        tailorRunError={tailorRunError}
       />
     </Suspense>
   )

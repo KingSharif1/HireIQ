@@ -112,3 +112,18 @@ describe('buildOutreachFeed', () => {
     expect(feed[0].preview).toContain('Yoooo')
   })
 })
+
+describe('buildJobTimeline', () => {
+  it('merges resume versions into the activity feed, newest first', async () => {
+    const { buildJobTimeline } = await import('@/lib/applications/activity')
+    const timeline = buildJobTimeline(
+      [
+        { id: 'a', title: 'Bookmarked → Applied', at: '2026-11-02T10:00:00Z', kind: 'status' },
+        { id: 'b', title: 'Interview invite', at: '2026-11-05T10:00:00Z', kind: 'email' },
+      ],
+      [{ id: 'r1', version: 1, created_at: '2026-11-01T10:00:00Z', tailored_score: 78, match_score: 60 }],
+    )
+    expect(timeline.map((t) => t.id)).toEqual(['b', 'a', 'resume-r1'])
+    expect(timeline[2]).toMatchObject({ kind: 'resume', title: 'Tailored resume v1 created', detail: 'Match 78%' })
+  })
+})
