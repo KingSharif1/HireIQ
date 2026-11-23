@@ -59,8 +59,12 @@ export function formatEducationLine(edu: Pick<ResumeEducation, 'degree' | 'field
 export function formatDateRange(
   startDate: string | null | undefined,
   endDate: string | null | undefined,
+  current?: boolean,
 ): string {
-  return [cleanDateToken(startDate), cleanDateToken(endDate)].filter(Boolean).join(' – ')
+  const start = cleanDateToken(startDate)
+  const end = cleanDateToken(endDate)
+  // A current role with no end date reads "06/2025 – Present", not a bare start.
+  return [start, end || (current && start ? 'Present' : '')].filter(Boolean).join(' – ')
 }
 
 /**

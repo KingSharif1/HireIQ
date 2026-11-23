@@ -8,6 +8,7 @@ import {
   mergeResumeTheme,
   type ResumeThemeOverride,
 } from '@/lib/export/theme'
+import { renderResumePdfFitted } from '@/lib/export/render-fitted'
 import type { ResumeInclusion, StructuredResume } from '@/types'
 import React from 'react'
 
@@ -71,9 +72,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const buffer = await renderToBuffer(
-      React.createElement(ResumePDF, { data: exportData, theme }) as any
-    )
+    const buffer = await renderResumePdfFitted(exportData, theme)
     return new NextResponse(new Uint8Array(buffer as Buffer), {
       headers: {
         'Content-Type': 'application/pdf',
@@ -157,9 +156,7 @@ export async function POST(request: Request) {
     (themeOverride ?? tailored.theme_override ?? null) as ResumeThemeOverride | null
   )
 
-  const buffer = await renderToBuffer(
-    React.createElement(ResumePDF, { data: exportData, theme }) as any
-  )
+  const buffer = await renderResumePdfFitted(exportData, theme)
 
   return new NextResponse(new Uint8Array(buffer as Buffer), {
     headers: {

@@ -107,7 +107,7 @@ export async function generateDocx(rawData: StructuredResume): Promise<Buffer> {
 
       children.push(new Paragraph({
         children: [new TextRun({
-          text: formatDateRange(exp.startDate, exp.endDate),
+          text: formatDateRange(exp.startDate, exp.endDate, exp.current),
           size: 18, italics: true, color: '777777',
         })],
         spacing: { after: 80 },

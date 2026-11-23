@@ -494,11 +494,12 @@ function DocumentsPreview({
 }
 
 const BREAKDOWN_LABELS: { key: keyof ATSScore['breakdown']; label: string }[] = [
-  { key: 'keywords', label: 'Keywords' },
   { key: 'skills', label: 'Skills' },
+  { key: 'keywords', label: 'Keywords' },
+  { key: 'level', label: 'Level fit' },
   { key: 'experience', label: 'Experience' },
-  { key: 'format', label: 'Format' },
   { key: 'education', label: 'Education' },
+  { key: 'format', label: 'Resume writing (not in match)' },
 ]
 
 function MatchScoreMenu({
@@ -532,6 +533,7 @@ function MatchScoreMenu({
           <ul className="mt-3 space-y-2">
             {BREAKDOWN_LABELS.map(item => {
               const value = analysis.breakdown[item.key]
+              if (value === undefined) return null
               const weak = value < 60
               return (
                 <li key={item.key}>

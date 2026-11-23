@@ -9,6 +9,8 @@ interface MatchScoreProps {
   compact?: boolean
 }
 
+const BREAKDOWN_NAMES: Record<string, string> = { level: 'level fit', format: 'writing' }
+
 export function MatchScore({ score, compact }: MatchScoreProps) {
   const safeTotal = Number.isFinite(score.total)
     ? Math.max(0, Math.min(100, Math.round(score.total)))
@@ -57,7 +59,7 @@ export function MatchScore({ score, compact }: MatchScoreProps) {
                 const safeVal = Number.isFinite(val) ? val : 0
                 return (
                 <div key={key} className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground w-20 capitalize">{key}</span>
+                  <span className="text-xs text-muted-foreground w-20 capitalize">{BREAKDOWN_NAMES[key] ?? key}</span>
                   <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-700"
@@ -71,6 +73,12 @@ export function MatchScore({ score, compact }: MatchScoreProps) {
           )}
         </div>
       </div>
+
+      {!compact && score.cap ? (
+        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs">
+          Score held at {score.cap.limit}. {score.cap.reason}.
+        </p>
+      ) : null}
 
       {!compact && (
         <>

@@ -96,6 +96,12 @@ describe('polishStructuredForExport', () => {
 })
 
 describe('formatDateRange', () => {
+  it('shows Present for a current role with no end date', () => {
+    expect(formatDateRange('06/2025', '', true)).toBe('06/2025 – Present')
+    expect(formatDateRange('', '', true)).toBe('')
+    expect(formatDateRange('06/2025', '', false)).toBe('06/2025')
+  })
+
   it('joins start and end with an en dash', () => {
     expect(formatDateRange('09/2022', '10/2023')).toBe('09/2022 – 10/2023')
   })

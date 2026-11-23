@@ -126,9 +126,14 @@ export interface ATSScoreBreakdown {
   keywords: number
   skills: number
   experience: number
+  /** Resume writing quality. Reported, but not part of the job-fit total. */
   format: number
   education: number
+  /** Seniority match between the role and the candidate. */
+  level?: number
 }
+
+export type SkillEvidence = 'work' | 'project' | 'listed'
 
 export interface ATSScore {
   total: number
@@ -138,6 +143,16 @@ export interface ATSScore {
   matched_skills: string[]
   missing_skills: string[]
   recommendations: string[]
+  /** Required skills with no evidence at all on the resume. */
+  must_have_missing?: string[]
+  /** Matched skills that only appear in the skills list, never in a role or project. */
+  listed_only?: string[]
+  /** Where each matched skill is demonstrated. */
+  evidence?: Record<string, SkillEvidence>
+  /** Ceiling applied to the total, and why. */
+  cap?: { limit: number; reason: string } | null
+  /** How much job data the score rests on. */
+  confidence?: 'high' | 'medium' | 'low'
 }
 
 export interface GapQuestion {
